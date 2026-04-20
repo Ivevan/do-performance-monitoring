@@ -6,13 +6,19 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { ArrowRight } from "lucide-react";
 
-const LandingPage = () => {
+const SignupPage = () => {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Login submitted:", { email });
+    if (password !== confirmPassword) {
+      console.warn("Passwords do not match");
+      return;
+    }
+    console.log("Signup submitted:", { fullName, email });
   };
 
   return (
@@ -23,7 +29,6 @@ const LandingPage = () => {
           <div className="absolute top-20 left-20 h-72 w-72 rounded-full bg-dost-yellow blur-3xl" />
           <div className="absolute bottom-20 right-20 h-96 w-96 rounded-full bg-dost-red blur-3xl" />
         </div>
-        {/* Yellow accent stripe */}
         <div className="absolute left-0 top-0 h-full w-1.5 bg-dost-yellow" aria-hidden="true" />
 
         <div className="relative flex flex-col items-center text-center space-y-6 max-w-md">
@@ -54,7 +59,6 @@ const LandingPage = () => {
           <div className="absolute -top-10 -left-10 h-48 w-48 rounded-full bg-dost-yellow blur-3xl" />
           <div className="absolute -bottom-10 -right-10 h-56 w-56 rounded-full bg-dost-red blur-3xl" />
         </div>
-        {/* Bottom yellow accent stripe */}
         <div className="absolute left-0 bottom-0 h-1.5 w-full bg-dost-yellow" aria-hidden="true" />
 
         <div className="relative flex flex-col items-center text-center space-y-3">
@@ -79,20 +83,34 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Right: Login Form */}
+      {/* Right: Signup Form */}
       <section className="flex items-start lg:items-center justify-center px-5 py-8 sm:px-8 lg:p-16">
         <div className="w-full max-w-md space-y-6 lg:space-y-8">
           <div className="space-y-2 hidden lg:block">
             <h2 className="text-4xl font-bold tracking-tight text-foreground">
-              Welcome back
+              Create your account
             </h2>
             <p className="text-muted-foreground">
-              Sign in to your account to continue.
+              Join DOST XI Performance Monitoring.
             </p>
           </div>
 
           <Card className="p-5 sm:p-6 shadow-sm border-border/60">
             <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full name</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Juan Dela Cruz"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -109,41 +127,49 @@ const LandingPage = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <a
-                    href="#"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    Forgot?
-                  </a>
-                </div>
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete="new-password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={8}
+                  className="h-11"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={8}
                   className="h-11"
                 />
               </div>
 
               <Button type="submit" className="w-full group h-11">
-                Sign in
+                Create account
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </form>
           </Card>
 
           <p className="text-sm text-center text-muted-foreground">
-            Don't have an account?{" "}
+            Already have an account?{" "}
             <Link
-              to="/signup"
+              to="/"
               className="font-semibold text-dost-red hover:underline underline-offset-4"
             >
-              Create one
+              Sign in
             </Link>
           </p>
         </div>
@@ -152,4 +178,4 @@ const LandingPage = () => {
   );
 };
 
-export default LandingPage;
+export default SignupPage;
