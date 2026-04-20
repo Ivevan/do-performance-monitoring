@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Sparkles, Shield, Zap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const LandingPage = () => {
   const [email, setEmail] = useState("");
