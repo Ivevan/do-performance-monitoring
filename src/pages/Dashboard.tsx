@@ -232,7 +232,7 @@ const Dashboard = () => {
                       color: "hsl(var(--foreground))",
                     }}
                   />
-                  <Bar dataKey="target" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="target" fill="hsl(var(--dost-blue))" fillOpacity={0.25} radius={[4, 4, 0, 0]} />
                   <Bar dataKey="performance" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
