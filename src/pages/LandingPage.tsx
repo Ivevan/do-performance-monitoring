@@ -150,7 +150,9 @@ const LandingPage = () => {
           </p>
         </div>
       </section>
-    </main>
+      </main>
+      <footer aria-hidden="true" className="h-0 shrink-0" />
+    </div>
   );
 };
 
