@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, Sparkles, Shield, Zap } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const LandingPage = () => {
   const [email, setEmail] = useState("");
@@ -16,19 +16,42 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      {/* Left: Login Form */}
+      {/* Left: Branding */}
+      <section className="hidden lg:flex relative overflow-hidden bg-primary text-primary-foreground p-16 items-center justify-center">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-20 left-20 h-72 w-72 rounded-full bg-primary-foreground blur-3xl" />
+          <div className="absolute bottom-20 right-20 h-96 w-96 rounded-full bg-primary-foreground blur-3xl" />
+        </div>
+
+        <div className="relative flex flex-col items-center text-center space-y-6 max-w-md">
+          <img
+            src="/DOST_seal.ico.png"
+            alt="DOST XI official seal"
+            className="h-48 w-48 object-contain drop-shadow-2xl"
+          />
+          <div className="space-y-2">
+            <h1 className="text-5xl font-bold tracking-tight">DOST XI</h1>
+            <p className="text-lg text-primary-foreground/80">
+              Do Performance Monitoring
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Right: Login Form */}
       <section className="flex items-center justify-center p-8 lg:p-16">
         <div className="w-full max-w-md space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-primary">
-              <Sparkles className="h-5 w-5" />
-              <span className="font-semibold tracking-tight">Acme</span>
-            </div>
-            <h1 className="text-4xl font-bold tracking-tight text-foreground">
+          <div className="space-y-2 lg:hidden flex flex-col items-center text-center">
+            <img src="/DOST_seal.ico.png" alt="DOST XI seal" className="h-20 w-20 object-contain" />
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">DOST XI</h1>
+            <p className="text-sm text-muted-foreground">Do Performance Monitoring</p>
+          </div>
+          <div className="space-y-2 hidden lg:block">
+            <h2 className="text-4xl font-bold tracking-tight text-foreground">
               Welcome back
-            </h1>
+            </h2>
             <p className="text-muted-foreground">
-              Sign in to your account to continue your journey.
+              Sign in to your account to continue.
             </p>
           </div>
 
@@ -79,44 +102,6 @@ const LandingPage = () => {
               Create one
             </a>
           </p>
-        </div>
-      </section>
-
-      {/* Right: Hero/Marketing */}
-      <section className="hidden lg:flex relative overflow-hidden bg-primary text-primary-foreground p-16 items-center">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-20 left-20 h-72 w-72 rounded-full bg-primary-foreground blur-3xl" />
-          <div className="absolute bottom-20 right-20 h-96 w-96 rounded-full bg-primary-foreground blur-3xl" />
-        </div>
-
-        <div className="relative space-y-10 max-w-lg">
-          <div className="space-y-4">
-            <h2 className="text-5xl font-bold leading-tight tracking-tight">
-              Build faster. Ship smarter.
-            </h2>
-            <p className="text-lg text-primary-foreground/80">
-              The all-in-one platform trusted by thousands of teams to bring
-              ideas to life — beautifully.
-            </p>
-          </div>
-
-          <div className="space-y-5">
-            {[
-              { icon: Zap, title: "Lightning fast", desc: "Optimized for performance from day one." },
-              { icon: Shield, title: "Secure by default", desc: "Enterprise-grade security built-in." },
-              { icon: Sparkles, title: "Delightful UX", desc: "Crafted with attention to every detail." },
-            ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="flex gap-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-foreground/10 backdrop-blur">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">{title}</h3>
-                  <p className="text-sm text-primary-foreground/70">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
     </div>
