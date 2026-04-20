@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const LandingPage = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [submitting, setSubmitting] = useState(false);
   const caps = useCapsLock();
+  const navigate = useNavigate();
 
   const validateField = (field: "email" | "password", value: string) => {
     const result = loginSchema.safeParse({
@@ -46,7 +47,10 @@ const LandingPage = () => {
       return;
     }
     setSubmitting(true);
-    setTimeout(() => setSubmitting(false), 800);
+    setTimeout(() => {
+      setSubmitting(false);
+      navigate("/dashboard");
+    }, 800);
   };
 
   return (
