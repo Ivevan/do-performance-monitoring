@@ -4,10 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 
 const stats = [
-  { label: "Active Projects", value: "24", icon: Activity, accent: "text-dost-blue" },
-  { label: "Performance", value: "92%", icon: TrendingUp, accent: "text-emerald-500" },
-  { label: "Team Members", value: "138", icon: Users, accent: "text-dost-red" },
-  { label: "Reports Filed", value: "412", icon: FileCheck, accent: "text-dost-yellow-foreground" },
+  { label: "Total Projects", value: "156", icon: Activity, accent: "text-dost-blue" },
+  { label: "Total Funds (₱)", value: "₱84.2M", icon: TrendingUp, accent: "text-emerald-500" },
+  { label: "Total Trainings", value: "48", icon: Users, accent: "text-dost-red" },
+  { label: "Overall Performance", value: "94%", icon: FileCheck, accent: "text-dost-yellow-foreground" },
 ];
 
 const Dashboard = () => {
