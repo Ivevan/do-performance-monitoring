@@ -14,7 +14,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { BRAND } from "@/lib/brand";
 import sealUrl from "/DOST_seal.ico.png";
 
 const items = [
@@ -37,8 +36,8 @@ export function AppSidebar() {
           <img src={sealUrl} alt="DOST seal" className="h-8 w-8 shrink-0" />
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-bold text-sidebar-foreground">{BRAND.name}</span>
-              <span className="text-[10px] text-sidebar-foreground/70">{BRAND.tagline}</span>
+              <span className="text-sm font-bold text-sidebar-foreground">DOST XI</span>
+              <span className="text-[10px] text-sidebar-foreground/70">Do Performance Monitoring</span>
             </div>
           )}
         </div>
