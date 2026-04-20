@@ -21,14 +21,14 @@ import sealUrl from "/DOST_seal.ico.png";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
-  { title: "Reports", url: "/dashboard/reports", icon: FileText, },
+  //{ title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
+  //{ title: "Reports", url: "/dashboard/reports", icon: FileText, },
 ];
 
 const supportItems = [
-  { title: "Notifications", url: "/dashboard/notifications", icon: Bell },
-  { title: "Settings", url: "/dashboard/settings", icon: Settings },
-  { title: "Help", url: "/dashboard/help", icon: HelpCircle },
+  //{ title: "Notifications", url: "/dashboard/notifications", icon: Bell },
+  //{ title: "Settings", url: "/dashboard/settings", icon: Settings },
+  //{ title: "Help", url: "/dashboard/help", icon: HelpCircle },
 ];
 
 export function AppSidebar() {
@@ -127,7 +127,7 @@ export function AppSidebar() {
               <TooltipContent side="top">Sign out</TooltipContent>
             </Tooltip>
           </div>
-          
+
           {/* Collapsed State Footer - absolutely positioned to fade in */}
           <div className="absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200 group-data-[collapsible=icon]:opacity-100 group-data-[collapsible=icon]:pointer-events-auto">
             <SidebarMenu>
