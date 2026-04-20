@@ -13,17 +13,17 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 shrink-0 flex items-center justify-between border-b border-border bg-card/50 backdrop-blur px-4">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               {title && (
-                <h1 className="text-base font-semibold text-foreground">{title}</h1>
+                <h1 className="text-base font-semibold text-foreground truncate">{title}</h1>
               )}
             </div>
             <ThemeToggle />
           </header>
-          <main className="flex-1 p-6 overflow-auto">{children}</main>
+          <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
         </div>
       </div>
     </SidebarProvider>

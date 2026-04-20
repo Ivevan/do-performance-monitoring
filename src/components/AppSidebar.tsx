@@ -32,7 +32,7 @@ const supportItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
@@ -44,6 +44,9 @@ export function AppSidebar() {
         <NavLink
           to={item.url}
           end
+          onClick={() => {
+            if (isMobile) setOpenMobile(false);
+          }}
           className="group/item relative hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
           activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
         >
