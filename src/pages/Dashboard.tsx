@@ -90,6 +90,90 @@ const Dashboard = () => {
           ))}
         </div>
 
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="border-border/60 shadow-elegant">
+            <CardHeader>
+              <CardTitle>Quarterly Performance</CardTitle>
+              <CardDescription>Q1–Q4 performance vs. target (%)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart data={quarterlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <RTooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.5rem",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <Bar dataKey="target" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="performance" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border/60 shadow-elegant">
+            <CardHeader>
+              <CardTitle>Funding Trends</CardTitle>
+              <CardDescription>Monthly disbursement (₱ millions)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={fundingTrends}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                  <RTooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.5rem",
+                      color: "hsl(var(--foreground))",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="funds"
+                    stroke="hsl(var(--dost-red))"
+                    strokeWidth={2.5}
+                    dot={{ fill: "hsl(var(--dost-red))", r: 3 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="border-border/60 shadow-elegant">
+          <CardHeader>
+            <CardTitle>Annual Targets</CardTitle>
+            <CardDescription>Progress toward {new Date().getFullYear()} goals</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {annualTargets.map((t) => {
+              const pct = Math.min(100, Math.round((t.value / t.target) * 100));
+              return (
+                <div key={t.label} className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-foreground">{t.label}</span>
+                    <span className="text-muted-foreground">
+                      {t.value.toLocaleString()} / {t.target.toLocaleString()}
+                      <span className="ml-2 font-semibold text-foreground">{pct}%</span>
+                    </span>
+                  </div>
+                  <Progress value={pct} className="h-2" />
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
         <Card className="border-border/60 shadow-elegant">
           <CardHeader>
             <CardTitle>Recent Activity</CardTitle>
