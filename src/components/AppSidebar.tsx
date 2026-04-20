@@ -22,7 +22,7 @@ import sealUrl from "/DOST_seal.ico.png";
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
-  { title: "Reports", url: "/dashboard/reports", icon: FileText, badge: "3" },
+  { title: "Reports", url: "/dashboard/reports", icon: FileText, },
 ];
 
 const supportItems = [
