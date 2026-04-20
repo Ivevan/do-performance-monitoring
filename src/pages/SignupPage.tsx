@@ -1,104 +1,88 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
+import { ArrowRight, Loader2, AlertCircle, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { ArrowRight } from "lucide-react";
+import { BrandingPanel } from "@/components/auth/BrandingPanel";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useCapsLock } from "@/hooks/use-caps-lock";
+import { signupSchema, scorePassword } from "@/lib/auth-schemas";
+import { cn } from "@/lib/utils";
+
+type Errors = Partial<Record<"fullName" | "email" | "password" | "confirmPassword", string>>;
 
 const SignupPage = () => {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [errors, setErrors] = useState<Errors>({});
+  const [submitting, setSubmitting] = useState(false);
+  const capsPw = useCapsLock();
+  const capsConfirm = useCapsLock();
+
+  const strength = useMemo(() => scorePassword(password), [password]);
+  const matches = confirmPassword.length > 0 && confirmPassword === password;
+
+  const values = { fullName, email, password, confirmPassword };
+
+  const validateField = (field: keyof Errors, value: string) => {
+    const next = { ...values, [field]: value };
+    const result = signupSchema.safeParse(next);
+    if (result.success) {
+      setErrors((e) => ({ ...e, [field]: undefined }));
+      return;
+    }
+    const issue = result.error.issues.find((i) => i.path[0] === field);
+    setErrors((e) => ({ ...e, [field]: issue?.message }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      console.warn("Passwords do not match");
+    const result = signupSchema.safeParse(values);
+    if (!result.success) {
+      const next: Errors = {};
+      result.error.issues.forEach((i) => {
+        const k = i.path[0] as keyof Errors;
+        if (!next[k]) next[k] = i.message;
+      });
+      setErrors(next);
       return;
     }
-    console.log("Signup submitted:", { fullName, email });
+    setSubmitting(true);
+    setTimeout(() => setSubmitting(false), 800);
   };
 
   return (
     <div className="flex flex-col h-[100svh] overflow-hidden bg-background">
       <header aria-hidden="true" className="h-0 shrink-0" />
       <main className="flex-1 grid lg:grid-cols-2 overflow-hidden">
-        {/* Left: Branding (desktop only) — identical to LandingPage */}
-        <section className="hidden lg:flex relative overflow-hidden bg-dost-blue text-dost-blue-foreground p-16 items-center justify-center">
-          <div className="absolute inset-0 opacity-30 pointer-events-none">
-            <div className="absolute top-20 left-20 h-72 w-72 rounded-full bg-dost-yellow blur-3xl" />
-            <div className="absolute bottom-20 right-20 h-96 w-96 rounded-full bg-dost-red blur-3xl" />
-          </div>
-          <div className="absolute left-0 top-0 h-full w-1.5 bg-dost-yellow" aria-hidden="true" />
-
-          <div className="relative flex flex-col items-center text-center space-y-6 max-w-md">
-            <img
-              src="/DOST_seal.ico.png"
-              alt="DOST XI official seal"
-              className="h-44 w-44 xl:h-52 xl:w-52 object-contain drop-shadow-2xl"
-              loading="eager"
-            />
-            <div className="space-y-3">
-              <h1 className="text-6xl xl:text-7xl font-extrabold tracking-tight leading-none">
-                <span className="bg-gradient-to-r from-white via-dost-yellow to-white bg-clip-text text-transparent drop-shadow-sm">
-                  DOST XI
-                </span>
-              </h1>
-              <p className="text-lg xl:text-xl font-medium tracking-wide text-dost-blue-foreground/90">
-                <span className="inline-block border-b-2 border-dost-yellow/70 pb-1">
-                  Do Performance Monitoring
-                </span>
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Mobile branding header — more compact so signup fits without scroll */}
-        <section className="lg:hidden relative overflow-hidden bg-dost-blue text-dost-blue-foreground px-6 pt-6 pb-7">
-          <div className="absolute inset-0 opacity-25 pointer-events-none">
-            <div className="absolute -top-10 -left-10 h-48 w-48 rounded-full bg-dost-yellow blur-3xl" />
-            <div className="absolute -bottom-10 -right-10 h-56 w-56 rounded-full bg-dost-red blur-3xl" />
-          </div>
-          <div className="absolute left-0 bottom-0 h-1.5 w-full bg-dost-yellow" aria-hidden="true" />
-
-          <div className="relative flex flex-col items-center text-center space-y-2">
-            <img
-              src="/DOST_seal.ico.png"
-              alt="DOST XI official seal"
-              className="h-16 w-16 sm:h-20 sm:w-20 object-contain drop-shadow-xl"
-              loading="eager"
-            />
-            <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight leading-none">
-                <span className="bg-gradient-to-r from-white via-dost-yellow to-white bg-clip-text text-transparent">
-                  DOST XI
-                </span>
-              </h1>
-              <p className="text-xs sm:text-sm font-medium tracking-wide text-dost-blue-foreground/90">
-                <span className="inline-block border-b-2 border-dost-yellow/70 pb-0.5">
-                  Do Performance Monitoring
-                </span>
-              </p>
-            </div>
-          </div>
-        </section>
+        <BrandingPanel variant="desktop" />
+        <BrandingPanel variant="mobile" />
 
         {/* Right: Signup Form */}
-        <section className="flex items-start lg:items-center justify-center px-5 py-6 sm:px-8 lg:p-16 overflow-y-auto">
-          <div className="w-full max-w-md space-y-4 lg:space-y-6">
+        <section className="relative flex items-start lg:items-center justify-center px-5 py-6 sm:px-8 lg:p-16 overflow-y-auto">
+          <ThemeToggle className="absolute top-4 right-4 z-10" />
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+            className="w-full max-w-md space-y-4 lg:space-y-6"
+          >
             <div className="space-y-1 hidden lg:block">
               <h2 className="text-4xl font-bold tracking-tight text-foreground">
                 Create your account
               </h2>
-              <p className="text-muted-foreground">
-                Join DOST XI Performance Monitoring.
-              </p>
+              <p className="text-muted-foreground">Join DOST XI Performance Monitoring.</p>
             </div>
 
-            <Card className="p-4 sm:p-6 shadow-sm border-border/60">
-              <form onSubmit={handleSubmit} className="space-y-3.5 lg:space-y-4">
+            <Card className="p-4 sm:p-6 border-border/60 shadow-elegant transition-shadow hover:shadow-glow">
+              <form onSubmit={handleSubmit} className="space-y-3.5 lg:space-y-4" noValidate>
                 <div className="space-y-1.5">
                   <Label htmlFor="fullName">Full name</Label>
                   <Input
@@ -107,10 +91,22 @@ const SignupPage = () => {
                     autoComplete="name"
                     placeholder="Juan Dela Cruz"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    required
-                    className="h-10"
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (errors.fullName) validateField("fullName", e.target.value);
+                    }}
+                    onBlur={(e) => validateField("fullName", e.target.value)}
+                    aria-invalid={!!errors.fullName}
+                    className={cn(
+                      "h-10",
+                      errors.fullName && "border-destructive focus-visible:ring-destructive"
+                    )}
                   />
+                  {errors.fullName && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {errors.fullName}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -122,45 +118,128 @@ const SignupPage = () => {
                     autoComplete="email"
                     placeholder="you@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-10"
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (errors.email) validateField("email", e.target.value);
+                    }}
+                    onBlur={(e) => validateField("email", e.target.value)}
+                    aria-invalid={!!errors.email}
+                    className={cn(
+                      "h-10",
+                      errors.email && "border-destructive focus-visible:ring-destructive"
+                    )}
                   />
+                  {errors.email && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {errors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="password">Password</Label>
-                  <Input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     autoComplete="new-password"
                     placeholder="••••••••"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    className="h-10"
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (errors.password) validateField("password", e.target.value);
+                    }}
+                    onBlur={(e) => validateField("password", e.target.value)}
+                    onKeyDown={capsPw.onKey}
+                    onKeyUp={capsPw.onKey}
+                    invalid={!!errors.password}
                   />
+
+                  {/* Strength meter */}
+                  {password.length > 0 && (
+                    <div className="space-y-1">
+                      <div className="flex gap-1" aria-hidden="true">
+                        {[0, 1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "h-1 flex-1 rounded-full bg-muted transition-colors",
+                              i < strength.score && strength.colorClass
+                            )}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Strength:{" "}
+                        <span className="font-medium text-foreground">{strength.label}</span>
+                      </p>
+                    </div>
+                  )}
+
+                  {capsPw.capsOn && (
+                    <p className="text-xs text-dost-yellow-foreground bg-dost-yellow/30 border border-dost-yellow/60 rounded px-2 py-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> Caps Lock is on
+                    </p>
+                  )}
+                  {errors.password && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {errors.password}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="confirmPassword">Confirm password</Label>
-                  <Input
+                  <PasswordInput
                     id="confirmPassword"
-                    type="password"
                     autoComplete="new-password"
                     placeholder="••••••••"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                    minLength={8}
-                    className="h-10"
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (errors.confirmPassword) validateField("confirmPassword", e.target.value);
+                    }}
+                    onBlur={(e) => validateField("confirmPassword", e.target.value)}
+                    onKeyDown={capsConfirm.onKey}
+                    onKeyUp={capsConfirm.onKey}
+                    invalid={!!errors.confirmPassword}
                   />
+                  {confirmPassword.length > 0 && (
+                    <p
+                      className={cn(
+                        "text-xs flex items-center gap-1",
+                        matches ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+                      )}
+                    >
+                      {matches ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+                      {matches ? "Passwords match" : "Passwords do not match"}
+                    </p>
+                  )}
+                  {capsConfirm.capsOn && !capsPw.capsOn && (
+                    <p className="text-xs text-dost-yellow-foreground bg-dost-yellow/30 border border-dost-yellow/60 rounded px-2 py-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> Caps Lock is on
+                    </p>
+                  )}
+                  {errors.confirmPassword && (
+                    <p className="text-xs text-destructive flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> {errors.confirmPassword}
+                    </p>
+                  )}
                 </div>
 
-                <Button type="submit" className="w-full group h-10">
-                  Create account
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full group h-10 bg-gradient-primary text-primary-foreground hover:opacity-95"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating…
+                    </>
+                  ) : (
+                    <>
+                      Create account
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
                 </Button>
               </form>
             </Card>
@@ -174,7 +253,7 @@ const SignupPage = () => {
                 Sign in
               </Link>
             </p>
-          </div>
+          </motion.div>
         </section>
       </main>
       <footer aria-hidden="true" className="h-0 shrink-0" />
