@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +23,8 @@ const LandingPage = () => {
           <div className="absolute top-20 left-20 h-72 w-72 rounded-full bg-dost-yellow blur-3xl" />
           <div className="absolute bottom-20 right-20 h-96 w-96 rounded-full bg-dost-red blur-3xl" />
         </div>
+        {/* Yellow accent stripe */}
+        <div className="absolute left-0 top-0 h-full w-1.5 bg-dost-yellow" aria-hidden="true" />
 
         <div className="relative flex flex-col items-center text-center space-y-6 max-w-md">
           <img
@@ -30,10 +33,16 @@ const LandingPage = () => {
             className="h-44 w-44 xl:h-52 xl:w-52 object-contain drop-shadow-2xl"
             loading="eager"
           />
-          <div className="space-y-2">
-            <h1 className="text-5xl font-bold tracking-tight">DOST XI</h1>
-            <p className="text-lg text-dost-blue-foreground/80">
-              Do Performance Monitoring
+          <div className="space-y-3">
+            <h1 className="text-6xl xl:text-7xl font-extrabold tracking-tight leading-none">
+              <span className="bg-gradient-to-r from-white via-dost-yellow to-white bg-clip-text text-transparent drop-shadow-sm">
+                DOST XI
+              </span>
+            </h1>
+            <p className="text-lg xl:text-xl font-medium tracking-wide text-dost-blue-foreground/90">
+              <span className="inline-block border-b-2 border-dost-yellow/70 pb-1">
+                Do Performance Monitoring
+              </span>
             </p>
           </div>
         </div>
@@ -45,6 +54,9 @@ const LandingPage = () => {
           <div className="absolute -top-10 -left-10 h-48 w-48 rounded-full bg-dost-yellow blur-3xl" />
           <div className="absolute -bottom-10 -right-10 h-56 w-56 rounded-full bg-dost-red blur-3xl" />
         </div>
+        {/* Bottom yellow accent stripe */}
+        <div className="absolute left-0 bottom-0 h-1.5 w-full bg-dost-yellow" aria-hidden="true" />
+
         <div className="relative flex flex-col items-center text-center space-y-3">
           <img
             src="/DOST_seal.ico.png"
@@ -52,10 +64,16 @@ const LandingPage = () => {
             className="h-24 w-24 sm:h-28 sm:w-28 object-contain drop-shadow-xl"
             loading="eager"
           />
-          <div className="space-y-1">
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">DOST XI</h1>
-            <p className="text-sm text-dost-blue-foreground/80">
-              Do Performance Monitoring
+          <div className="space-y-1.5">
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-none">
+              <span className="bg-gradient-to-r from-white via-dost-yellow to-white bg-clip-text text-transparent">
+                DOST XI
+              </span>
+            </h1>
+            <p className="text-sm sm:text-base font-medium tracking-wide text-dost-blue-foreground/90">
+              <span className="inline-block border-b-2 border-dost-yellow/70 pb-0.5">
+                Do Performance Monitoring
+              </span>
             </p>
           </div>
         </div>
@@ -121,9 +139,12 @@ const LandingPage = () => {
 
           <p className="text-sm text-center text-muted-foreground">
             Don't have an account?{" "}
-            <a href="#" className="font-medium text-primary hover:underline">
+            <Link
+              to="/signup"
+              className="font-semibold text-dost-red hover:underline underline-offset-4"
+            >
               Create one
-            </a>
+            </Link>
           </p>
         </div>
       </section>
