@@ -34,7 +34,7 @@ const stats = [
   { label: "Total Projects", value: "156", icon: Activity, accent: "text-dost-blue" },
   { label: "Total Funds (₱)", value: "₱84.2M", icon: TrendingUp, accent: "text-emerald-500" },
   { label: "Total Trainings", value: "48", icon: Users, accent: "text-dost-red" },
-  { label: "Overall Performance", value: "94%", icon: FileCheck, accent: "text-dost-yellow-foreground" },
+  { label: "Overall Performance", value: "94%", icon: FileCheck, accent: "text-violet-500" },
 ];
 
 const quarterlyData = [
@@ -122,7 +122,7 @@ const breakdownSections: BreakdownSection[] = [
     id: "admin",
     label: "Admin",
     icon: Shield,
-    accent: "text-dost-yellow-foreground",
+    accent: "text-violet-500",
     summary: "Governance, finance and HR administration.",
     rows: [
       { name: "Procurement Cycle", status: "On Track", progress: 91, budget: "₱5.4M" },
@@ -136,7 +136,7 @@ const breakdownSections: BreakdownSection[] = [
       { label: "Q3", value: 84 },
       { label: "Q4", value: 90 },
     ],
-    chartColor: "hsl(var(--dost-yellow))",
+    chartColor: "#8b5cf6",
   },
   {
     id: "support",
@@ -165,7 +165,7 @@ const statusVariant = (status: string) => {
     case "On Track":
       return "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30";
     case "At Risk":
-      return "bg-dost-yellow/20 text-dost-yellow-foreground border-dost-yellow/40";
+      return "bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30";
     case "Delayed":
       return "bg-dost-red/15 text-dost-red border-dost-red/30";
     default:

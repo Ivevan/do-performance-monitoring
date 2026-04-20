@@ -24,6 +24,8 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             <ThemeToggle />
           </header>
           <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
+          {/* Invisible footer for spacing */}
+          <footer className="mt-auto h-6" />
         </div>
       </div>
     </SidebarProvider>

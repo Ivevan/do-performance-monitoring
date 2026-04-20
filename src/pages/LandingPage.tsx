@@ -132,7 +132,7 @@ const LandingPage = () => {
                     aria-describedby={errors.password ? "password-error" : undefined}
                   />
                   {caps.capsOn && (
-                    <p className="text-xs text-dost-yellow-foreground bg-dost-yellow/30 border border-dost-yellow/60 rounded px-2 py-1 flex items-center gap-1">
+                    <p className="text-xs text-dost-red bg-dost-red/10 border border-dost-red/20 rounded px-2 py-1 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" /> Caps Lock is on
                     </p>
                   )}
