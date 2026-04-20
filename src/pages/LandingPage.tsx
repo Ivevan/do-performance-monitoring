@@ -82,7 +82,7 @@ const LandingPage = () => {
       </section>
 
       {/* Right: Login Form */}
-      <section className="flex items-start lg:items-center justify-center px-5 py-8 sm:px-8 lg:p-16">
+      <section className="flex items-start lg:items-center justify-center px-5 py-8 sm:px-8 lg:p-16 overflow-y-auto">
         <div className="w-full max-w-md space-y-6 lg:space-y-8">
           <div className="space-y-2 hidden lg:block">
             <h2 className="text-4xl font-bold tracking-tight text-foreground">
