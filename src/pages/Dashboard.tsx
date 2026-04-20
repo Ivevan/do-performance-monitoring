@@ -1,6 +1,18 @@
 import { motion } from "framer-motion";
 import { Activity, TrendingUp, Users, FileCheck } from "lucide-react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip as RTooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 
 const stats = [
