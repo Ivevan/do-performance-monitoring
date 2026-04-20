@@ -14,7 +14,7 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center justify-between border-b border-border bg-card/50 backdrop-blur px-4">
+          <header className="h-14 shrink-0 flex items-center justify-between border-b border-border bg-card/50 backdrop-blur px-4">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
               {title && (
