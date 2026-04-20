@@ -47,6 +47,20 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        dost: {
+          blue: {
+            DEFAULT: "hsl(var(--dost-blue))",
+            foreground: "hsl(var(--dost-blue-foreground))",
+          },
+          red: {
+            DEFAULT: "hsl(var(--dost-red))",
+            foreground: "hsl(var(--dost-red-foreground))",
+          },
+          yellow: {
+            DEFAULT: "hsl(var(--dost-yellow))",
+            foreground: "hsl(var(--dost-yellow-foreground))",
+          },
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
