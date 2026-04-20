@@ -183,7 +183,7 @@ const Dashboard = () => {
         className="space-y-6"
       >
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">Welcome back 👋</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground">Welcome back </h2>
           <p className="text-sm text-muted-foreground">
             Here's an overview of your DOST XI performance metrics.
           </p>
