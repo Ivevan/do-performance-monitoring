@@ -16,7 +16,9 @@ const LandingPage = () => {
   };
 
   return (
-    <main className="min-h-[100svh] grid lg:grid-cols-2 bg-background">
+    <div className="flex flex-col h-[100svh] overflow-hidden bg-background">
+      <header aria-hidden="true" className="h-0 shrink-0" />
+      <main className="flex-1 grid lg:grid-cols-2 overflow-hidden">
       {/* Left: Branding (desktop only) */}
       <section className="hidden lg:flex relative overflow-hidden bg-dost-blue text-dost-blue-foreground p-16 items-center justify-center">
         <div className="absolute inset-0 opacity-30 pointer-events-none">
