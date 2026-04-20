@@ -22,6 +22,35 @@ const stats = [
   { label: "Overall Performance", value: "94%", icon: FileCheck, accent: "text-dost-yellow-foreground" },
 ];
 
+const quarterlyData = [
+  { quarter: "Q1", performance: 78, target: 80 },
+  { quarter: "Q2", performance: 85, target: 85 },
+  { quarter: "Q3", performance: 91, target: 88 },
+  { quarter: "Q4", performance: 94, target: 92 },
+];
+
+const fundingTrends = [
+  { month: "Jan", funds: 5.2 },
+  { month: "Feb", funds: 6.8 },
+  { month: "Mar", funds: 7.4 },
+  { month: "Apr", funds: 6.9 },
+  { month: "May", funds: 8.1 },
+  { month: "Jun", funds: 9.3 },
+  { month: "Jul", funds: 8.7 },
+  { month: "Aug", funds: 10.2 },
+  { month: "Sep", funds: 11.4 },
+  { month: "Oct", funds: 12.1 },
+  { month: "Nov", funds: 13.6 },
+  { month: "Dec", funds: 14.5 },
+];
+
+const annualTargets = [
+  { label: "Projects Delivered", value: 156, target: 180 },
+  { label: "Funds Disbursed", value: 84, target: 100 },
+  { label: "Trainings Conducted", value: 48, target: 60 },
+  { label: "Beneficiaries Reached", value: 12400, target: 15000 },
+];
+
 const Dashboard = () => {
   return (
     <DashboardLayout title="Dashboard">
