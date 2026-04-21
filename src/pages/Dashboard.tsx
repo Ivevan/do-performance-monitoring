@@ -11,6 +11,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import type { TooltipProps } from "recharts";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -31,10 +33,10 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 
 const stats = [
-  { label: "Total Projects", value: "156", icon: Activity, accent: "text-dost-blue" },
-  { label: "Total Funds (₱)", value: "₱84.2M", icon: TrendingUp, accent: "text-emerald-500" },
-  { label: "Total Trainings", value: "48", icon: Users, accent: "text-dost-red" },
-  { label: "Overall Performance", value: "94%", icon: FileCheck, accent: "text-violet-500" },
+  { label: "Total Projects", actual: "156", target: "180", achievement: "87%", icon: Activity, accent: "text-dost-blue" },
+  { label: "Total Funds", actual: "₱84.2M", target: "₱100M", achievement: "84%", icon: TrendingUp, accent: "text-emerald-500" },
+  { label: "Total Trainings", actual: "48", target: "60", achievement: "80%", icon: Users, accent: "text-dost-red" },
+  { label: "Overall Performance", actual: "94%", target: "100%", achievement: "94%", icon: FileCheck, accent: "text-violet-500" },
 ];
 
 const quarterlyData = [
@@ -173,6 +175,64 @@ const statusVariant = (status: string) => {
   }
 };
 
+// Custom tooltip for Quarterly Performance chart — dark-mode aware
+const QuarterlyTooltip = ({ active, payload, label }: TooltipProps<number, string>) => {
+  const [colors, setColors] = useState({ card: "", border: "", foreground: "", muted: "" });
+
+  useEffect(() => {
+    const style = getComputedStyle(document.documentElement);
+    setColors({
+      card: `hsl(${style.getPropertyValue("--card").trim()})`,
+      border: `hsl(${style.getPropertyValue("--border").trim()})`,
+      foreground: `hsl(${style.getPropertyValue("--foreground").trim()})`,
+      muted: `hsl(${style.getPropertyValue("--muted-foreground").trim()})`,
+    });
+  }, []);
+
+  if (!active || !payload?.length) return null;
+
+  const actual = payload.find((p) => p.dataKey === "performance")?.value ?? 0;
+  const target = payload.find((p) => p.dataKey === "target")?.value ?? 0;
+  const pct = target > 0 ? Math.round((Number(actual) / Number(target)) * 100) : 0;
+
+  return (
+    <div
+      style={{
+        background: colors.card,
+        border: `1px solid ${colors.border}`,
+        borderRadius: "0.5rem",
+        padding: "10px 14px",
+        color: colors.foreground,
+        minWidth: 160,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+      }}
+    >
+      <p style={{ fontWeight: 700, marginBottom: 6 }}>{label}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
+          <span style={{ color: colors.muted }}>Actual</span>
+          <span style={{ fontWeight: 600 }}>{actual}%</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
+          <span style={{ color: colors.muted }}>Target</span>
+          <span style={{ fontWeight: 600 }}>{target}%</span>
+        </div>
+        <div
+          style={{
+            marginTop: 4,
+            paddingTop: 6,
+            borderTop: `1px solid ${colors.border}`,
+            fontWeight: 700,
+            color: pct >= 100 ? "#22c55e" : pct >= 85 ? "hsl(var(--dost-blue))" : "#f97316",
+          }}
+        >
+          {label} → {pct}% of target
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard = () => {
   return (
     <DashboardLayout title="Dashboard">
@@ -205,7 +265,10 @@ const Dashboard = () => {
                   <s.icon className={`h-4 w-4 ${s.accent}`} />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-foreground">{s.value}</div>
+                  <div className="text-2xl font-bold text-foreground">
+                    {s.actual} <span className="text-lg font-medium text-muted-foreground">/ {s.target}</span>
+                  </div>
+                  <p className={`mt-1 text-sm font-semibold ${s.accent}`}>{s.achievement} achieved</p>
                 </CardContent>
               </Card>
             </motion.div>
@@ -216,24 +279,28 @@ const Dashboard = () => {
           <Card className="border-border/60 shadow-elegant">
             <CardHeader>
               <CardTitle>Quarterly Performance</CardTitle>
-              <CardDescription>Q1–Q4 performance vs. target (%)</CardDescription>
+              <CardDescription>Q1–Q4 actual performance vs. target (%)</CardDescription>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={quarterlyData}>
+              {/* Custom legend */}
+              <div className="flex items-center gap-5 mb-3 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-3 w-3 rounded-sm bg-dost-blue" />
+                  Actual
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-3 w-3 rounded-sm bg-dost-blue/15 outline outline-[1.5px] outline-dost-blue/60" />
+                  Target
+                </span>
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={quarterlyData} barCategoryGap="30%" barGap={4}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <RTooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "0.5rem",
-                      color: "hsl(var(--foreground))",
-                    }}
-                  />
-                  <Bar dataKey="target" fill="hsl(var(--dost-blue))" fillOpacity={0.25} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="performance" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 100]} unit="%" />
+                  <RTooltip content={<QuarterlyTooltip />} />
+                  <Bar dataKey="target" name="target" fill="hsl(var(--dost-blue))" fillOpacity={0.15} stroke="hsl(var(--dost-blue))" strokeOpacity={0.6} strokeWidth={1.5} radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="performance" name="performance" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -274,22 +341,63 @@ const Dashboard = () => {
 
         <Card className="border-border/60 shadow-elegant">
           <CardHeader>
-            <CardTitle>Annual Targets</CardTitle>
-            <CardDescription>Progress toward {new Date().getFullYear()} goals</CardDescription>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <CardTitle>Performance vs. Target</CardTitle>
+                <CardDescription>Progress toward {new Date().getFullYear()} annual goals</CardDescription>
+              </div>
+              {/* Color legend */}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                  ≥ 90%
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-dost-yellow" />
+                  70–89%
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-dost-red" />
+                  &lt; 70%
+                </span>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-5">
             {annualTargets.map((t) => {
               const pct = Math.min(100, Math.round((t.value / t.target) * 100));
+              const color =
+                pct >= 90
+                  ? { bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", badge: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" }
+                  : pct >= 70
+                    ? { bar: "bg-dost-yellow", text: "text-dost-yellow-foreground", badge: "bg-dost-yellow/20 text-dost-yellow-foreground border-dost-yellow/40" }
+                    : { bar: "bg-dost-red", text: "text-dost-red", badge: "bg-dost-red/15 text-dost-red border-dost-red/30" };
+
               return (
                 <div key={t.label} className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-foreground">{t.label}</span>
-                    <span className="text-muted-foreground">
-                      {t.value.toLocaleString()} / {t.target.toLocaleString()}
-                      <span className="ml-2 font-semibold text-foreground">{pct}%</span>
+                  {/* Row header */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-sm text-foreground">{t.label}</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color.badge}`}>
+                      {pct}% achieved
                     </span>
                   </div>
-                  <Progress value={pct} className="h-2" />
+                  {/* Progress bar */}
+                  <div className="relative h-3 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${color.bar}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  {/* Actual / Target labels */}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      Actual: <span className={`font-semibold ${color.text}`}>{t.value.toLocaleString()}</span>
+                    </span>
+                    <span>
+                      Target: <span className="font-semibold text-foreground">{t.target.toLocaleString()}</span>
+                    </span>
+                  </div>
                 </div>
               );
             })}
