@@ -26,8 +26,7 @@ const mainItems = [
 ];
 
 const supportItems = [
-  //{ title: "Notifications", url: "/dashboard/notifications", icon: Bell },
-  //{ title: "Settings", url: "/dashboard/settings", icon: Settings },
+  { title: "Settings", url: "/dashboard/settings", icon: Settings },
   //{ title: "Help", url: "/dashboard/help", icon: HelpCircle },
 ];
 
