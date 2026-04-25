@@ -82,7 +82,7 @@ export function AppSidebar() {
               />
             </div>
             <div className="flex flex-col leading-tight overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0">
-              <span className="text-sm font-bold text-sidebar-foreground truncate">DOST XI</span>
+              <span className="text-sm font-bold text-sidebar-foreground truncate">DOST Davao Oriental</span>
               <span className="text-[10px] text-sidebar-foreground/70 truncate">Performance Monitoring</span>
             </div>
           </div>

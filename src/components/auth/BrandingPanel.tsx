@@ -82,7 +82,7 @@ export function BrandingPanel({ variant = "desktop" }: Props) {
         />
         <div className="space-y-3">
           <h1 className="text-6xl xl:text-7xl font-extrabold tracking-tight leading-none">
-            <span className="text-shimmer drop-shadow-sm">DOST XI</span>
+            <span className="text-shimmer drop-shadow-sm">DOST REGION XI</span>
           </h1>
           <p className="text-lg xl:text-xl font-medium tracking-wide text-dost-blue-foreground/90">
             <span className="inline-block border-b-2 border-dost-yellow/70 pb-1">

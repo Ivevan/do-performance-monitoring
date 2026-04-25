@@ -94,8 +94,8 @@ const breakdownSections: BreakdownSection[] = [
       { name: "Technology Trainings Conducted", status: "On Track", progress: 100, budget: "53 / 53" },
       { name: "Technofora Conducted", status: "On Track", progress: 100, budget: "2 / 2" },
       { name: "Technical Consultancy Services", status: "On Track", progress: 100, budget: "16 / 16" },
-      { name: "Packaging & Labeling Designs", status: "At Risk", progress: 71, budget: "5 / 7" },
-      { name: "S&T Information & Referral", status: "On Track", progress: 90, budget: "18 / 20" },
+      { name: "Packaging & Labeling Designs", status: "On Track", progress: 100, budget: "7 / 7" },
+      { name: "S&T Information & Referral", status: "On Track", progress: 100, budget: "20 / 20" },
     ],
     chart: [
       { label: "Q1", value: 19 },
