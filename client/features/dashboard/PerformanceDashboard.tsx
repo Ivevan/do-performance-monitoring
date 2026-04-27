@@ -66,10 +66,10 @@ export default function PerformanceDashboard() {
     <div className="w-full max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">CY 2026 Dashboard</h1>
-          <p className="text-gray-500 mt-1">Overview of your strategic targets and actual performance.</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">CY 2026 Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Overview of your strategic targets and actual performance.</p>
         </div>
-        <div className="px-3 py-1.5 bg-blue-50 border border-blue-100 text-blue-700 text-sm font-medium rounded-full shrink-0">
+        <div className="px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary text-sm font-medium rounded-full shrink-0">
           Live Data
         </div>
       </div>

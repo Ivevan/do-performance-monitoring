@@ -59,7 +59,7 @@ export function QuarterlyChart({ performanceData }: QuarterlyChartProps) {
       y: {
         beginAtZero: true,
         grid: {
-          color: '#f3f4f6',
+          color: 'rgba(150, 150, 150, 0.2)',
         }
       },
       x: {
@@ -71,8 +71,8 @@ export function QuarterlyChart({ performanceData }: QuarterlyChartProps) {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-[380px] flex flex-col">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Quarterly Performance Breakdown</h3>
+    <div className="bg-card p-6 rounded-xl border border-border shadow-sm h-[380px] flex flex-col">
+      <h3 className="text-lg font-semibold text-card-foreground mb-4">Quarterly Performance Breakdown</h3>
       <div className="flex-1 relative">
         <Bar data={data} options={options} />
       </div>

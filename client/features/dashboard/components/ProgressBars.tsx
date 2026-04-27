@@ -23,22 +23,22 @@ export function ProgressBars({ performanceData, targetsData }: ProgressBarsProps
   });
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-[380px] flex flex-col">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Annual Progress by Indicator</h3>
+    <div className="bg-card p-6 rounded-xl border border-border shadow-sm h-[380px] flex flex-col">
+      <h3 className="text-lg font-semibold text-card-foreground mb-4">Annual Progress by Indicator</h3>
       <div className="flex-1 overflow-y-auto pr-2 space-y-6">
         {combined.map((item, index) => (
           <div key={item.indicator_id || index}>
             <div className="flex justify-between text-sm mb-2">
-              <span className="font-medium text-gray-800">{item.indicator_id}</span>
-              <span className="text-gray-500">
-                <span className="text-gray-900 font-medium">{item.actual}</span> / {item.goal} 
+              <span className="font-medium text-foreground">{item.indicator_id}</span>
+              <span className="text-muted-foreground">
+                <span className="text-foreground font-medium">{item.actual}</span> / {item.goal} 
                 <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-semibold ${item.displayPercentage >= 100 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
                   {Math.round(item.displayPercentage)}%
                 </span>
               </span>
             </div>
             {/* Tailwind Progress Bar */}
-            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+            <div className="w-full bg-secondary rounded-full h-2.5 overflow-hidden">
               <div 
                 className={`h-2.5 rounded-full transition-all duration-700 ease-out ${item.displayPercentage >= 100 ? 'bg-emerald-500' : 'bg-blue-500'}`} 
                 style={{ width: `${item.percentage}%` }}
@@ -48,7 +48,7 @@ export function ProgressBars({ performanceData, targetsData }: ProgressBarsProps
         ))}
         {combined.length === 0 && (
           <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-gray-500 text-center">No indicator data available to display progress.</p>
+            <p className="text-sm text-muted-foreground text-center">No indicator data available to display progress.</p>
           </div>
         )}
       </div>
