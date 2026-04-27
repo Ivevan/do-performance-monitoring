@@ -4,6 +4,9 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { AccountSettings } from "@/features/settings/components/AccountSettings";
 import { User, Bell, Palette, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import UsersList from "@/features/UsersList";
+import PerformanceDataTable from "@/features/PerformanceDataTable";
+
 
 const sidebarNavItems = [
   {
@@ -26,6 +29,16 @@ const sidebarNavItems = [
   //   icon: <Shield className="w-4 h-4 mr-2" />,
   //   id: "security",
   // },
+  {
+    title: "Database Test",
+    icon: <Shield className="w-4 h-4 mr-2" />,
+    id: "database_test",
+  },
+  {
+    title: "Performance Data",
+    icon: <Shield className="w-4 h-4 mr-2" />,
+    id: "performance_data",
+  },
 ];
 
 const SettingsPage = () => {
@@ -79,6 +92,8 @@ const SettingsPage = () => {
                 Security settings are currently under construction.
               </div>
             )}
+            {activeTab === "database_test" && <UsersList />}
+            {activeTab === "performance_data" && <PerformanceDataTable />}
           </div>
         </div>
       </motion.div>
