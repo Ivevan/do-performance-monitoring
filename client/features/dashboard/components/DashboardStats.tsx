@@ -1,8 +1,16 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { stats } from "@/features/dashboard/data/mock-data";
 
-export const DashboardStats = () => {
+export interface KpiStat {
+  label: string;
+  actual: string | number;
+  target?: string | number;
+  achievement?: string;
+  icon: any;
+  accent: string;
+}
+
+export const DashboardStats = ({ stats }: { stats: KpiStat[] }) => {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((s, i) => (
@@ -21,9 +29,9 @@ export const DashboardStats = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-foreground">
-                {s.actual} <span className="text-lg font-medium text-muted-foreground">/ {s.target}</span>
+                {s.actual} {s.target && <span className="text-lg font-medium text-muted-foreground">/ {s.target}</span>}
               </div>
-              <p className={`mt-1 text-sm font-semibold ${s.accent}`}>{s.achievement} achieved</p>
+              {s.achievement && <p className={`mt-1 text-sm font-semibold ${s.accent}`}>{s.achievement}</p>}
             </CardContent>
           </Card>
         </motion.div>
