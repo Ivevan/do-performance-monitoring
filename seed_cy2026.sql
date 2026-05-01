@@ -6,7 +6,7 @@ DECLARE
     sect_op UUID;
     sect_enh UUID;
     sect_admin UUID;
-    sect_sup UUID;
+    sect_supp UUID;
 
     cat_tech_acq UUID;
     cat_inn_fund UUID;
@@ -41,7 +41,7 @@ BEGIN
     INSERT INTO sections (name, order_index) VALUES ('I. Operations', 1) RETURNING id INTO sect_op;
     INSERT INTO sections (name, order_index) VALUES ('II. Enhancement of Science and Technology', 2) RETURNING id INTO sect_enh;
     INSERT INTO sections (name, order_index) VALUES ('III. General Administrative Services', 3) RETURNING id INTO sect_admin;
-    INSERT INTO sections (name, order_index) VALUES ('IV. Support to Operations', 4) RETURNING id INTO sect_sup;
+    INSERT INTO sections (name, order_index) VALUES ('IV. Support to Operations', 4) RETURNING id INTO sect_supp;
 
     -- ==========================================
     -- 2. Create Categories (for Operations)
