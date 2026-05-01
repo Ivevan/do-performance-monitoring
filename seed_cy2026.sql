@@ -17,6 +17,22 @@ DECLARE
     cat_st_info UUID;
     cat_strat_op UUID;
     
+    -- Categories for Enhancement
+    cat_lab_serv UUID;
+    cat_st_promo UUID;
+    cat_st_scholar UUID;
+    cat_datbed UUID;
+    cat_networks UUID;
+    cat_strat_enh UUID;
+    
+    -- Categories for General Admin
+    cat_admin_func UUID;
+    cat_admin_strat UUID;
+    
+    -- Categories for Support to Operations
+    cat_supp_func UUID;
+    cat_supp_strat UUID;
+    
     ind_id UUID;
 BEGIN
     -- ==========================================
@@ -38,6 +54,28 @@ BEGIN
     INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Packaging and Labeling Design', 'Functional', 6) RETURNING id INTO cat_pkg_lbl;
     INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'S&T Information and Referral', 'Functional', 7) RETURNING id INTO cat_st_info;
     INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Strategic Deliverables', 'Strategic', 8) RETURNING id INTO cat_strat_op;
+
+    -- ==========================================
+    -- 2b. Create Categories (for Enhancement)
+    -- ==========================================
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_enh, 'Non-Paying Laboratory Services', 'Functional', 1) RETURNING id INTO cat_lab_serv;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_enh, 'S&T Promotion', 'Functional', 2) RETURNING id INTO cat_st_promo;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_enh, 'S&T Scholarship', 'Functional', 3) RETURNING id INTO cat_st_scholar;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_enh, 'DATBED', 'Functional', 4) RETURNING id INTO cat_datbed;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_enh, 'Networks/Linkages', 'Functional', 5) RETURNING id INTO cat_networks;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_enh, 'Strategic Deliverables', 'Strategic', 6) RETURNING id INTO cat_strat_enh;
+
+    -- ==========================================
+    -- 2c. Create Categories (for General Admin)
+    -- ==========================================
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_admin, 'Functional Deliverables', 'Functional', 1) RETURNING id INTO cat_admin_func;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_admin, 'Strategic Deliverables', 'Strategic', 2) RETURNING id INTO cat_admin_strat;
+
+    -- ==========================================
+    -- 2d. Create Categories (for Support to Operations)
+    -- ==========================================
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_supp, 'Functional Deliverables', 'Functional', 1) RETURNING id INTO cat_supp_func;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_supp, 'Strategic Deliverables', 'Strategic', 2) RETURNING id INTO cat_supp_strat;
 
     -- ==========================================
     -- 3. Create Indicators & CY 2026 Targets
@@ -277,6 +315,208 @@ BEGIN
     VALUES (cat_strat_op, 'Number of SETI partnerships with local/international', NULL, 'COUNT', 'SUM', 12) RETURNING id INTO ind_id;
     INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
     VALUES (ind_id, 2026, 0, 0, 0, 1, 1);
+
+    -- ==========================================
+    -- II. Enhancement of Science and Technology
+    -- ==========================================
+    
+    -- Non-Paying Laboratory Services
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_lab_serv, 'Number of non-paying laboratory services', NULL, 'COUNT', 'SUM', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 0, 0);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_lab_serv, 'Number of firms assisted (Lab Services)', NULL, 'COUNT', 'SUM', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 0, 0);
+
+    -- S&T Promotion
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_st_promo, 'No. of S&T Promotional Activities Conducted', NULL, 'COUNT', 'SUM', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 2, 2, 2, 2, 8);
+
+    -- S&T Scholarship
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_st_scholar, 'No. of applicants facilitated (Undergrad and JLSS)', NULL, 'COUNT', 'SUM', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 15, 100, 115);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_st_scholar, 'No. of Examinees (Undergrad & JLSS)', NULL, 'COUNT', 'SUM', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 80, 0, 0, 80);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_st_scholar, 'No. of Qualifiers notified', NULL, 'COUNT', 'SUM', 3) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 5, 0, 5);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_st_scholar, 'No. of On-Going Scholars', NULL, 'COUNT', 'SUM', 4) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 8, 0, 8);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_st_scholar, 'No. of Graduates issued with certificates and temporary clearance', NULL, 'COUNT', 'SUM', 5) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 1, 1);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_st_scholar, 'Percentage of municipalities with DOST Scholarship applicants', NULL, 'PERCENTAGE', 'LATEST', 6) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 70, 70);
+
+    -- DATBED
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_datbed, 'No. of Schools Accredited', NULL, 'COUNT', 'SUM', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 0, 0);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_datbed, 'No. of Projects', NULL, 'COUNT', 'SUM', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 0, 0);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_datbed, 'No. of Student Beneficiary', NULL, 'COUNT', 'SUM', 3) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 0, 0);
+
+    -- Networks/Linkages
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_networks, 'No. of Networks/Linkages Established and Maintained', NULL, 'COUNT', 'SUM', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 10, 10, 5, 5, 30);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_networks, 'No. of Projects co-funded (LGU-DOST)', NULL, 'COUNT', 'SUM', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 1, 0, 1);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_networks, 'No. of Trainings / fora conducted for LGUs', NULL, 'COUNT', 'SUM', 3) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 5, 5, 5, 5, 20);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_networks, 'No. of Projects co-funded (NGA-DOST)', NULL, 'COUNT', 'SUM', 4) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 1, 0, 1);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_networks, 'No. of trainings conducted for NGAs', NULL, 'COUNT', 'SUM', 5) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 1, 1, 1, 1, 4);
+
+    -- Strategic Deliverables (Enhancement)
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_strat_enh, '% GRIND activity facilitated and coordinated for the grassroots', NULL, 'PERCENTAGE', 'LATEST', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 100, 0, 100, 100);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_strat_enh, 'No. of NRCP membership promotion/fora conducted/facilitated', NULL, 'COUNT', 'SUM', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 1, 1);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_strat_enh, '% of targeted SETI ecosystem engagement rate', NULL, 'PERCENTAGE', 'LATEST', 3) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 100, 0, 100, 100);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_strat_enh, '% of public elementary and HS with STARBOOKS', NULL, 'PERCENTAGE', 'LATEST', 4) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 30, 30);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_strat_enh, 'No. of STARBOOKS installation, deployment, and knowledge', NULL, 'COUNT', 'SUM', 5) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 3, 0, 3);
+
+    -- ==========================================
+    -- III. General Administrative Services
+    -- ==========================================
+    
+    -- Functional Deliverables (Admin)
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_admin_func, 'No. of Report of Disbursement prepared and submitted', NULL, 'COUNT', 'SUM', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 1, 1, 1, 1, 4);
+
+    -- Strategic Deliverables (Admin)
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_admin_strat, '% Increase of investment from project cooperators/stakeholders', NULL, 'PERCENTAGE', 'LATEST', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 58, 0, 58, 58);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_admin_strat, '% Rating for Obligation/Allotment attained', NULL, 'PERCENTAGE', 'LATEST', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 96, 96);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_admin_strat, '% Rating for Disbursement/Allotment attained', NULL, 'PERCENTAGE', 'LATEST', 3) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 85, 85);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_admin_strat, '% Rating for Disbursement/Obligation attained', NULL, 'PERCENTAGE', 'LATEST', 4) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 88, 88);
+
+    -- ==========================================
+    -- IV. Support to Operations
+    -- ==========================================
+    
+    -- Functional Deliverables (Support)
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_func, 'No. of training attended before the end of the year', NULL, 'COUNT', 'SUM', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 1, 2, 2, 1, 6);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_func, 'No. of Quality Management System Maintained', NULL, 'COUNT', 'SUM', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 1, 1);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_func, '5S Audit Score attained', NULL, 'COUNT', 'LATEST', 3) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 4, 3.50);
+
+    -- Strategic Deliverables (Support)
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_strat, '% of personnel with Subject Matter Expertise', NULL, 'PERCENTAGE', 'LATEST', 1) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 69, 69);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_strat, '% of personnel with >=4.2 Overall Employee Morale Index/Score', NULL, 'PERCENTAGE', 'LATEST', 2) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 100, 100);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_strat, 'Rating of IQA for 5S in PSTO', NULL, 'COUNT', 'LATEST', 3) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 3.5, 3.5);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_strat, 'Overall CSF Rating', NULL, 'COUNT', 'LATEST', 4) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 4.5, 4.5, 4.5, 4.5, 4.5);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_strat, 'Overall Net Promoter Score', NULL, 'PERCENTAGE', 'LATEST', 5) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 90, 90);
+
+    INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
+    VALUES (cat_supp_strat, 'Project Fund Utilization', NULL, 'PERCENTAGE', 'LATEST', 6) RETURNING id INTO ind_id;
+    INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
+    VALUES (ind_id, 2026, 0, 0, 0, 96, 96);
 
     -- ==========================================
     -- 4. Insert Mock Accomplishments (Actuals)
