@@ -131,6 +131,7 @@ const Dashboard = () => {
           <TabsContent value="overview" className="space-y-6 animate-in fade-in-50 duration-500">
             <DashboardStats stats={kpiStats} />
 
+            {/* Temporarily hidden to focus on KPIs
             <div className="grid gap-4 lg:grid-cols-2">
               <QuarterlyPerformanceChart
                 data={barChart?.data || []}
@@ -148,6 +149,7 @@ const Dashboard = () => {
             <AnnualTargetsProgress data={progressData} />
             
             <DetailedBreakdown data={data?.getDrillDown(null) || []} />
+            */}
           </TabsContent>
 
           {SECTIONS.filter(s => s.id !== "overview").map((section) => (
