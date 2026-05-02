@@ -70,8 +70,14 @@ SELECT
         WHEN i.data_type = 'PERCENTAGE' THEN '%'
         ELSE NULL 
     END as unit,
-    i.aggregation_type
+    i.aggregation_type,
+    t.annual_target,
+    t.q1_target,
+    t.q2_target,
+    t.q3_target,
+    t.q4_target
 FROM accomplishments a
 JOIN indicators i ON a.indicator_id = i.id
 JOIN categories c ON i.category_id = c.id
-JOIN sections s ON c.section_id = s.id;
+JOIN sections s ON c.section_id = s.id
+LEFT JOIN targets t ON i.id = t.indicator_id AND a.year = t.year;

@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
 
 export interface VIndicatorData {
   indicator: string;
@@ -11,6 +10,12 @@ export interface VIndicatorData {
   value: number;
   value_type: "currency" | "percentage" | "count" | string;
   unit: string | null;
+  aggregation_type: string;
+  annual_target?: number;
+  q1_target?: number;
+  q2_target?: number;
+  q3_target?: number;
+  q4_target?: number;
 }
 
 export interface DashboardFilters {
@@ -75,11 +80,13 @@ export function transformKpiTotal(data: VIndicatorData[], indicatorName: string)
   const total = filtered.reduce((sum, row) => sum + row.value, 0);
   
   let meta = { indicator: indicatorName, value_type: "count", unit: null as string | null };
+  let target = 0;
   if (filtered.length > 0) {
     meta = { indicator: indicatorName, value_type: filtered[0].value_type, unit: filtered[0].unit };
+    target = filtered[0].annual_target || 0;
   }
 
-  return { value: total, meta };
+  return { value: total, target, meta };
 }
 
 export function transformKpiLatest(data: VIndicatorData[], indicatorName: string) {
@@ -94,26 +101,42 @@ export function transformKpiLatest(data: VIndicatorData[], indicatorName: string
   });
 
   let meta = { indicator: indicatorName, value_type: "count", unit: null as string | null };
+  let target = 0;
   if (latest) {
     meta = { indicator: indicatorName, value_type: latest.value_type, unit: latest.unit };
+    target = latest.annual_target || 0;
   }
 
-  return { value: latest?.value ?? 0, label: latest?.label ?? "Q1", meta };
+  return { value: latest?.value ?? 0, target, label: latest?.label ?? "Q1", meta };
 }
 
 export function transformProgress(data: VIndicatorData[]) {
-  // Identify all percentage indicators
-  const percentageIndicators = Array.from(new Set(data.filter(d => d.value_type === "percentage").map(d => d.indicator)));
+  // Extract unique indicators that have an annual target defined
+  const indicatorsWithTargets = Array.from(new Map(data.filter(d => d.annual_target && d.annual_target > 0).map(d => [d.indicator, d])).values());
   
-  return percentageIndicators.map(ind => {
-    const res = transformKpiLatest(data, ind);
-    let val = res.value;
+  return indicatorsWithTargets.map(ind => {
+    const filtered = data.filter((d) => d.indicator === ind.indicator);
+    const isCumulative = ind.aggregation_type !== 'LATEST';
+    
+    let actual = 0;
+    if (isCumulative) {
+      actual = filtered.reduce((sum, row) => sum + row.value, 0);
+    } else {
+      let maxQ = -1;
+      filtered.forEach(row => {
+        if (row.quarter > maxQ) { maxQ = row.quarter; actual = row.value; }
+      });
+    }
+
+    const target = ind.annual_target || 1;
+    let val = (actual / target) * 100;
     if (val > 100) val = 100;
     if (val < 0) val = 0;
+    
     return {
-      indicator: ind,
+      indicator: ind.indicator,
       value: val, // normalized 0-100
-      meta: res.meta
+      meta: { indicator: ind.indicator, value_type: ind.value_type, unit: ind.unit }
     };
   });
 }
@@ -153,15 +176,22 @@ export function useDashboardData(filters: DashboardFilters = { year: 2026, secti
   return useQuery({
     queryKey: ["dashboard-data", filters],
     queryFn: async () => {
-      let query = supabase.from("v_indicator_data").select("*");
-      
-      if (filters.year) query = query.eq("year", filters.year);
-      if (filters.section) query = query.eq("section", filters.section);
-      if (filters.indicator) query = query.eq("indicator", filters.indicator);
-      if (filters.program) query = query.eq("program", filters.program);
+      // Build query string from filters
+      const params = new URLSearchParams();
+      if (filters.year) params.append("year", filters.year.toString());
+      if (filters.section) params.append("section", filters.section);
+      if (filters.indicator) params.append("indicator", filters.indicator);
+      if (filters.program) params.append("program", filters.program);
 
-      const { data, error } = await query;
-      if (error) throw new Error(error.message);
+      const url = `http://localhost:5000/api/dashboard/data?${params.toString()}`;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Error fetching data: ${response.statusText}`);
+      }
+
+      const { data, error } = await response.json();
+      if (error) throw new Error(error);
       
       const rawData = (data || []) as VIndicatorData[];
 
