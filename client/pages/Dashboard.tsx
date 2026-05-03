@@ -52,36 +52,42 @@ const Dashboard = () => {
 
   // 1. KPI Cards Mapping
   const kpi1 = data?.getKpiTotal("Amount Funded");
-  const kpi2 = data?.getKpiTotal("No. Technology Trainings conducted");
-  const kpi3 = data?.getKpiTotal("No. of Projects Approved");
+  const kpi2 = data?.getKpiTotal("No. of Projects Approved");
+  const kpi3 = data?.getKpiTotal("Employment Generated (in Person-Months)");
   const kpi4 = data?.getKpiLatest("% SETUP refund rate");
+
+  const calcProgress = (kpi: any) => kpi?.target ? Math.min(100, Math.max(0, (kpi.value / kpi.target) * 100)) : undefined;
 
   const kpiStats = [
     {
       label: "Total Funding",
       actual: formatValue(kpi1?.value || 0, kpi1?.meta?.value_type),
       target: kpi1?.target ? formatValue(kpi1.target, kpi1?.meta?.value_type) : undefined,
+      progress: calcProgress(kpi1),
       icon: TrendingUp,
       accent: "text-emerald-500",
     },
     {
-      label: "Total Trainings",
+      label: "Projects Approved",
       actual: formatValue(kpi2?.value || 0, kpi2?.meta?.value_type),
       target: kpi2?.target ? formatValue(kpi2.target, kpi2?.meta?.value_type) : undefined,
-      icon: Users,
-      accent: "text-dost-blue",
-    },
-    {
-      label: "Projects Approved",
-      actual: formatValue(kpi3?.value || 0, kpi3?.meta?.value_type),
-      target: kpi3?.target ? formatValue(kpi3.target, kpi3?.meta?.value_type) : undefined,
+      progress: calcProgress(kpi2),
       icon: Activity,
       accent: "text-violet-500",
     },
     {
-      label: "Latest Refund Rate",
+      label: "Employment Generated",
+      actual: formatValue(kpi3?.value || 0, kpi3?.meta?.value_type),
+      target: kpi3?.target ? formatValue(kpi3.target, kpi3?.meta?.value_type) : undefined,
+      progress: calcProgress(kpi3),
+      icon: Users,
+      accent: "text-dost-blue",
+    },
+    {
+      label: "SETUP Refund Rate",
       actual: formatValue(kpi4?.value || 0, kpi4?.meta?.value_type),
       target: kpi4?.target ? formatValue(kpi4.target, kpi4?.meta?.value_type) : undefined,
+      progress: calcProgress(kpi4),
       achievement: kpi4?.label, // show Q1/Q4
       icon: FileCheck,
       accent: "text-dost-red",
@@ -131,12 +137,11 @@ const Dashboard = () => {
           <TabsContent value="overview" className="space-y-6 animate-in fade-in-50 duration-500">
             <DashboardStats stats={kpiStats} />
 
-            {/* Temporarily hidden to focus on KPIs
             <div className="grid gap-4 lg:grid-cols-2">
               <QuarterlyPerformanceChart
                 data={barChart?.data || []}
                 title="Trainings Conducted"
-                description="Quarterly performance totals"
+                description="Quarterly pace vs target"
               />
               <FundingTrendsChart
                 data={lineChart?.data || []}
@@ -149,7 +154,6 @@ const Dashboard = () => {
             <AnnualTargetsProgress data={progressData} />
             
             <DetailedBreakdown data={data?.getDrillDown(null) || []} />
-            */}
           </TabsContent>
 
           {SECTIONS.filter(s => s.id !== "overview").map((section) => (

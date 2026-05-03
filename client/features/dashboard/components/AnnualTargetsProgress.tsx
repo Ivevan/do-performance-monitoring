@@ -42,9 +42,16 @@ export const AnnualTargetsProgress = ({ data = [] }: { data: any[] }) => {
               {/* Row header */}
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold text-sm text-foreground">{t.indicator}</span>
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color.badge}`}>
-                  {pct}% achieved
-                </span>
+                <div className="flex items-center gap-3">
+                  {t.actual !== undefined && t.target !== undefined && (
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {t.actual.toLocaleString()} / {t.target.toLocaleString()}
+                    </span>
+                  )}
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${color.badge}`}>
+                    {pct}% achieved
+                  </span>
+                </div>
               </div>
               {/* Progress bar */}
               <div className="relative h-3 w-full rounded-full bg-muted overflow-hidden">

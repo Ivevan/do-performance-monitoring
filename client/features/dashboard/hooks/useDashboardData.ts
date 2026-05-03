@@ -33,8 +33,16 @@ export function transformBarChart(data: VIndicatorData[], indicatorName: string)
   const grouped: Record<string, number> = {};
   
   let meta = { indicator: indicatorName, value_type: "count", unit: null as string | null };
+  let targets: Record<string, number> = { Q1: 0, Q2: 0, Q3: 0, Q4: 0 };
+  
   if (filtered.length > 0) {
     meta = { indicator: indicatorName, value_type: filtered[0].value_type, unit: filtered[0].unit };
+    targets = {
+      Q1: filtered[0].q1_target || 0,
+      Q2: filtered[0].q2_target || 0,
+      Q3: filtered[0].q3_target || 0,
+      Q4: filtered[0].q4_target || 0,
+    };
   }
 
   filtered.forEach((row) => {
@@ -44,6 +52,7 @@ export function transformBarChart(data: VIndicatorData[], indicatorName: string)
   const chartData = QUARTERS.map((q) => ({
     name: q,
     value: grouped[q] ?? 0,
+    target: targets[q as keyof typeof targets]
   }));
 
   return { data: chartData, meta };
@@ -136,6 +145,8 @@ export function transformProgress(data: VIndicatorData[]) {
     return {
       indicator: ind.indicator,
       value: val, // normalized 0-100
+      actual,
+      target,
       meta: { indicator: ind.indicator, value_type: ind.value_type, unit: ind.unit }
     };
   });

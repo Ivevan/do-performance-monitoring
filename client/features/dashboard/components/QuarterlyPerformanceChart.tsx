@@ -1,6 +1,7 @@
 import {
+  ComposedChart,
   Bar,
-  BarChart,
+  Line,
   CartesianGrid,
   ResponsiveContainer,
   XAxis,
@@ -24,15 +25,20 @@ export const QuarterlyPerformanceChart = ({ data, title = "Quarterly Performance
             <span className="inline-block h-3 w-3 rounded-sm bg-dost-blue" />
             Actual
           </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-sm border-2 border-dashed border-muted-foreground" />
+            Target
+          </span>
         </div>
         <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={data} barCategoryGap="30%" barGap={4}>
+          <ComposedChart data={data} barCategoryGap="30%" barGap={4}>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
             <RTooltip content={<QuarterlyTooltip />} />
             <Bar dataKey="value" name="Actual" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} />
-          </BarChart>
+            <Line type="monotone" dataKey="target" name="Target" stroke="hsl(var(--muted-foreground))" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} activeDot={{ r: 6 }} />
+          </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
