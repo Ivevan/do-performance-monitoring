@@ -59,11 +59,11 @@ CREATE OR REPLACE VIEW v_indicator_data AS
 SELECT 
     i.name as indicator,
     s.name as section,
-    a.year,
+    t.year,
     a.quarter,
-    'Q' || a.quarter as label,
+    CASE WHEN a.quarter IS NOT NULL THEN 'Q' || a.quarter ELSE NULL END as label,
     i.program,
-    a.value,
+    COALESCE(a.value, 0::numeric(15,2)) as value,
     LOWER(i.data_type) as value_type,
     CASE 
         WHEN i.data_type = 'CURRENCY' THEN 'PHP'
@@ -76,8 +76,8 @@ SELECT
     t.q2_target,
     t.q3_target,
     t.q4_target
-FROM accomplishments a
-JOIN indicators i ON a.indicator_id = i.id
+FROM indicators i
 JOIN categories c ON i.category_id = c.id
 JOIN sections s ON c.section_id = s.id
-LEFT JOIN targets t ON i.id = t.indicator_id AND a.year = t.year;
+JOIN targets t ON i.id = t.indicator_id
+LEFT JOIN accomplishments a ON a.indicator_id = i.id AND a.year = t.year;

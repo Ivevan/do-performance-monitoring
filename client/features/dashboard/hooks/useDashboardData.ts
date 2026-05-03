@@ -92,7 +92,17 @@ export function transformKpiTotal(data: VIndicatorData[], indicatorName: string)
   let target = 0;
   if (filtered.length > 0) {
     meta = { indicator: indicatorName, value_type: filtered[0].value_type, unit: filtered[0].unit };
-    target = filtered[0].annual_target || 0;
+    
+    // Extract unique targets per program to prevent duplicate additions
+    const targetsByProgram = new Map<string, number>();
+    filtered.forEach(row => {
+      const progKey = row.program ?? "N/A";
+      if (!targetsByProgram.has(progKey)) {
+        targetsByProgram.set(progKey, row.annual_target || 0);
+      }
+    });
+    
+    target = Array.from(targetsByProgram.values()).reduce((sum, t) => sum + t, 0);
   }
 
   return { value: total, target, meta };
@@ -137,7 +147,16 @@ export function transformProgress(data: VIndicatorData[]) {
       });
     }
 
-    const target = ind.annual_target || 1;
+    // Extract unique targets per program
+    const targetsByProgram = new Map<string, number>();
+    filtered.forEach(row => {
+      const progKey = row.program ?? "N/A";
+      if (!targetsByProgram.has(progKey)) {
+        targetsByProgram.set(progKey, row.annual_target || 0);
+      }
+    });
+    const target = Array.from(targetsByProgram.values()).reduce((sum, t) => sum + t, 0) || 1;
+
     let val = (actual / target) * 100;
     if (val > 100) val = 100;
     if (val < 0) val = 0;
