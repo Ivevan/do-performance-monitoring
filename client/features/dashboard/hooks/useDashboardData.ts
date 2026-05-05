@@ -84,8 +84,11 @@ export function transformLineChart(data: VIndicatorData[], indicatorName: string
   return { data: chartData, meta };
 }
 
-export function transformKpiTotal(data: VIndicatorData[], indicatorName: string) {
-  const filtered = data.filter((d) => d.indicator === indicatorName);
+export function transformKpiTotal(data: VIndicatorData[], indicatorName: string, programName?: string) {
+  let filtered = data.filter((d) => d.indicator === indicatorName);
+  if (programName) {
+    filtered = filtered.filter((d) => d.program === programName);
+  }
   const total = filtered.reduce((sum, row) => sum + row.value, 0);
   
   let meta = { indicator: indicatorName, value_type: "count", unit: null as string | null };
@@ -229,7 +232,7 @@ export function useDashboardData(filters: DashboardFilters = { year: 2026, secti
         rawData,
         getBarChart: (indicator: string) => transformBarChart(rawData, indicator),
         getLineChart: (indicator: string) => transformLineChart(rawData, indicator),
-        getKpiTotal: (indicator: string) => transformKpiTotal(rawData, indicator),
+        getKpiTotal: (indicator: string, program?: string) => transformKpiTotal(rawData, indicator, program),
         getKpiLatest: (indicator: string) => transformKpiLatest(rawData, indicator),
         getProgress: () => transformProgress(rawData),
         getDrillDown: (section?: string | null) => transformDrillDown(rawData, section),

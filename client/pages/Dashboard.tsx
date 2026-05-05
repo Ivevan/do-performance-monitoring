@@ -51,7 +51,8 @@ const Dashboard = () => {
   }
 
   // 1. KPI Cards Mapping
-  const kpi1 = data?.getKpiTotal("Amount Funded");
+  const kpi1a = data?.getKpiTotal("Amount Funded", "SETUP");
+  const kpi1b = data?.getKpiTotal("Amount Funded", "LGIA");
   const kpi2 = data?.getKpiTotal("No. of Projects Approved");
   const kpi3 = data?.getKpiTotal("Employment Generated (in Person-Months)");
   const kpi4 = data?.getKpiLatest("% SETUP refund rate");
@@ -60,12 +61,20 @@ const Dashboard = () => {
 
   const kpiStats = [
     {
-      label: "Total Funding",
-      actual: formatValue(kpi1?.value || 0, kpi1?.meta?.value_type),
-      target: kpi1?.target ? formatValue(kpi1.target, kpi1?.meta?.value_type) : undefined,
-      progress: calcProgress(kpi1),
+      label: "SETUP Funding",
+      actual: formatValue(kpi1a?.value || 0, kpi1a?.meta?.value_type),
+      target: kpi1a?.target ? formatValue(kpi1a.target, kpi1a?.meta?.value_type) : undefined,
+      progress: calcProgress(kpi1a),
       icon: TrendingUp,
       accent: "text-emerald-500",
+    },
+    {
+      label: "LGIA Funding",
+      actual: formatValue(kpi1b?.value || 0, kpi1b?.meta?.value_type),
+      target: kpi1b?.target ? formatValue(kpi1b.target, kpi1b?.meta?.value_type) : undefined,
+      progress: calcProgress(kpi1b),
+      icon: TrendingUp,
+      accent: "text-cyan-500",
     },
     {
       label: "Projects Approved",
@@ -151,9 +160,9 @@ const Dashboard = () => {
               />
             </div>
 
-            <AnnualTargetsProgress data={progressData} />
+            {/* <AnnualTargetsProgress data={progressData} /> */}
             
-            <DetailedBreakdown data={data?.getDrillDown(null) || []} />
+            {/* <DetailedBreakdown data={data?.getDrillDown(null) || []} /> */}
           </TabsContent>
 
           {SECTIONS.filter(s => s.id !== "overview").map((section) => (
