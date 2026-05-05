@@ -80,34 +80,31 @@ const Dashboard = () => {
 
   const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
 
+  const headerActions = (
+    <div className="flex bg-card/80 backdrop-blur border border-border/50 rounded-lg p-1">
+      {QUARTERS.map(q => (
+        <button
+          key={q}
+          onClick={() => setActiveQuarter(q)}
+          className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${activeQuarter === q ? 'bg-primary text-black shadow-[0_0_12px_rgba(0,240,255,0.4)]' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          {q}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
-    <DashboardLayout title="CY 2026 Performance Dashboard">
+    <DashboardLayout title="CY 2026 Performance Dashboard" headerActions={headerActions}>
       <div className="flex flex-col gap-8 max-w-[1400px] w-full pb-12">
         
-        {/* Header & Filters */}
-        <div className="flex justify-between items-end">
-          <div className="space-y-1">
-            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
-              <div className="w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_hsl(180,100%,50%)]"></div>
-              Key Performance Indicators
-            </h2>
-          </div>
-          
-          <div className="flex bg-card/80 backdrop-blur border border-border/50 rounded-lg p-1">
-            {QUARTERS.map(q => (
-              <button
-                key={q}
-                onClick={() => setActiveQuarter(q)}
-                className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${activeQuarter === q ? 'bg-primary text-black shadow-[0_0_12px_rgba(0,240,255,0.4)]' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* 1. Key Performance Indicators Row */}
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
+            <div className="w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_hsl(180,100%,50%)]"></div>
+            Key Performance Indicators
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <NeonKpiCard 
             title="Total Funding" 
             value={`${totalFunding.value >= 1000000 ? (totalFunding.value/1000000).toFixed(1) + 'M' : totalFunding.value} PHP`} 
@@ -145,8 +142,9 @@ const Dashboard = () => {
             q1={15} q2={0} q3={0} q4={0} 
           />
         </div>
+      </div>
 
-        {/* 2. Quarterly Trends Row */}
+      {/* 2. Quarterly Trends Row */}
         <div>
           <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
             <div className="w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_hsl(180,100%,50%)]"></div>

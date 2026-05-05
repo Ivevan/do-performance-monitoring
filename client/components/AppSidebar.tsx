@@ -1,6 +1,7 @@
 import { LayoutDashboard, BarChart3, FileText, Settings, LogOut, HelpCircle, Bell } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   Sidebar,
   SidebarContent,
@@ -113,6 +114,7 @@ export function AppSidebar() {
               <p className="text-xs font-medium text-sidebar-foreground truncate">DOST Admin</p>
               <p className="text-[10px] text-sidebar-foreground/60 truncate">admin@dost.gov.ph</p>
             </div>
+            <ThemeToggle />
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
