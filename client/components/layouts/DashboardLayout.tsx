@@ -1,7 +1,6 @@
 import { ReactNode } from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/AppSidebar";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Activity } from "lucide-react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -10,24 +9,33 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 shrink-0 flex items-center justify-between border-b border-border bg-card/50 backdrop-blur px-4">
-            <div className="flex items-center gap-2">
-              <SidebarTrigger />
-              {title && (
-                <h1 className="text-base font-semibold text-foreground truncate">{title}</h1>
-              )}
-            </div>
-            <ThemeToggle />
-          </header>
-          <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
-          {/* Invisible footer for spacing */}
-          <footer className="mt-auto h-6" />
+    <div className="min-h-screen flex flex-col w-full bg-background text-foreground selection:bg-primary/30">
+      {/* Sleek Dark Header */}
+      <header className="h-16 shrink-0 flex items-center justify-between border-b border-border bg-card/40 backdrop-blur-md px-6 z-10 sticky top-0">
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20">
+            <Activity className="h-5 w-5 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-foreground tracking-tight">{title || "Performance Dashboard"}</h1>
+            <p className="text-xs text-muted-foreground font-medium tracking-wide">Functional & Strategic Contributions</p>
+          </div>
         </div>
-      </div>
-    </SidebarProvider>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-muted border border-border overflow-hidden">
+              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=Admin`} alt="Avatar" className="w-full h-full object-cover opacity-80" />
+            </div>
+            <span className="text-sm font-medium text-muted-foreground">Admin</span>
+          </div>
+        </div>
+      </header>
+      
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 md:p-8 overflow-auto max-w-[1600px] mx-auto w-full">
+        {children}
+      </main>
+    </div>
   );
 }

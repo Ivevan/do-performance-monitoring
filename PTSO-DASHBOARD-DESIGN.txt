@@ -1,0 +1,208 @@
+================================================================================
+PTSO PERFORMANCE TRACKING DASHBOARD - DESIGN & LAYOUT DOCUMENTATION
+================================================================================
+
+PURPOSE:
+Transform raw PTSO (Performance Tracking System) data into a visual analytics
+dashboard that minimizes scrolling and cognitive overload while maintaining
+access to all data points.
+
+--------------------------------------------------------------------------------
+PROBLEM STATEMENT
+--------------------------------------------------------------------------------
+- Original data contains 50+ metrics across 4 categories
+- Each metric has 4 quarterly values + annual totals
+- Displaying all data creates excessive scrolling and user fatigue
+- Users need quick insights without hunting through tables
+
+--------------------------------------------------------------------------------
+DESIGN PHILOSOPHY
+--------------------------------------------------------------------------------
+1. Progressive Disclosure - Show summary first, details on demand
+2. Visual Hierarchy - Important KPIs prominently displayed at top
+3. Categorization - Group related metrics to reduce cognitive load
+4. Filtering - Let users focus on specific time periods (Q1-Q4)
+5. Charts Over Tables - Use visualizations where patterns matter
+
+--------------------------------------------------------------------------------
+COLOR SYSTEM (5 Colors)
+--------------------------------------------------------------------------------
+- Background: Deep navy (#0a0f1a) - reduces eye strain, professional feel
+- Surface: Slate blue (#1e293b) - cards and elevated elements
+- Primary: Teal/Cyan (#14b8a6) - primary actions, positive trends
+- Accent: Amber (#f59e0b) - warnings, attention areas
+- Neutral: Cool gray - text hierarchy and borders
+
+--------------------------------------------------------------------------------
+LAYOUT STRUCTURE
+--------------------------------------------------------------------------------
+
+[HEADER - Sticky]
++-----------------------------------------------------------------------+
+|  Logo/Title                              [Q1] [Q2] [Q3] [Q4] [Annual] |
+|  "CY 2026 Performance Dashboard"         Quarter Filter Buttons       |
++-----------------------------------------------------------------------+
+
+[KPI SUMMARY ROW - 6 Cards in Grid]
++----------+ +----------+ +----------+ +----------+ +----------+ +----------+
+| Total    | | SETUP    | | Trainings| | Revenue  | | Personnel| | Projects |
+| Funding  | | Fund     | | Conducted| | Generated| | Trained  | | Completed|
+| ₱XXX.XM  | | ₱XX.XM   | | XXX      | | ₱XX.XM   | | X,XXX    | | XX       |
+| [Q bars] | | [Q bars] | | [Q bars] | | [Q bars] | | [Q bars] | | [Q bars] |
++----------+ +----------+ +----------+ +----------+ +----------+ +----------+
+
+Grid: 6 columns desktop, 3 columns tablet, 2 columns mobile
+
+[CHARTS SECTION - 2x2 Grid]
++----------------------------------+ +----------------------------------+
+|  FUNDING OVERVIEW                | |  TRAINING PERFORMANCE            |
+|  [Area Chart]                    | |  [Bar Chart]                     |
+|  SETUP Fund vs LGIA by Quarter   | |  Trainings vs Personnel Trained  |
++----------------------------------+ +----------------------------------+
++----------------------------------+ +----------------------------------+
+|  ECONOMIC IMPACT                 | |  STRATEGIC METRICS               |
+|  [Line Chart]                    | |  [Progress Bars]                 |
+|  Revenue, Investments, Contracts | |  Target vs Actual percentages    |
++----------------------------------+ +----------------------------------+
+
+Grid: 2 columns desktop, 1 column mobile
+
+[DATA SECTION - Tabbed Interface]
++-----------------------------------------------------------------------+
+|  [Operations] [Strategic] [S&T Projects] [Support Services]           |
++-----------------------------------------------------------------------+
+|                                                                       |
+|  Category Header (Collapsible)                          [Expand/Hide] |
+|  +---------------------------------------------------------------+   |
+|  | Indicator        | Q1    | Q2    | Q3    | Q4    | Annual     |   |
+|  |------------------+-------+-------+-------+-------+------------|   |
+|  | Metric Name      | Value | Value | Value | Value | Total      |   |
+|  +---------------------------------------------------------------+   |
+|                                                                       |
+|  Another Category (Collapsed)                           [Expand]      |
+|  ...                                                                  |
++-----------------------------------------------------------------------+
+
+--------------------------------------------------------------------------------
+COMPONENT PATTERNS
+--------------------------------------------------------------------------------
+
+1. KPI CARD ANATOMY
+   +------------------+
+   | [Icon]  Label    |  <- Small, muted label
+   | ₱12.5M           |  <- Large, bold value
+   | +15% from prev   |  <- Trend indicator (green up, red down)
+   | [||||    ]       |  <- Mini bar showing Q1-Q4 breakdown
+   +------------------+
+
+2. QUARTER FILTER BEHAVIOR
+   - Mutually exclusive selection (only one active at a time)
+   - "Annual" shows all quarters combined/totaled
+   - Q1-Q4 filters ALL data on page (KPIs, charts, tables)
+   - Active state: filled background, inactive: outline only
+
+3. COLLAPSIBLE TABLE SECTIONS
+   - Default: First category expanded, rest collapsed
+   - Click header to toggle expand/collapse
+   - Chevron icon rotates to indicate state
+   - Smooth height animation on toggle
+   - Preserves state during quarter filter changes
+
+4. DATA TABLE FEATURES
+   - Sticky header row for column labels
+   - Zebra striping for row readability
+   - Right-aligned numbers for easy comparison
+   - Subtle hover state on rows
+   - Compact row height to fit more data
+
+--------------------------------------------------------------------------------
+RESPONSIVE BREAKPOINTS
+--------------------------------------------------------------------------------
+
+Desktop (1024px+):
+- 6-column KPI grid
+- 2-column chart grid
+- Full table with all columns visible
+
+Tablet (768px - 1023px):
+- 3-column KPI grid
+- 2-column chart grid (smaller)
+- Table with horizontal scroll if needed
+
+Mobile (< 768px):
+- 2-column KPI grid
+- 1-column chart grid (stacked)
+- Simplified table (hide Q columns, show Annual only)
+- Quarter filter becomes dropdown or horizontal scroll
+
+--------------------------------------------------------------------------------
+INTERACTION PATTERNS
+--------------------------------------------------------------------------------
+
+1. HOVER STATES
+   - Cards: Subtle lift shadow + border glow
+   - Buttons: Background color shift
+   - Table rows: Background highlight
+   - Chart elements: Tooltip with exact values
+
+2. TRANSITIONS
+   - All color changes: 150ms ease
+   - Collapse/expand: 200ms ease-out
+   - Chart animations: 300ms on initial load
+
+3. TOOLTIPS
+   - Charts: Show exact value + label on hover
+   - KPI cards: Show breakdown on hover (optional)
+   - Truncated text: Show full text on hover
+
+--------------------------------------------------------------------------------
+DATA ORGANIZATION BY CATEGORY
+--------------------------------------------------------------------------------
+
+1. OPERATIONS (Day-to-day metrics)
+   - Funding sources (SETUP, LGIA, GIA)
+   - Training delivery numbers
+   - Technical assistance counts
+
+2. STRATEGIC (High-level outcomes)
+   - Revenue generated
+   - Jobs created
+   - Enterprises assisted
+   - Technology transfers
+
+3. S&T PROJECTS (Research & development)
+   - Projects completed
+   - Publications
+   - Patents filed
+   - Startups created
+
+4. SUPPORT SERVICES (Administrative)
+   - Facilities utilized
+   - Equipment maintained
+   - Consultations provided
+   - Food testing services
+
+--------------------------------------------------------------------------------
+ACCESSIBILITY CONSIDERATIONS
+--------------------------------------------------------------------------------
+
+- Color contrast ratio: Minimum 4.5:1 for text
+- Focus indicators: Visible outline on keyboard navigation
+- Screen reader: Proper heading hierarchy (h1 > h2 > h3)
+- Charts: Include data table alternative
+- Buttons: Clear labels, not just icons
+- Motion: Respect prefers-reduced-motion
+
+--------------------------------------------------------------------------------
+PERFORMANCE OPTIMIZATIONS
+--------------------------------------------------------------------------------
+
+- Charts: Lazy load below-fold charts
+- Tables: Virtual scrolling for 100+ rows
+- Images: Use SVG for icons (scalable, small)
+- Animations: Use CSS transforms (GPU accelerated)
+- Data: Filter on client-side (no server round-trip)
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================

@@ -17,7 +17,7 @@ export const QuarterlyTooltip = ({ active, payload, label }: TooltipProps<number
 
   if (!active || !payload?.length) return null;
 
-  const actual = payload.find((p) => p.dataKey === "performance")?.value ?? 0;
+  const actual = payload.find((p) => p.dataKey === "value")?.value ?? 0;
   const target = payload.find((p) => p.dataKey === "target")?.value ?? 0;
   const pct = target > 0 ? Math.round((Number(actual) / Number(target)) * 100) : 0;
 
@@ -37,11 +37,11 @@ export const QuarterlyTooltip = ({ active, payload, label }: TooltipProps<number
       <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 13 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
           <span style={{ color: colors.muted }}>Actual</span>
-          <span style={{ fontWeight: 600 }}>{actual}%</span>
+          <span style={{ fontWeight: 600 }}>{Number(actual).toLocaleString()}</span>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}>
           <span style={{ color: colors.muted }}>Target</span>
-          <span style={{ fontWeight: 600 }}>{target}%</span>
+          <span style={{ fontWeight: 600 }}>{Number(target).toLocaleString()}</span>
         </div>
         <div
           style={{

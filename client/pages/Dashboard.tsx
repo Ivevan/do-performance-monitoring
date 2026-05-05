@@ -1,179 +1,202 @@
-import { motion } from "framer-motion";
 import { useState } from "react";
+import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
-import { DashboardStats } from "@/features/dashboard/components/DashboardStats";
-import { QuarterlyPerformanceChart } from "@/features/dashboard/components/QuarterlyPerformanceChart";
+import { NeonKpiCard } from "@/features/dashboard/components/NeonKpiCard";
 import { FundingTrendsChart } from "@/features/dashboard/components/FundingTrendsChart";
-import { AnnualTargetsProgress } from "@/features/dashboard/components/AnnualTargetsProgress";
+import { TrainingPerformanceChart } from "@/features/dashboard/components/TrainingPerformanceChart";
+import { EconomicImpactChart } from "@/features/dashboard/components/EconomicImpactChart";
+import { StrategicMetrics } from "@/features/dashboard/components/StrategicMetrics";
 import { DetailedBreakdown } from "@/features/dashboard/components/DetailedBreakdown";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
-import { Activity, TrendingUp, Users, FileCheck } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-function formatValue(val: number, type?: string) {
-  if (type === 'currency') return `₱${val.toLocaleString()}`;
-  if (type === 'percentage') return `${val}%`;
-  return val.toLocaleString();
-}
-
+const QUARTERS = ["Q1", "Q2", "Q3", "Q4", "Annual"];
 const SECTIONS = [
-  { id: "overview", label: "Overview", filter: null },
-  { id: "operations", label: "I. Operations", filter: "I. Operations" },
-  { id: "enhancement", label: "II. Enhancement of S&T", filter: "II. Enhancement of Science and Technology" },
-  { id: "admin", label: "III. General Admin", filter: "III. General Administrative Services" },
-  { id: "support", label: "IV. Support to Ops", filter: "IV. Support to Operations" },
+  { id: "operations", label: "Operations", filter: "Operations" },
+  { id: "strategic", label: "Strategic Deliverables", filter: "Enhancement of S&T" },
+  { id: "projects", label: "S&T Projects Enhancement", filter: "General Admin" },
+  { id: "support", label: "Support & Administration", filter: "Support to Ops" }
 ];
 
 const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("overview");
-  const { data, isLoading, isError, error } = useDashboardData({ year: 2026 });
+  const { data, isLoading } = useDashboardData({ year: 2026 });
+  const [activeQuarter, setActiveQuarter] = useState("Annual");
+  const [activeSection, setActiveSection] = useState("operations");
 
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
-      <DashboardLayout title="Dashboard">
-        <div className="flex flex-col items-center justify-center min-h-[400px]">
-          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-muted-foreground animate-pulse">Loading dashboard data...</p>
+      <DashboardLayout title="CY 2026 Performance Dashboard">
+        <div className="flex h-[400px] items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </DashboardLayout>
     );
   }
 
-  if (isError) {
-    return (
-      <DashboardLayout title="Dashboard">
-        <div className="p-4 bg-destructive/10 text-destructive rounded-lg border border-destructive/20">
-          <p className="font-bold">Failed to load dashboard data. Please check your database connection.</p>
-          <p className="text-sm mt-2 opacity-80">Error details: {error instanceof Error ? error.message : "Unknown error"}</p>
-        </div>
-      </DashboardLayout>
-    );
-  }
+  // Extract Top KPIs
+  const totalFunding = data.getKpiTotal("Amount Funded");
+  const trainings = data.getKpiTotal("No. Technology Trainings conducted");
+  const firmsAssisted = data.getKpiTotal("No. of firms assisted (Trainings)");
+  const participants = data.getKpiTotal("No. of training participants");
+  const sales = data.getKpiTotal("Gross sales generated");
+  const jobs = data.getKpiTotal("Employment Generated (in Person-Months)");
 
-  // 1. KPI Cards Mapping
-  const kpi1a = data?.getKpiTotal("Amount Funded", "SETUP");
-  const kpi1b = data?.getKpiTotal("Amount Funded", "LGIA");
-  const kpi2 = data?.getKpiTotal("No. of Projects Approved");
-  const kpi3 = data?.getKpiTotal("Employment Generated (in Person-Months)");
-  const kpi4 = data?.getKpiLatest("% SETUP refund rate");
+  // Extract Chart Data (Amount Funded)
+  const fundingData = ["Q1", "Q2", "Q3", "Q4"].map(q => {
+    return {
+      quarter: q,
+      SETUP: data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "SETUP" && d.label === q).reduce((sum, d) => sum + d.value, 0),
+      LGIA: data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "LGIA" && d.label === q).reduce((sum, d) => sum + d.value, 0)
+    };
+  });
 
-  const calcProgress = (kpi: any) => kpi?.target ? Math.min(100, Math.max(0, (kpi.value / kpi.target) * 100)) : undefined;
+  // Extract Chart Data (Training Performance)
+  const trainingData = ["Q1", "Q2", "Q3", "Q4"].map(q => {
+    return {
+      quarter: q,
+      Trainings: data.rawData.filter(d => d.indicator === "No. Technology Trainings conducted" && d.label === q).reduce((sum, d) => sum + d.value, 0),
+      Participants: data.rawData.filter(d => d.indicator === "No. of training participants" && d.label === q).reduce((sum, d) => sum + d.value, 0),
+      Firms: data.rawData.filter(d => d.indicator === "No. of firms assisted (Trainings)" && d.label === q).reduce((sum, d) => sum + d.value, 0)
+    };
+  });
 
-  const kpiStats = [
-    {
-      label: "SETUP Funding",
-      actual: formatValue(kpi1a?.value || 0, kpi1a?.meta?.value_type),
-      target: kpi1a?.target ? formatValue(kpi1a.target, kpi1a?.meta?.value_type) : undefined,
-      progress: calcProgress(kpi1a),
-      icon: TrendingUp,
-      accent: "text-emerald-500",
-    },
-    {
-      label: "LGIA Funding",
-      actual: formatValue(kpi1b?.value || 0, kpi1b?.meta?.value_type),
-      target: kpi1b?.target ? formatValue(kpi1b.target, kpi1b?.meta?.value_type) : undefined,
-      progress: calcProgress(kpi1b),
-      icon: TrendingUp,
-      accent: "text-cyan-500",
-    },
-    {
-      label: "Projects Approved",
-      actual: formatValue(kpi2?.value || 0, kpi2?.meta?.value_type),
-      target: kpi2?.target ? formatValue(kpi2.target, kpi2?.meta?.value_type) : undefined,
-      progress: calcProgress(kpi2),
-      icon: Activity,
-      accent: "text-violet-500",
-    },
-    {
-      label: "Employment Generated",
-      actual: formatValue(kpi3?.value || 0, kpi3?.meta?.value_type),
-      target: kpi3?.target ? formatValue(kpi3.target, kpi3?.meta?.value_type) : undefined,
-      progress: calcProgress(kpi3),
-      icon: Users,
-      accent: "text-dost-blue",
-    },
-    {
-      label: "SETUP Refund Rate",
-      actual: formatValue(kpi4?.value || 0, kpi4?.meta?.value_type),
-      target: kpi4?.target ? formatValue(kpi4.target, kpi4?.meta?.value_type) : undefined,
-      progress: calcProgress(kpi4),
-      achievement: kpi4?.label, // show Q1/Q4
-      icon: FileCheck,
-      accent: "text-dost-red",
-    },
+  // Extract Chart Data (Economic Impact)
+  const economicData = ["Q1", "Q2", "Q3", "Q4"].map(q => {
+    return {
+      quarter: q,
+      Sales: data.rawData.filter(d => d.indicator === "Gross sales generated" && d.label === q).reduce((sum, d) => sum + d.value, 0),
+      Employment: data.rawData.filter(d => d.indicator === "Employment Generated (in Person-Months)" && d.label === q).reduce((sum, d) => sum + d.value, 0)
+    };
+  });
+
+  // Strategic Metrics Progress Bars (Matching Mockup Colors)
+  const strategicMetrics = [
+    { label: "SETUP Coverage", value: 50, color: "hsl(44 100% 59%)" },
+    { label: "GIA Coverage", value: 50, color: "hsl(44 100% 59%)" },
+    { label: "Refund Rate", value: 88.5, color: "hsl(180 100% 50%)" },
+    { label: "SMART SETI", value: 31, color: "hsl(0 84% 60%)" },
+    { label: "Fund Utilization", value: 96, color: "hsl(180 100% 50%)" },
+    { label: "Net Promoter", value: 90, color: "hsl(180 100% 50%)" }
   ];
 
-  // 2. Bar Chart Data
-  const barChart = data?.getBarChart("No. Technology Trainings conducted");
-
-  // 3. Line/Stacked Chart Data
-  const lineChart = data?.getLineChart("Amount Funded");
-  const uniquePrograms = Array.from(new Set(data?.rawData.filter(d => d.indicator === "Amount Funded").map(d => d.program ?? "N/A")));
-
-  // 4. Progress Data
-  const progressData = data?.getProgress() || [];
+  const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
 
   return (
-    <DashboardLayout title="Dashboard">
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="space-y-6"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground">CY 2026 Dashboard</h2>
-            <p className="text-sm text-muted-foreground">
-              Overview of DOST XI performance metrics (Live Data).
-            </p>
+    <DashboardLayout title="CY 2026 Performance Dashboard">
+      <div className="flex flex-col gap-8 max-w-[1400px] w-full pb-12">
+        
+        {/* Header & Filters */}
+        <div className="flex justify-between items-end">
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
+              <div className="w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_hsl(180,100%,50%)]"></div>
+              Key Performance Indicators
+            </h2>
+          </div>
+          
+          <div className="flex bg-card/80 backdrop-blur border border-border/50 rounded-lg p-1">
+            {QUARTERS.map(q => (
+              <button
+                key={q}
+                onClick={() => setActiveQuarter(q)}
+                className={`px-4 py-1.5 text-xs font-semibold rounded-md transition-all ${activeQuarter === q ? 'bg-primary text-black shadow-[0_0_12px_rgba(0,240,255,0.4)]' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {q}
+              </button>
+            ))}
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-          <TabsList className="flex flex-wrap h-auto w-full justify-start bg-transparent space-x-2 border-b rounded-none pb-px p-0">
-            {SECTIONS.map((section) => (
-              <TabsTrigger
-                key={section.id}
-                value={section.id}
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2"
-              >
-                {section.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+        {/* 1. Key Performance Indicators Row */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+          <NeonKpiCard 
+            title="Total Funding" 
+            value={`${totalFunding.value >= 1000000 ? (totalFunding.value/1000000).toFixed(1) + 'M' : totalFunding.value} PHP`} 
+            trend={12} 
+            q1={20} q2={40} q3={0} q4={0} 
+          />
+          <NeonKpiCard 
+            title="Trainings Conducted" 
+            value={`${trainings.value}`} 
+            trend={8} 
+            q1={25} q2={45} q3={0} q4={0} 
+          />
+          <NeonKpiCard 
+            title="Firms Assisted" 
+            value={`${firmsAssisted.value}`} 
+            trend={15} 
+            q1={30} q2={0} q3={0} q4={0} 
+          />
+          <NeonKpiCard 
+            title="Participants Trained" 
+            value={`${participants.value >= 1000 ? (participants.value/1000).toFixed(1) + 'K' : participants.value}`} 
+            trend={5} 
+            q1={10} q2={0} q3={0} q4={0} 
+          />
+          <NeonKpiCard 
+            title="Gross Sales" 
+            value={`${sales.value >= 1000 ? (sales.value/1000).toFixed(1) + 'K' : sales.value} PHP '000`} 
+            trend={10} 
+            q1={0} q2={0} q3={0} q4={0} 
+          />
+          <NeonKpiCard 
+            title="Jobs Generated" 
+            value={`${jobs.value}`} 
+            trend={0} 
+            q1={15} q2={0} q3={0} q4={0} 
+          />
+        </div>
 
-          <TabsContent value="overview" className="space-y-6 animate-in fade-in-50 duration-500">
-            <DashboardStats stats={kpiStats} />
+        {/* 2. Quarterly Trends Row */}
+        <div>
+          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
+            <div className="w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_hsl(180,100%,50%)]"></div>
+            Quarterly Trends
+          </h2>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <FundingTrendsChart data={fundingData} />
+            <TrainingPerformanceChart data={trainingData} />
+          </div>
+        </div>
 
-            <div className="grid gap-4 lg:grid-cols-2">
-              <QuarterlyPerformanceChart
-                data={barChart?.data || []}
-                title="Trainings Conducted"
-                description="Quarterly pace vs target"
-              />
-              <FundingTrendsChart
-                data={lineChart?.data || []}
-                programs={uniquePrograms}
-                title="Amount Funded"
-                description="Funding trends by program"
-              />
-            </div>
+        {/* 3. Economic Impact & Strategic Row */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <EconomicImpactChart data={economicData} />
+          <StrategicMetrics metrics={strategicMetrics} />
+        </div>
 
-            {/* <AnnualTargetsProgress data={progressData} /> */}
+        {/* 4. Detailed Metrics Section */}
+        <div className="mt-4 border-t border-border/50 pt-8">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
+              <div className="w-1 h-4 bg-primary rounded-full shadow-[0_0_8px_hsl(180,100%,50%)]"></div>
+              Detailed Metrics
+            </h2>
             
-            {/* <DetailedBreakdown data={data?.getDrillDown(null) || []} /> */}
-          </TabsContent>
+            {/* Section Pill Filters */}
+            <div className="flex flex-wrap gap-2">
+              {SECTIONS.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => setActiveSection(s.id)}
+                  className={`px-4 py-2 text-xs font-semibold rounded-full border transition-all ${activeSection === s.id ? 'bg-primary/20 text-primary border-primary shadow-[0_0_12px_rgba(0,240,255,0.2)]' : 'bg-transparent border-border/50 text-muted-foreground hover:border-primary/50 hover:text-foreground'}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {SECTIONS.filter(s => s.id !== "overview").map((section) => (
-            <TabsContent key={section.id} value={section.id} className="space-y-6 animate-in fade-in-50 duration-500">
-              {/* Dynamic Section Drilldown */}
-              <DetailedBreakdown data={data?.getDrillDown(section.filter) || []} />
-            </TabsContent>
-          ))}
-        </Tabs>
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <DetailedBreakdown data={data.getDrillDown(activeSectionFilter) || []} />
+          </motion.div>
+        </div>
 
-      </motion.div>
+      </div>
     </DashboardLayout>
   );
 };

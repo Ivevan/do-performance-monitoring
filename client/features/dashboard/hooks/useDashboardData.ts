@@ -180,25 +180,60 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
     filtered = filtered.filter(d => d.section === sectionFilter);
   }
 
-  const groupedByInd: Record<string, any[]> = {};
+  const groupedByInd: Record<string, any> = {};
   filtered.forEach(row => {
-    if (!groupedByInd[row.indicator]) groupedByInd[row.indicator] = [];
-    groupedByInd[row.indicator].push({
-      quarter: row.label,
-      program: row.program ?? "N/A",
-      value: row.value,
-      value_type: row.value_type,
-      unit: row.unit
+    if (!groupedByInd[row.indicator]) {
+      groupedByInd[row.indicator] = {
+        indicator: row.indicator,
+        value_type: row.value_type,
+        unit: row.unit,
+        aggregation_type: row.aggregation_type,
+        programs: {}
+      };
+    }
+    
+    const progKey = row.program ?? "N/A";
+    if (!groupedByInd[row.indicator].programs[progKey]) {
+      groupedByInd[row.indicator].programs[progKey] = {
+        program: progKey,
+        q1_target: row.q1_target || 0,
+        q2_target: row.q2_target || 0,
+        q3_target: row.q3_target || 0,
+        q4_target: row.q4_target || 0,
+        annual_target: row.annual_target || 0,
+        q1_actual: null,
+        q2_actual: null,
+        q3_actual: null,
+        q4_actual: null,
+        annual_actual: 0
+      };
+    }
+    
+    if (row.quarter) {
+      if (row.quarter === 1) groupedByInd[row.indicator].programs[progKey].q1_actual = row.value;
+      if (row.quarter === 2) groupedByInd[row.indicator].programs[progKey].q2_actual = row.value;
+      if (row.quarter === 3) groupedByInd[row.indicator].programs[progKey].q3_actual = row.value;
+      if (row.quarter === 4) groupedByInd[row.indicator].programs[progKey].q4_actual = row.value;
+    }
+  });
+
+  // Calculate annual actual based on aggregation type
+  Object.values(groupedByInd).forEach((ind: any) => {
+    Object.values(ind.programs).forEach((prog: any) => {
+       if (ind.aggregation_type === 'LATEST') {
+         prog.annual_actual = prog.q4_actual ?? prog.q3_actual ?? prog.q2_actual ?? prog.q1_actual ?? 0;
+       } else {
+         prog.annual_actual = (prog.q1_actual || 0) + (prog.q2_actual || 0) + (prog.q3_actual || 0) + (prog.q4_actual || 0);
+       }
     });
   });
 
-  // Sort within groups by quarter
+  // Convert to array
   const result = Object.keys(groupedByInd).sort().map(ind => {
-    const items = groupedByInd[ind].sort((a, b) => a.quarter.localeCompare(b.quarter));
     return {
       indicator: ind,
-      data: items,
-      meta: items.length > 0 ? { indicator: ind, value_type: items[0].value_type, unit: items[0].unit } : undefined
+      meta: { indicator: ind, value_type: groupedByInd[ind].value_type, unit: groupedByInd[ind].unit },
+      data: Object.values(groupedByInd[ind].programs).sort((a: any, b: any) => a.program.localeCompare(b.program))
     };
   });
 

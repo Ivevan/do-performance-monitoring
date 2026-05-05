@@ -1,57 +1,44 @@
 import {
-  Line,
-  LineChart,
+  Area,
+  AreaChart,
   CartesianGrid,
   ResponsiveContainer,
   XAxis,
   YAxis,
   Tooltip as RTooltip,
 } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
-const COLORS = [
-  "hsl(var(--dost-red))",
-  "hsl(var(--dost-blue))",
-  "hsl(var(--dost-yellow))",
-  "#10b981",
-  "#8b5cf6",
-  "#f97316"
-];
-
-export const FundingTrendsChart = ({ data, programs = [], title = "Funding Trends", description = "Monthly disbursement" }: { data: any[], programs?: string[], title?: string, description?: string }) => {
+export const FundingTrendsChart = ({ data, title = "Amount Funded", description = "SETUP vs LGIA (PHP)" }: { data: any[], programs?: string[], title?: string, description?: string }) => {
   return (
-    <Card className="border-border/60 shadow-elegant">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+    <Card className="border-border/50 bg-card shadow-none">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-medium">{title}</CardTitle>
+        <CardDescription className="text-xs">{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+        <ResponsiveContainer width="100%" height={240}>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="colorSetup" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(180 100% 50%)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(180 100% 50%)" stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="colorLgia" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="hsl(44 100% 59%)" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(44 100% 59%)" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 15%)" vertical={false} />
+            <XAxis dataKey="quarter" stroke="hsl(0 0% 50%)" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="hsl(0 0% 50%)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => val >= 1000000 ? `${(val / 1000000).toFixed(1)}M` : val >= 1000 ? `${(val / 1000).toFixed(0)}K` : val} />
             <RTooltip
-              contentStyle={{
-                background: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "0.5rem",
-                color: "hsl(var(--foreground))",
-              }}
+              contentStyle={{ background: "hsl(0 0% 10%)", border: "1px solid hsl(0 0% 20%)", borderRadius: "8px", color: "#fff" }}
+              itemStyle={{ color: "#fff" }}
             />
-            {programs.map((prog, index) => (
-              <Line
-                key={prog}
-                name={prog}
-                type="monotone"
-                dataKey={prog}
-                stroke={COLORS[index % COLORS.length]}
-                strokeWidth={2.5}
-                dot={{ fill: COLORS[index % COLORS.length], r: 3 }}
-                activeDot={{ r: 5 }}
-              />
-            ))}
-          </LineChart>
+            <Area type="monotone" dataKey="SETUP" stroke="hsl(180 100% 50%)" fillOpacity={1} fill="url(#colorSetup)" strokeWidth={2} activeDot={{ r: 6, fill: "hsl(180 100% 50%)", stroke: "#000", strokeWidth: 2 }} />
+            <Area type="monotone" dataKey="LGIA" stroke="hsl(44 100% 59%)" fillOpacity={1} fill="url(#colorLgia)" strokeWidth={2} activeDot={{ r: 6, fill: "hsl(44 100% 59%)", stroke: "#000", strokeWidth: 2 }} />
+          </AreaChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
