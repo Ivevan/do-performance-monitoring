@@ -97,27 +97,30 @@ const Dashboard = () => {
   // ── Chart data (from targets) ───────────────────────────────────────────────
   const setupT = getProgTargets("Amount Funded", "SETUP");
   const lgiaT  = getProgTargets("Amount Funded", "LGIA");
-  const fundingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
+  const allFundingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
     quarter: q, SETUP: setupT[q], LGIA: lgiaT[q],
   }));
+  const fundingData = activeQuarter === "Annual" ? allFundingData : allFundingData.filter(d => d.quarter === activeQuarter);
 
   const trainT  = getTargets("No. Technology Trainings conducted");
   const firmsT  = getTargets("No. of firms assisted (Trainings)");
   const partT   = getTargets("No. of training participants");
-  const trainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
+  const allTrainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
     quarter: q,
     Trainings:    ({ Q1: trainT.q1, Q2: trainT.q2, Q3: trainT.q3, Q4: trainT.q4 } as Record<string,number>)[q],
     Firms:        ({ Q1: firmsT.q1, Q2: firmsT.q2, Q3: firmsT.q3, Q4: firmsT.q4 } as Record<string,number>)[q],
     Participants: ({ Q1: partT.q1,  Q2: partT.q2,  Q3: partT.q3,  Q4: partT.q4  } as Record<string,number>)[q],
   }));
+  const trainingData = activeQuarter === "Annual" ? allTrainingData : allTrainingData.filter(d => d.quarter === activeQuarter);
 
   const salesT = getProgTargets("Gross Sales (P000)", null);
   const jobsT  = getTargets("Employment Generated (in Person-Months)");
-  const economicData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
+  const allEconomicData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
     quarter: q,
     Sales:      salesT[q],
     Employment: ({ Q1: jobsT.q1, Q2: jobsT.q2, Q3: jobsT.q3, Q4: jobsT.q4 } as Record<string,number>)[q],
   }));
+  const economicData = activeQuarter === "Annual" ? allEconomicData : allEconomicData.filter(d => d.quarter === activeQuarter);
 
   // ── Strategic metrics — show annual target values directly ──────────────────
   const strategicDefs = [

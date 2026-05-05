@@ -53,8 +53,8 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
               formatter={(value: number) => [`₱${value.toLocaleString()}`, ""]}
             />
             <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
-            <Area type="monotone" dataKey="SETUP" stroke="hsl(180 100% 50%)" fill="url(#colorSETUP)" strokeWidth={2} />
-            <Area type="monotone" dataKey="LGIA"  stroke="hsl(44 100% 59%)"  fill="url(#colorLGIA)"  strokeWidth={2} />
+            <Area type="monotone" dataKey="SETUP" stroke="hsl(180 100% 50%)" fill="url(#colorSETUP)" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(180 100% 50%)" }} />
+            <Area type="monotone" dataKey="LGIA"  stroke="hsl(44 100% 59%)"  fill="url(#colorLGIA)"  strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(44 100% 59%)" }} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
