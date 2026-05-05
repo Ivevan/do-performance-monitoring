@@ -38,9 +38,13 @@ export function DashboardLayout({ children, title, headerActions }: DashboardLay
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 border border-primary/20 hidden md:flex">
                   <Activity className="h-5 w-5 text-primary" />
                 </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-lg font-bold text-foreground tracking-tight">{title || "Performance Dashboard"}</h1>
-                  <p className="text-xs text-muted-foreground font-medium tracking-wide">Functional & Strategic Contributions</p>
+                <div className="flex flex-col min-w-0">
+                  <h1 className="text-sm sm:text-base md:text-lg font-bold text-foreground tracking-tight truncate max-w-[150px] sm:max-w-none">
+                    {title || "Performance Dashboard"}
+                  </h1>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground font-medium tracking-wide truncate hidden xs:block">
+                    Functional & Strategic Contributions
+                  </p>
                 </div>
               </div>
               

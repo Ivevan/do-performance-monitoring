@@ -145,7 +145,7 @@ const Dashboard = () => {
       title="CY 2026 Performance Dashboard"
       headerActions={<QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />}
     >
-      <div className="flex flex-col gap-8 max-w-[1400px] w-full pb-12">
+      <div className="flex flex-col gap-8 w-full pb-12">
 
         {/* ── 1. KPI Cards ── */}
         <section>
