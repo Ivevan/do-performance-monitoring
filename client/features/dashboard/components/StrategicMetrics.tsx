@@ -1,34 +1,49 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 
 interface StrategicMetric {
   label: string;
-  value: number; // 0-100
-  color: string;
+  value: number; // 0-100 (percentage)
 }
 
-export const StrategicMetrics = ({ metrics }: { metrics: StrategicMetric[] }) => {
+interface StrategicMetricsProps {
+  metrics: StrategicMetric[];
+}
+
+function getBarColor(value: number): string {
+  if (value >= 80) return "hsl(180 100% 50%)";  // primary cyan
+  if (value >= 50) return "hsl(44 100% 59%)";   // amber
+  return "hsl(0 84% 60%)";                        // red
+}
+
+export function StrategicMetrics({ metrics }: StrategicMetricsProps) {
   return (
-    <Card className="border-border/50 bg-card shadow-none flex flex-col h-full">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-base font-medium">Strategic Metrics</CardTitle>
-        <CardDescription className="text-xs">Progress vs Target (%)</CardDescription>
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col justify-between">
-        {metrics.map((m, i) => (
-          <div key={i} className="mb-4 last:mb-0">
-            <div className="flex justify-between items-end mb-1">
-              <span className="text-xs text-muted-foreground font-medium">{m.label}</span>
-              <span className="text-xs font-bold text-foreground">{m.value.toFixed(1)}%</span>
+    <Card className="bg-card border-border p-4">
+      <div className="mb-4">
+        <h3 className="text-sm font-medium text-foreground">Strategic Metrics</h3>
+        <p className="text-xs text-muted-foreground">Progress vs Annual Target (%)</p>
+      </div>
+      <div className="space-y-3">
+        {metrics.map((metric) => (
+          <div key={metric.label} className="space-y-1">
+            <div className="flex justify-between text-xs">
+              <span className="text-muted-foreground truncate pr-2">{metric.label}</span>
+              <span className="text-foreground font-semibold shrink-0">{metric.value.toFixed(1)}%</span>
             </div>
-            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-1000"
-                style={{ width: `${m.value}%`, backgroundColor: m.color }}
+                className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${Math.min(metric.value, 100)}%`,
+                  backgroundColor: getBarColor(metric.value),
+                }}
               />
             </div>
           </div>
         ))}
-      </CardContent>
+        {metrics.length === 0 && (
+          <p className="text-xs text-muted-foreground text-center py-4">No strategic metrics available.</p>
+        )}
+      </div>
     </Card>
   );
-};
+}

@@ -1,36 +1,46 @@
+import { Card } from "@/components/ui/card";
 import {
-  Line,
-  LineChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  XAxis,
-  YAxis,
-  Tooltip as RTooltip,
+  LineChart, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
-export const EconomicImpactChart = ({ data }: { data: any[] }) => {
+interface EconomicData {
+  quarter: string;
+  Sales: number;
+  Employment: number;
+}
+
+interface EconomicImpactChartProps {
+  data: EconomicData[];
+}
+
+export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
   return (
-    <Card className="border-border/50 bg-card shadow-none">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-base font-medium">Economic Impact</CardTitle>
-        <CardDescription className="text-xs">Gross Sales (PHP) & Employment (Person-Months)</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(0 0% 15%)" vertical={false} />
-            <XAxis dataKey="quarter" stroke="hsl(0 0% 50%)" fontSize={11} tickLine={false} axisLine={false} />
-            <YAxis stroke="hsl(0 0% 50%)" fontSize={11} tickLine={false} axisLine={false} />
-            <RTooltip
-              contentStyle={{ background: "hsl(0 0% 10%)", border: "1px solid hsl(0 0% 20%)", borderRadius: "8px", color: "#fff" }}
-              itemStyle={{ color: "#fff" }}
+    <Card className="bg-card border-border p-4">
+      <div className="mb-4">
+        <h3 className="text-sm font-medium text-foreground">Economic Impact</h3>
+        <p className="text-xs text-muted-foreground">Gross Sales (PHP '000) & Employment (Person-Months)</p>
+      </div>
+      <div className="h-[200px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+            <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "8px",
+                color: "hsl(var(--foreground))",
+              }}
             />
-            <Line type="monotone" dataKey="Sales" stroke="hsl(180 100% 50%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(180 100% 50%)", strokeWidth: 0 }} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="Employment" stroke="hsl(44 100% 59%)" strokeWidth={2} dot={{ r: 4, fill: "hsl(44 100% 59%)", strokeWidth: 0 }} activeDot={{ r: 6 }} />
+            <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
+            <Line type="monotone" dataKey="Sales"      stroke="hsl(180 100% 50%)" strokeWidth={2} dot={{ fill: "hsl(180 100% 50%)", strokeWidth: 2 }} name="Gross Sales" />
+            <Line type="monotone" dataKey="Employment" stroke="hsl(44 100% 59%)"  strokeWidth={2} dot={{ fill: "hsl(44 100% 59%)",  strokeWidth: 2 }} name="Employment" />
           </LineChart>
         </ResponsiveContainer>
-      </CardContent>
+      </div>
     </Card>
   );
-};
+}

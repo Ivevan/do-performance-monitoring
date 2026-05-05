@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import type { CategoryData, MetricData } from "@/lib/ptso-types";
 
 export interface VIndicatorData {
   indicator: string;
   section: string;
+  category: string;          // DB categories.name (e.g. "Technology Acquisition & Upgrading")
+  deliverable_type: string;  // "Functional" | "Strategic"
   year: number;
   quarter: number;
   label: string; // e.g., "Q1"
@@ -174,70 +177,69 @@ export function transformProgress(data: VIndicatorData[]) {
   });
 }
 
-export function transformDrillDown(data: VIndicatorData[], sectionFilter?: string | null) {
-  let filtered = data;
-  if (sectionFilter) {
-    filtered = filtered.filter(d => d.section === sectionFilter);
-  }
+export function transformDrillDown(data: VIndicatorData[], sectionFilter?: string | null): CategoryData {
+  const filtered = sectionFilter
+    ? data.filter(d => d.section === sectionFilter)
+    : data;
 
-  const groupedByInd: Record<string, any> = {};
+  // Accumulator: category → (indicator+program key) → metric row
+  type MetricAcc = {
+    name: string;
+    q1: number | null; q2: number | null; q3: number | null; q4: number | null;
+    aggregation_type: string;
+    unit: string | null;
+  };
+  const byCategory: Record<string, Record<string, MetricAcc>> = {};
+
   filtered.forEach(row => {
-    if (!groupedByInd[row.indicator]) {
-      groupedByInd[row.indicator] = {
-        indicator: row.indicator,
-        value_type: row.value_type,
-        unit: row.unit,
+    const catKey = row.category || "Other";
+    if (!byCategory[catKey]) byCategory[catKey] = {};
+
+    // Build a stable key and display name
+    const hasProgram = row.program && row.program !== "N/A";
+    const metricKey     = hasProgram ? `${row.indicator}||${row.program}` : `${row.indicator}||N/A`;
+    const metricDisplay = hasProgram ? `${row.indicator} (${row.program})` : row.indicator;
+
+    if (!byCategory[catKey][metricKey]) {
+      byCategory[catKey][metricKey] = {
+        name: metricDisplay,
+        q1: null, q2: null, q3: null, q4: null,
         aggregation_type: row.aggregation_type,
-        programs: {}
+        unit: row.unit,
       };
     }
-    
-    const progKey = row.program ?? "N/A";
-    if (!groupedByInd[row.indicator].programs[progKey]) {
-      groupedByInd[row.indicator].programs[progKey] = {
-        program: progKey,
-        q1_target: row.q1_target || 0,
-        q2_target: row.q2_target || 0,
-        q3_target: row.q3_target || 0,
-        q4_target: row.q4_target || 0,
-        annual_target: row.annual_target || 0,
-        q1_actual: null,
-        q2_actual: null,
-        q3_actual: null,
-        q4_actual: null,
-        annual_actual: 0
-      };
-    }
-    
-    if (row.quarter) {
-      if (row.quarter === 1) groupedByInd[row.indicator].programs[progKey].q1_actual = row.value;
-      if (row.quarter === 2) groupedByInd[row.indicator].programs[progKey].q2_actual = row.value;
-      if (row.quarter === 3) groupedByInd[row.indicator].programs[progKey].q3_actual = row.value;
-      if (row.quarter === 4) groupedByInd[row.indicator].programs[progKey].q4_actual = row.value;
-    }
+
+    const m = byCategory[catKey][metricKey];
+    if (row.quarter === 1) m.q1 = row.value;
+    if (row.quarter === 2) m.q2 = row.value;
+    if (row.quarter === 3) m.q3 = row.value;
+    if (row.quarter === 4) m.q4 = row.value;
   });
 
-  // Calculate annual actual based on aggregation type
-  Object.values(groupedByInd).forEach((ind: any) => {
-    Object.values(ind.programs).forEach((prog: any) => {
-       if (ind.aggregation_type === 'LATEST') {
-         prog.annual_actual = prog.q4_actual ?? prog.q3_actual ?? prog.q2_actual ?? prog.q1_actual ?? 0;
-       } else {
-         prog.annual_actual = (prog.q1_actual || 0) + (prog.q2_actual || 0) + (prog.q3_actual || 0) + (prog.q4_actual || 0);
-       }
+  // Convert to CategoryData shape
+  const subcategories = Object.entries(byCategory).map(([catName, metricsMap]) => {
+    const metrics: MetricData[] = Object.values(metricsMap).map(m => {
+      const annual = m.aggregation_type === "LATEST"
+        ? (m.q4 ?? m.q3 ?? m.q2 ?? m.q1 ?? 0)
+        : (m.q1 || 0) + (m.q2 || 0) + (m.q3 || 0) + (m.q4 || 0);
+
+      return {
+        name: m.name,
+        Q1: m.q1 ?? 0,
+        Q2: m.q2 ?? 0,
+        Q3: m.q3 ?? 0,
+        Q4: m.q4 ?? 0,
+        Annual: annual,
+        unit: m.unit || undefined,
+      };
     });
+    return { name: catName, metrics };
   });
 
-  // Convert to array
-  const result = Object.keys(groupedByInd).sort().map(ind => {
-    return {
-      indicator: ind,
-      meta: { indicator: ind, value_type: groupedByInd[ind].value_type, unit: groupedByInd[ind].unit },
-      data: Object.values(groupedByInd[ind].programs).sort((a: any, b: any) => a.program.localeCompare(b.program))
-    };
-  });
-
-  return result;
+  return {
+    title: sectionFilter || "All Sections",
+    subcategories,
+  };
 }
 
 export function useDashboardData(filters: DashboardFilters = { year: 2026, section: null, indicator: null, program: null }) {
@@ -270,7 +272,7 @@ export function useDashboardData(filters: DashboardFilters = { year: 2026, secti
         getKpiTotal: (indicator: string, program?: string) => transformKpiTotal(rawData, indicator, program),
         getKpiLatest: (indicator: string) => transformKpiLatest(rawData, indicator),
         getProgress: () => transformProgress(rawData),
-        getDrillDown: (section?: string | null) => transformDrillDown(rawData, section),
+        getDrillDown: (section?: string | null): CategoryData => transformDrillDown(rawData, section),
       };
     },
     staleTime: 1000 * 60 * 5, // 5 minutes cache
