@@ -71,7 +71,7 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <Sidebar collapsible="icon">
+      <Sidebar variant="floating" collapsible="icon">
         <SidebarHeader className="h-14 shrink-0 p-0 border-b border-sidebar-border">
           <div className="flex h-full items-center gap-2 px-4 overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-sidebar-accent/40">
