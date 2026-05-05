@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight } from "lucide-react";
@@ -19,18 +20,16 @@ function formatValue(value: number | string, unit?: string): string {
 }
 
 export function DataTable({ category, selectedQuarter }: DataTableProps) {
-  const [expandedSections, setExpandedSections] = useState<string[]>([]);
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   const toggle = (name: string) =>
-    setExpandedSections((prev) =>
-      prev.includes(name) ? prev.filter((s) => s !== name) : [...prev, name]
-    );
+    setExpandedSection((prev) => (prev === name ? null : name));
 
   return (
     <Card className="bg-card border-border overflow-hidden">
       <div className="divide-y divide-border">
         {category.subcategories.map((sub) => {
-          const isExpanded = expandedSections.includes(sub.name);
+          const isExpanded = expandedSection === sub.name;
           return (
             <div key={sub.name}>
               {/* Accordion Header */}
@@ -55,11 +54,18 @@ export function DataTable({ category, selectedQuarter }: DataTableProps) {
               </Button>
 
               {/* Accordion Content */}
-              {isExpanded && (
-                <div className="bg-secondary/20 divide-y divide-border/50">
-                  {selectedQuarter === "Annual" ? (
-                    /* Annual — full Q1/Q2/Q3/Q4/Annual table */
-                    <div className="overflow-x-auto">
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    className="overflow-hidden bg-secondary/20 divide-y divide-border/50"
+                  >
+                    {selectedQuarter === "Annual" ? (
+                      /* Annual — full Q1/Q2/Q3/Q4/Annual table */
+                      <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="text-muted-foreground text-xs border-b border-border/50">
@@ -98,8 +104,9 @@ export function DataTable({ category, selectedQuarter }: DataTableProps) {
                       ))}
                     </div>
                   )}
-                </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}

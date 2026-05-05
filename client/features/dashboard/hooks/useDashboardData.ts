@@ -203,24 +203,25 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
     if (!byCategory[catKey][metricKey]) {
       byCategory[catKey][metricKey] = {
         name: metricDisplay,
-        q1: null, q2: null, q3: null, q4: null,
+        // Since targets are identical across accomplishment rows for the same indicator+program,
+        // we just grab them from the first row we encounter.
+        q1: row.q1_target || 0,
+        q2: row.q2_target || 0,
+        q3: row.q3_target || 0,
+        q4: row.q4_target || 0,
         aggregation_type: row.aggregation_type,
         unit: row.unit,
       };
     }
-
-    const m = byCategory[catKey][metricKey];
-    if (row.quarter === 1) m.q1 = row.value;
-    if (row.quarter === 2) m.q2 = row.value;
-    if (row.quarter === 3) m.q3 = row.value;
-    if (row.quarter === 4) m.q4 = row.value;
   });
 
   // Convert to CategoryData shape
   const subcategories = Object.entries(byCategory).map(([catName, metricsMap]) => {
     const metrics: MetricData[] = Object.values(metricsMap).map(m => {
+      // For targets, Annual is usually explicitly defined. 
+      // If we need to calculate it dynamically based on aggregation_type:
       const annual = m.aggregation_type === "LATEST"
-        ? (m.q4 ?? m.q3 ?? m.q2 ?? m.q1 ?? 0)
+        ? (m.q4 || m.q3 || m.q2 || m.q1 || 0)
         : (m.q1 || 0) + (m.q2 || 0) + (m.q3 || 0) + (m.q4 || 0);
 
       return {
