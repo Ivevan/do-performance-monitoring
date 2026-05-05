@@ -24,7 +24,7 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
   return (
     <Card className="bg-card border-border p-4">
       <div className="mb-4">
-        <h3 className="text-sm font-medium text-foreground">Amount Funded</h3>
+        <h3 className="text-sm font-medium text-foreground">Funding Targets</h3>
         <p className="text-xs text-muted-foreground">SETUP vs LGIA (PHP)</p>
       </div>
       <div className="h-[200px]">

@@ -19,7 +19,7 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
   return (
     <Card className="bg-card border-border p-4">
       <div className="mb-4">
-        <h3 className="text-sm font-medium text-foreground">Training Performance</h3>
+        <h3 className="text-sm font-medium text-foreground">Training Targets</h3>
         <p className="text-xs text-muted-foreground">Trainings, Participants & Firms Assisted</p>
       </div>
       <div className="h-[200px]">

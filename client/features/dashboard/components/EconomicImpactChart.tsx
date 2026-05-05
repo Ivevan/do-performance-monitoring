@@ -18,7 +18,7 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
   return (
     <Card className="bg-card border-border p-4">
       <div className="mb-4">
-        <h3 className="text-sm font-medium text-foreground">Economic Impact</h3>
+        <h3 className="text-sm font-medium text-foreground">Economic Targets</h3>
         <p className="text-xs text-muted-foreground">Gross Sales (PHP '000) & Employment (Person-Months)</p>
       </div>
       <div className="h-[200px]">

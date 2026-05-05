@@ -19,8 +19,8 @@ export function StrategicMetrics({ metrics }: StrategicMetricsProps) {
   return (
     <Card className="bg-card border-border p-4">
       <div className="mb-4">
-        <h3 className="text-sm font-medium text-foreground">Strategic Metrics</h3>
-        <p className="text-xs text-muted-foreground">Progress vs Annual Target (%)</p>
+        <h3 className="text-sm font-medium text-foreground">Strategic Targets</h3>
+        <p className="text-xs text-muted-foreground">Annual Goal Percentage (%)</p>
       </div>
       <div className="space-y-3">
         {metrics.map((metric) => (
@@ -29,12 +29,12 @@ export function StrategicMetrics({ metrics }: StrategicMetricsProps) {
               <span className="text-muted-foreground truncate pr-2">{metric.label}</span>
               <span className="text-foreground font-semibold shrink-0">{metric.value.toFixed(1)}%</span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div className="h-2 bg-muted/30 rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-700"
+                className="h-full rounded-full"
                 style={{
                   width: `${Math.min(metric.value, 100)}%`,
-                  backgroundColor: getBarColor(metric.value),
+                  backgroundColor: "hsl(180 100% 50%)", // Consistent primary cyan for targets
                 }}
               />
             </div>
