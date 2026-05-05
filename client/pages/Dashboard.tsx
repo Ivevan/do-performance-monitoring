@@ -13,12 +13,11 @@ import { DataTable } from "@/features/dashboard/components/DataTable";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import type { Quarter } from "@/lib/ptso-types";
 
-// Section tab definitions — label maps to DB section name
 const SECTIONS = [
-  { id: "operations", label: "Operations",            filter: "I. Operations" },
-  { id: "enhancement", label: "Enhancement of S&T",  filter: "II. Enhancement of Science and Technology" },
-  { id: "admin",       label: "General Admin",        filter: "III. General Administrative Services" },
-  { id: "support",     label: "Support to Ops",       filter: "IV. Support to Operations" },
+  { id: "operations",  label: "Operations",           filter: "I. Operations" },
+  { id: "enhancement", label: "Enhancement of S&T",   filter: "II. Enhancement of Science and Technology" },
+  { id: "admin",       label: "General Admin",         filter: "III. General Administrative Services" },
+  { id: "support",     label: "Support to Ops",        filter: "IV. Support to Operations" },
 ];
 
 const Dashboard = () => {
@@ -36,34 +35,58 @@ const Dashboard = () => {
     );
   }
 
-  // ── KPI helpers ────────────────────────────────────────────────────────────
-  const getQuarterValue = (indicator: string, q: string) =>
+  // ── Target helpers ──────────────────────────────────────────────────────────
+  // Sum quarterly & annual TARGETS across all programs for a given indicator.
+  // Uses a Set to avoid double-counting duplicate rows for the same program.
+  const getTargets = (indicator: string) => {
+    const seen = new Set<string>();
+    let q1 = 0, q2 = 0, q3 = 0, q4 = 0, annual = 0;
     data.rawData
-      .filter(d => d.indicator === indicator && d.label === q)
-      .reduce((sum, d) => sum + d.value, 0);
+      .filter(d => d.indicator === indicator)
+      .forEach(row => {
+        const key = row.program ?? "N/A";
+        if (!seen.has(key)) {
+          seen.add(key);
+          q1     += row.q1_target     || 0;
+          q2     += row.q2_target     || 0;
+          q3     += row.q3_target     || 0;
+          q4     += row.q4_target     || 0;
+          annual += row.annual_target || 0;
+        }
+      });
+    return { q1, q2, q3, q4, annual };
+  };
 
-  const buildKpi = (indicator: string) => {
-    const annual    = data.getKpiTotal(indicator).value;
-    const qVal      = (q: string) => getQuarterValue(indicator, q);
-    const pct       = (q: string) => annual > 0 ? (qVal(q) / annual) * 100 : 0;
-    const q1v       = qVal("Q1");
-    const q2v       = qVal("Q2");
-    const trend     = q1v > 0 ? Math.round(((q2v - q1v) / q1v) * 100) : 0;
-    const current   = activeQuarter === "Annual" ? annual : qVal(activeQuarter);
+  // Get targets for a specific program (for charts)
+  const getProgTargets = (indicator: string, program: string | null) => {
+    const row = data.rawData.find(d =>
+      d.indicator === indicator &&
+      (program === null
+        ? !d.program || d.program === "N/A"
+        : d.program === program)
+    );
     return {
-      value:     current,
-      annual,
-      trend:     `${trend > 0 ? "+" : ""}${trend}%`,
-      trendUp:   trend >= 0,
-      breakdown: {
-        Q1: getQuarterValue(indicator, "Q1"),
-        Q2: getQuarterValue(indicator, "Q2"),
-        Q3: getQuarterValue(indicator, "Q3"),
-        Q4: getQuarterValue(indicator, "Q4"),
-      },
+      Q1: row?.q1_target || 0,
+      Q2: row?.q2_target || 0,
+      Q3: row?.q3_target || 0,
+      Q4: row?.q4_target || 0,
+      Annual: row?.annual_target || 0,
     };
   };
 
+  // Build KpiCard props from targets
+  const buildKpi = (indicator: string) => {
+    const t = getTargets(indicator);
+    const qMap: Record<string, number> = { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 };
+    const display = activeQuarter === "Annual" ? t.annual : (qMap[activeQuarter] ?? 0);
+    return {
+      value:     display,
+      annual:    t.annual,
+      breakdown: { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 },
+    };
+  };
+
+  // ── KPI values (from targets) ───────────────────────────────────────────────
   const funding      = buildKpi("Amount Funded");
   const trainings    = buildKpi("No. Technology Trainings conducted");
   const firms        = buildKpi("No. of firms assisted (Trainings)");
@@ -71,111 +94,69 @@ const Dashboard = () => {
   const sales        = buildKpi("Gross Sales (P000)");
   const jobs         = buildKpi("Employment Generated (in Person-Months)");
 
-  // ── Chart data ─────────────────────────────────────────────────────────────
-  const fundingData = ["Q1", "Q2", "Q3", "Q4"].map(q => ({
-    quarter: q,
-    SETUP: data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "SETUP" && d.label === q).reduce((s, d) => s + d.value, 0),
-    LGIA:  data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "LGIA"  && d.label === q).reduce((s, d) => s + d.value, 0),
+  // ── Chart data (from targets) ───────────────────────────────────────────────
+  const setupT = getProgTargets("Amount Funded", "SETUP");
+  const lgiaT  = getProgTargets("Amount Funded", "LGIA");
+  const fundingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
+    quarter: q, SETUP: setupT[q], LGIA: lgiaT[q],
   }));
 
-  const trainingData = ["Q1", "Q2", "Q3", "Q4"].map(q => ({
+  const trainT  = getTargets("No. Technology Trainings conducted");
+  const firmsT  = getTargets("No. of firms assisted (Trainings)");
+  const partT   = getTargets("No. of training participants");
+  const trainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
     quarter: q,
-    Trainings:    data.rawData.filter(d => d.indicator === "No. Technology Trainings conducted" && d.label === q).reduce((s, d) => s + d.value, 0),
-    Participants: data.rawData.filter(d => d.indicator === "No. of training participants"       && d.label === q).reduce((s, d) => s + d.value, 0),
-    Firms:        data.rawData.filter(d => d.indicator === "No. of firms assisted (Trainings)"  && d.label === q).reduce((s, d) => s + d.value, 0),
+    Trainings:    ({ Q1: trainT.q1, Q2: trainT.q2, Q3: trainT.q3, Q4: trainT.q4 } as Record<string,number>)[q],
+    Firms:        ({ Q1: firmsT.q1, Q2: firmsT.q2, Q3: firmsT.q3, Q4: firmsT.q4 } as Record<string,number>)[q],
+    Participants: ({ Q1: partT.q1,  Q2: partT.q2,  Q3: partT.q3,  Q4: partT.q4  } as Record<string,number>)[q],
   }));
 
-  const economicData = ["Q1", "Q2", "Q3", "Q4"].map(q => ({
+  const salesT = getProgTargets("Gross Sales (P000)", null);
+  const jobsT  = getTargets("Employment Generated (in Person-Months)");
+  const economicData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
     quarter: q,
-    Sales:      data.rawData.filter(d => d.indicator === "Gross Sales (P000)"                         && d.label === q).reduce((s, d) => s + d.value, 0),
-    Employment: data.rawData.filter(d => d.indicator === "Employment Generated (in Person-Months)" && d.label === q).reduce((s, d) => s + d.value, 0),
+    Sales:      salesT[q],
+    Employment: ({ Q1: jobsT.q1, Q2: jobsT.q2, Q3: jobsT.q3, Q4: jobsT.q4 } as Record<string,number>)[q],
   }));
 
-  // ── Strategic metrics (live from getProgress) ──────────────────────────────
-  const progressData    = data.getProgress();
-  const strategicLabels = [
-    "% municipalities availed SETUP funds",
-    "% municipalities availed GIA funds",
-    "% SETUP refund rate",
-    "% business enterprise adopting SMART SETI tools and",
-    "Project Fund Utilization",
-    "Overall Net Promoter Score",
+  // ── Strategic metrics — show annual target values directly ──────────────────
+  const strategicDefs = [
+    { label: "SETUP Coverage (%)",    prefix: "% municipalities availed SETUP" },
+    { label: "GIA Coverage (%)",      prefix: "% municipalities availed GIA" },
+    { label: "SETUP Refund Rate (%)", prefix: "% SETUP refund rate" },
+    { label: "SMART SETI (%)",        prefix: "% business enterprise adopting" },
+    { label: "Net Promoter Score (%)",prefix: "Overall Net Promoter Score" },
+    { label: "Fund Utilization (%)",  prefix: "Project Fund Utilization" },
   ];
-  const strategicMetrics = progressData
-    .filter(p => strategicLabels.some(l => p.indicator.startsWith(l.slice(0, 20))))
-    .slice(0, 6)
-    .map(p => ({ label: p.indicator.slice(0, 30), value: Math.round(p.value) }));
+  const strategicMetrics = strategicDefs.map(def => {
+    const row = data.rawData.find(d => d.indicator.startsWith(def.prefix.slice(0, 18)));
+    return { label: def.label, value: row?.annual_target || 0 };
+  });
 
-  // ── Drill-down ─────────────────────────────────────────────────────────────
+  // ── Drill-down DataTable ────────────────────────────────────────────────────
   const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
   const drillDownData       = data.getDrillDown(activeSectionFilter);
 
-  // ── Header quarter filter ──────────────────────────────────────────────────
-  const headerActions = (
-    <QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />
-  );
-
   return (
-    <DashboardLayout title="CY 2026 Performance Dashboard" headerActions={headerActions}>
+    <DashboardLayout
+      title="CY 2026 Performance Dashboard"
+      headerActions={<QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />}
+    >
       <div className="flex flex-col gap-8 max-w-[1400px] w-full pb-12">
 
         {/* ── 1. KPI Cards ── */}
         <section>
           <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Key Performance Indicators
+            Key Performance Indicators — {activeQuarter} Targets
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-            <KpiCard
-              label="Total Funding"
-              value={funding.annual}
-              unit="PHP"
-              breakdown={funding.breakdown}
-              trend={funding.trend}
-              trendUp={funding.trendUp}
-              selectedQuarter={activeQuarter}
-            />
-            <KpiCard
-              label="Trainings Conducted"
-              value={trainings.annual}
-              breakdown={trainings.breakdown}
-              trend={trainings.trend}
-              trendUp={trainings.trendUp}
-              selectedQuarter={activeQuarter}
-            />
-            <KpiCard
-              label="Firms Assisted"
-              value={firms.annual}
-              breakdown={firms.breakdown}
-              trend={firms.trend}
-              trendUp={firms.trendUp}
-              selectedQuarter={activeQuarter}
-            />
-            <KpiCard
-              label="Participants Trained"
-              value={participants.annual}
-              breakdown={participants.breakdown}
-              trend={participants.trend}
-              trendUp={participants.trendUp}
-              selectedQuarter={activeQuarter}
-            />
-            <KpiCard
-              label="Gross Sales (₱'000)"
-              value={sales.annual}
-              unit="PHP '000"
-              breakdown={sales.breakdown}
-              trend={sales.trend}
-              trendUp={sales.trendUp}
-              selectedQuarter={activeQuarter}
-            />
-            <KpiCard
-              label="Employment (Person-Mo.)"
-              value={jobs.annual}
-              breakdown={jobs.breakdown}
-              trend={jobs.trend}
-              trendUp={jobs.trendUp}
-              selectedQuarter={activeQuarter}
-            />
+            <KpiCard label="Total Funding"            value={funding.annual}      unit="PHP"      breakdown={funding.breakdown}      selectedQuarter={activeQuarter} />
+            <KpiCard label="Trainings Conducted"      value={trainings.annual}                    breakdown={trainings.breakdown}    selectedQuarter={activeQuarter} />
+            <KpiCard label="Firms Assisted"           value={firms.annual}                        breakdown={firms.breakdown}        selectedQuarter={activeQuarter} />
+            <KpiCard label="Participants Trained"     value={participants.annual}                  breakdown={participants.breakdown}  selectedQuarter={activeQuarter} />
+            <KpiCard label="Gross Sales (₱'000)"      value={sales.annual}        unit="PHP '000" breakdown={sales.breakdown}        selectedQuarter={activeQuarter} />
+            <KpiCard label="Employment (Person-Mo.)"  value={jobs.annual}                         breakdown={jobs.breakdown}         selectedQuarter={activeQuarter} />
           </div>
         </section>
 
@@ -183,7 +164,7 @@ const Dashboard = () => {
         <section>
           <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Quarterly Trends
+            Quarterly Targets
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
             <FundingTrendsChart data={fundingData} />
@@ -191,18 +172,18 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* ── 3. Economic Impact & Strategic ── */}
+        {/* ── 3. Economic & Strategic ── */}
         <section className="grid gap-4 md:grid-cols-2">
           <EconomicImpactChart data={economicData} />
           <StrategicMetrics metrics={strategicMetrics} />
         </section>
 
-        {/* ── 4. Detailed Metrics ── */}
+        {/* ── 4. Detailed Breakdown ── */}
         <section className="border-t border-border/50 pt-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
               <Building2 className="h-4 w-4" />
-              Detailed Metrics
+              Detailed Targets
             </h2>
             <CategoryTabs
               categories={SECTIONS.map(s => ({ id: s.id, label: s.label }))}
@@ -210,7 +191,6 @@ const Dashboard = () => {
               onChange={setActiveSection}
             />
           </div>
-
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, y: 10 }}
@@ -225,7 +205,7 @@ const Dashboard = () => {
         <footer className="pt-4 border-t border-border/30">
           <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
             <Activity className="h-3 w-3" />
-            Performance Tracking System Overview &bull; CY 2026 &bull; Last updated: {new Date().toLocaleDateString()}
+            CY 2026 Annual Performance Targets &bull; Last updated: {new Date().toLocaleDateString()}
           </p>
         </footer>
 

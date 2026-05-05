@@ -1,5 +1,4 @@
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown } from "lucide-react";
 import type { Quarter } from "@/lib/ptso-types";
 
 interface KpiCardProps {
@@ -7,8 +6,6 @@ interface KpiCardProps {
   value: number;
   unit?: string;
   breakdown: { Q1: number; Q2: number; Q3: number; Q4: number };
-  trend: string;
-  trendUp: boolean;
   selectedQuarter: Quarter;
 }
 
@@ -17,8 +14,6 @@ export function KpiCard({
   value,
   unit,
   breakdown,
-  trend,
-  trendUp,
   selectedQuarter,
 }: KpiCardProps) {
   const displayValue =
@@ -26,19 +21,30 @@ export function KpiCard({
       ? value
       : breakdown[selectedQuarter as keyof typeof breakdown];
 
+  // Show exact numbers — no M/K abbreviation for PHP to preserve full precision
   const formatValue = (val: number) => {
-    if (val >= 1_000_000) return `${(val / 1_000_000).toFixed(1)}M`;
-    if (val >= 1_000) return `${(val / 1_000).toFixed(1)}K`;
+    if (unit === "PHP" || unit === "PHP '000") {
+      return val.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    }
+    // For counts, abbreviate only if very large (>= 10K)
+    if (val >= 10_000) return `${(val / 1_000).toFixed(1)}K`;
     return val.toLocaleString();
   };
+
+  // Use smaller font for large numbers to prevent overflow
+  const valueFontClass = displayValue >= 1_000_000
+    ? "text-base font-bold"
+    : displayValue >= 10_000
+    ? "text-lg font-bold"
+    : "text-2xl font-bold";
 
   return (
     <Card className="bg-card border-border p-4 hover:border-primary/50 transition-colors group">
       <div className="flex items-start justify-between">
-        <div className="space-y-1">
+        <div className="space-y-1 min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">{label}</p>
-          <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold text-foreground">
+          <div className="flex items-baseline gap-1 flex-wrap">
+            <span className={`${valueFontClass} text-foreground leading-tight`}>
               {unit === "PHP" && "₱"}{formatValue(displayValue)}
             </span>
             {unit && unit !== "PHP" && (
@@ -46,20 +52,6 @@ export function KpiCard({
             )}
           </div>
         </div>
-        {selectedQuarter === "Annual" && (
-          <div
-            className={`flex items-center gap-1 text-xs font-medium ${
-              trendUp ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            {trendUp ? (
-              <TrendingUp className="h-3 w-3" />
-            ) : (
-              <TrendingDown className="h-3 w-3" />
-            )}
-            <span>{trend}</span>
-          </div>
-        )}
       </div>
 
       {/* Quarterly breakdown bars */}
