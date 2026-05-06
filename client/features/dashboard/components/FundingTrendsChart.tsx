@@ -32,12 +32,12 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
           <AreaChart data={data}>
             <defs>
               <linearGradient id="colorSETUP" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="hsl(180 100% 50%)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(180 100% 50%)" stopOpacity={0} />
+                <stop offset="5%"  stopColor="hsl(var(--dost-blue))"   stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(var(--dost-blue))"   stopOpacity={0} />
               </linearGradient>
               <linearGradient id="colorLGIA" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="hsl(44 100% 59%)" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(44 100% 59%)" stopOpacity={0} />
+                <stop offset="5%"  stopColor="hsl(var(--dost-yellow))" stopOpacity={0.3} />
+                <stop offset="95%" stopColor="hsl(var(--dost-yellow))" stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
@@ -53,8 +53,8 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
               formatter={(value: number) => [`₱${value.toLocaleString()}`, ""]}
             />
             <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
-            <Area type="monotone" dataKey="SETUP" stroke="hsl(180 100% 50%)" fill="url(#colorSETUP)" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(180 100% 50%)" }} />
-            <Area type="monotone" dataKey="LGIA"  stroke="hsl(44 100% 59%)"  fill="url(#colorLGIA)"  strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(44 100% 59%)" }} />
+            <Area type="monotone" dataKey="SETUP" stroke="hsl(var(--dost-blue))"   fill="url(#colorSETUP)" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--dost-blue))" }} />
+            <Area type="monotone" dataKey="LGIA"  stroke="hsl(var(--dost-yellow))" fill="url(#colorLGIA)"  strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--dost-yellow))" }} />
           </AreaChart>
         </ResponsiveContainer>
       </div>

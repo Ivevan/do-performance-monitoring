@@ -51,7 +51,7 @@ export const LoginForm = () => {
   };
 
   return (
-    <Card className="p-5 sm:p-6 border-border/60 shadow-elegant transition-shadow hover:shadow-glow">
+    <Card className="p-5 sm:p-6 border border-border/50 shadow-elegant hover:shadow-glow transition-shadow duration-300">
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
@@ -122,7 +122,7 @@ export const LoginForm = () => {
         <Button
           type="submit"
           disabled={submitting}
-          className="w-full group h-11 bg-gradient-primary text-primary-foreground hover:opacity-95"
+          className="w-full group h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold transition-all duration-200 shadow-sm hover:shadow-md"
         >
           {submitting ? (
             <>

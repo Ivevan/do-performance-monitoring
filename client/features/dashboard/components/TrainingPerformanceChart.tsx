@@ -37,9 +37,9 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
               }}
             />
             <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
-            <Bar dataKey="Trainings"    fill="hsl(180 100% 50%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Firms"        fill="hsl(260 100% 65%)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Participants" fill="hsl(44 100% 59%)"  radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Trainings"    fill="hsl(var(--dost-blue))"   radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Firms"        fill="hsl(var(--dost-red))"    radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Participants" fill="hsl(var(--dost-yellow))" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

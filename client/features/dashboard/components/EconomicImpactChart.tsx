@@ -36,8 +36,8 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
               }}
             />
             <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
-            <Line type="monotone" dataKey="Sales"      stroke="hsl(180 100% 50%)" strokeWidth={2} dot={{ fill: "hsl(180 100% 50%)", strokeWidth: 2 }} name="Gross Sales" />
-            <Line type="monotone" dataKey="Employment" stroke="hsl(44 100% 59%)"  strokeWidth={2} dot={{ fill: "hsl(44 100% 59%)",  strokeWidth: 2 }} name="Employment" />
+            <Line type="monotone" dataKey="Sales"      stroke="hsl(var(--dost-blue))"   strokeWidth={2} dot={{ fill: "hsl(var(--dost-blue))",   strokeWidth: 2 }} name="Gross Sales" />
+            <Line type="monotone" dataKey="Employment" stroke="hsl(var(--dost-yellow))" strokeWidth={2} dot={{ fill: "hsl(var(--dost-yellow))", strokeWidth: 2 }} name="Employment" />
           </LineChart>
         </ResponsiveContainer>
       </div>

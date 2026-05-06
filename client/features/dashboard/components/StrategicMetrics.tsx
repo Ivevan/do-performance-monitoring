@@ -10,9 +10,9 @@ interface StrategicMetricsProps {
 }
 
 function getBarColor(value: number): string {
-  if (value >= 80) return "hsl(180 100% 50%)";  // primary cyan
-  if (value >= 50) return "hsl(44 100% 59%)";   // amber
-  return "hsl(0 84% 60%)";                        // red
+  if (value >= 80) return "hsl(var(--dost-blue))";
+  if (value >= 50) return "hsl(var(--dost-yellow))";
+  return "hsl(var(--destructive))";
 }
 
 export function StrategicMetrics({ metrics }: StrategicMetricsProps) {
@@ -34,7 +34,7 @@ export function StrategicMetrics({ metrics }: StrategicMetricsProps) {
                 className="h-full rounded-full"
                 style={{
                   width: `${Math.min(metric.value, 100)}%`,
-                  backgroundColor: "hsl(180 100% 50%)", // Consistent primary cyan for targets
+                  backgroundColor: getBarColor(metric.value),
                 }}
               />
             </div>

@@ -19,7 +19,7 @@ export function QuarterFilter({ selected, onChange }: QuarterFilterProps) {
           onClick={() => onChange(q)}
           className={`text-[10px] sm:text-xs px-2 sm:px-3 h-7 sm:h-8 transition-all ${
             selected === q
-              ? "bg-primary text-primary-foreground shadow-[0_0_10px_rgba(0,240,255,0.3)]"
+              ? "bg-primary text-primary-foreground shadow-glow"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
