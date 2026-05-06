@@ -55,7 +55,7 @@ export function DashboardLayout({ children, title, headerActions }: DashboardLay
           </header>
           
           {/* Main Content Area */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto max-w-[1600px] mx-auto w-full">
+          <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-auto scroll-smooth max-w-[1600px] mx-auto w-full">
             {children}
           </main>
         </div>
