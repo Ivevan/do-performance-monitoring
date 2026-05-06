@@ -2,6 +2,7 @@ import { LayoutDashboard, BarChart3, FileText, Settings, LogOut, HelpCircle, Bel
 import { useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeSwitch } from "@/components/ThemeSwitch";
 import {
   Sidebar,
   SidebarContent,
@@ -105,7 +106,12 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border relative overflow-hidden">
+        <SidebarFooter className="border-t border-sidebar-border relative overflow-hidden p-2 gap-1">
+          {/* Theme Toggle Section - Above Profile */}
+          <div className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
+            <ThemeSwitch />
+          </div>
+
           <div className="flex items-center gap-2 px-2 py-2 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback className="bg-dost-blue text-white text-xs font-semibold">DA</AvatarFallback>
@@ -114,7 +120,6 @@ export function AppSidebar() {
               <p className="text-xs font-medium text-sidebar-foreground truncate">DOST Admin</p>
               <p className="text-[10px] text-sidebar-foreground/60 truncate">admin@dost.gov.ph</p>
             </div>
-            <ThemeToggle />
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -130,14 +135,19 @@ export function AppSidebar() {
           </div>
 
           {/* Collapsed State Footer - absolutely positioned to fade in */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200 group-data-[collapsible=icon]:opacity-100 group-data-[collapsible=icon]:pointer-events-auto">
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => navigate("/")} tooltip="Sign out">
+          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200 group-data-[collapsible=icon]:opacity-100 group-data-[collapsible=icon]:pointer-events-auto py-2 gap-1">
+            <ThemeToggle className="h-8 w-8 border-0 bg-transparent hover:bg-sidebar-accent" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button 
+                  onClick={() => navigate("/")}
+                  className="rounded-md p-2 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-dost-red transition-colors"
+                >
                   <LogOut className="h-4 w-4 shrink-0" />
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Sign out</TooltipContent>
+            </Tooltip>
           </div>
         </SidebarFooter>
       </Sidebar>
