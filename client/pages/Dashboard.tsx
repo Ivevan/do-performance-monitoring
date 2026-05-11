@@ -25,7 +25,7 @@ const Dashboard = () => {
   const { data, isLoading } = useDashboardData({ year: 2026 });
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("Annual");
   const [activeSection, setActiveSection] = useState("operations");
-  const [showAccomplishments, setShowAccomplishments] = useState(true);
+  const [showAccomplishments, setShowAccomplishments] = useState(false);
 
   if (isLoading || !data) {
     return (
