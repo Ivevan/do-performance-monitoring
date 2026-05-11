@@ -52,16 +52,17 @@ type FilterKey = "all" | "Trainings" | "Participants" | "Firms";
 const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
   { key: "all",          label: "All Metrics" },
   { key: "Trainings",    label: "Trainings",    color: "hsl(var(--dost-blue))" },
-  { key: "Firms",        label: "Firms",        color: "hsl(var(--dost-red))" },
-  { key: "Participants", label: "Participants", color: "hsl(var(--dost-yellow))" },
+  { key: "Firms",        label: "Firms",        color: "hsl(var(--dost-gray))" },
+  { key: "Participants", label: "Participants", color: "hsl(var(--dost-orange))" },
 ];
 
 /**
- * Custom Bullet Bar Shape - Optimized with Memoization
+ * Custom Bullet Bar Shape - Vertical Premium Edition
+ * Renders a nested, floating look with 3D depth.
  */
 const BulletBarShape = React.memo((props: any) => {
   const { x, y, width, height, fill, payload, showAccomplishments, program } = props;
-  if (width <= 0 || !payload) return null;
+  if (!payload || width <= 0) return null;
 
   const targetVal = payload[`${program}_target`] || 0;
   const actualVal = payload[`${program}_actual`] || 0;
@@ -69,7 +70,6 @@ const BulletBarShape = React.memo((props: any) => {
   
   if (maxVal <= 0) return null;
 
-  // Calculate relative coordinates
   const targetPxHeight = (targetVal / maxVal) * height;
   const targetY = y + height - targetPxHeight;
 
@@ -78,42 +78,41 @@ const BulletBarShape = React.memo((props: any) => {
 
   return (
     <g>
-      {/* Ghost Target Bar */}
+      {/* Target Bar (Left-Staggered Base Layer - 70% Width) */}
       <rect 
         x={x} 
         y={targetY} 
-        width={width} 
+        width={width * 0.7} 
         height={targetPxHeight} 
         fill={fill} 
-        fillOpacity={showAccomplishments ? 0.1 : 0.8}
-        rx={2}
+        rx={3}
       />
       
       {showAccomplishments && (
         <>
-          {/* Target Marker */}
-          <line 
-            x1={x - 1} 
-            x2={x + width + 1} 
-            y1={targetY} 
-            y2={targetY} 
-            stroke={fill} 
-            strokeWidth={2} 
-            strokeLinecap="round" 
-          />
-          
-          {/* Accomplishment Bar (Nested) */}
+          {/* Accomplishment Bar (Right-Staggered Top Layer - 70% Width) */}
           {actualVal > 0 && (
             <rect 
-              x={x + width * 0.25} 
+              x={x + width * 0.3} 
               y={actualY} 
-              width={width * 0.5} 
+              width={width * 0.7} 
               height={actualPxHeight} 
-              fill={fill} 
-              rx={1}
-              style={{ filter: "url(#glow-train)" }}
+              fill="hsl(var(--dost-red))" 
+              filter="url(#shadow-float-train)"
+              rx={3}
             />
           )}
+
+          {/* Target Goal Marker (Horizontal Finish Line) */}
+          <line 
+            x1={x - 2} 
+            x2={x + width + 2} 
+            y1={targetY} 
+            y2={targetY} 
+            stroke="hsl(var(--dost-target-marker))" 
+            strokeWidth={3} 
+            strokeLinecap="round" 
+          />
         </>
       )}
     </g>
@@ -121,6 +120,63 @@ const BulletBarShape = React.memo((props: any) => {
 });
 
 BulletBarShape.displayName = "BulletBarShape";
+
+/**
+ * Reliable Standard Tooltip - 'Smooth & Airy' Edition
+ */
+const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccomplishments }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const allMetrics: FilterKey[] = ["Trainings", "Firms", "Participants"];
+    const activeMetrics = filter === "all" ? allMetrics : [filter];
+
+    return (
+      <div className="bg-card/90 backdrop-blur-md border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[260px] animate-in fade-in zoom-in duration-300">
+        <div className="flex items-center justify-between mb-4 border-b border-border/40 pb-3">
+          <span className="text-base font-black text-foreground tracking-tighter">{label} Performance</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Technology Trainings</span>
+        </div>
+        
+        <div className="space-y-6">
+          {activeMetrics.map(metric => {
+            const target = data[`${metric}_target`] || 0;
+            const actual = data[`${metric}_actual`] || 0;
+            const option = FILTER_OPTIONS.find(o => o.key === metric);
+            const color = option?.color || "hsl(var(--primary))";
+
+            if (target === 0 && actual === 0) return null;
+
+            return (
+              <div key={metric} className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>{metric}</span>
+                </div>
+                
+                <div className="pl-4 space-y-2.5">
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-muted-foreground font-medium italic">Planned Goal</span>
+                    <span className="font-bold text-foreground">{target.toLocaleString()}</span>
+                  </div>
+                  
+                  {showAccomplishments && actual > 0 && (
+                    <div className="flex justify-between items-center py-1.5 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                      <span className="text-[11px] font-bold italic" style={{ color: "hsl(var(--dost-red))" }}>Accomplished</span>
+                      <span className="text-sm font-black" style={{ color: "hsl(var(--dost-red))" }}>{actual.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  return null;
+});
+
+SimpleTooltip.displayName = "SimpleTooltip";
 
 export function TrainingPerformanceChart({ data, showAccomplishments = true }: TrainingPerformanceChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -133,7 +189,6 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
   const showFirms        = filter === "all" || filter === "Firms";
   const showParticipants = filter === "all" || filter === "Participants";
 
-  // Handle clicking a point to pin the tooltip
   const handleChartClick = React.useCallback((state: any) => {
     if (state && state.activePayload) {
       setPinnedData(prev => 
@@ -147,7 +202,6 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
     }
   }, []);
 
-  // ── Download as CSV (filter-aware) ─────────────────────────────────
   const downloadCSV = React.useCallback(() => {
     const generated = new Date().toLocaleString("en-PH", {
       dateStyle: "long", timeStyle: "short",
@@ -206,7 +260,6 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
     URL.revokeObjectURL(url);
   }, [data, filter]);
 
-  // ── Download as PNG (Screenshot Mode) ──────────────────────────────
   const downloadPNG = React.useCallback(async () => {
     if (!chartRef.current) return;
     try {
@@ -226,17 +279,15 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
 
   return (
     <Card className="bg-card border-border p-4" ref={chartRef}>
-      {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Training Trends</h3>
+          <h3 className="text-sm font-medium text-foreground">Technology Trainings</h3>
           <p className="text-xs text-muted-foreground italic">
-            {showAccomplishments ? "Glow: Accomplishment | Ghost: Target" : "Planned Targets Breakdown"}
+            {showAccomplishments ? "Red: Accomplishment | Line: Target Goal" : "Planned Targets Breakdown"}
           </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Filter Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -272,7 +323,6 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Download Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -300,81 +350,77 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-[200px]">
+      <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart 
             data={data} 
             onClick={handleChartClick}
-            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-            barGap={4}
+            margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
+            barGap={8}
           >
             <defs>
-              <filter id="glow-train" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="2" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              <filter id="shadow-float-train" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.4" />
               </filter>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
             <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "8px",
-                color: "hsl(var(--foreground))",
-              }}
+              content={<SimpleTooltip filter={filter} showAccomplishments={showAccomplishments} />}
               active={pinnedData ? true : undefined}
               payload={pinnedData ? pinnedData.payload : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
-              formatter={(value: number, name: string) => [
-                (value || 0).toLocaleString(), 
-                name.replace("_", " ")
+            />
+            <Legend 
+              wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
+              payload={[
+                ...(filter === 'all' || filter === 'Trainings' ? [{ value: 'Trainings', type: 'rect' as const, id: 'train', color: 'hsl(var(--dost-blue))' }] : []),
+                ...(filter === 'all' || filter === 'Firms' ? [{ value: 'Firms', type: 'rect' as const, id: 'firms', color: 'hsl(var(--dost-gray))' }] : []),
+                ...(filter === 'all' || filter === 'Participants' ? [{ value: 'Participants', type: 'rect' as const, id: 'parts', color: 'hsl(var(--dost-orange))' }] : []),
+                ...(showAccomplishments ? [
+                  { value: 'Accomplishment', type: 'rect' as const, id: 'acc', color: 'hsl(var(--dost-red))' }
+                ] : []),
               ]}
             />
-            <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
             
-            {/* Trainings */}
             {showTrainings && (
               <Bar 
                 dataKey={(d) => Math.max(d.Trainings_target, d.Trainings_actual)}
                 name="Trainings" 
                 fill="hsl(var(--dost-blue))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Trainings" />}
-                barSize={20}
+                barSize={32}
               />
             )}
 
-            {/* Firms */}
             {showFirms && (
               <Bar 
                 dataKey={(d) => Math.max(d.Firms_target, d.Firms_actual)}
                 name="Firms" 
-                fill="hsl(var(--dost-red))" 
+                fill="hsl(var(--dost-gray))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Firms" />}
-                barSize={20}
+                barSize={32}
               />
             )}
 
-            {/* Participants */}
             {showParticipants && (
               <Bar 
                 dataKey={(d) => Math.max(d.Participants_target, d.Participants_actual)}
                 name="Participants" 
-                fill="hsl(var(--dost-yellow))" 
+                fill="hsl(var(--dost-orange))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Participants" />}
-                barSize={20}
+                barSize={32}
               />
             )}
             
             {/* Hidden bars to populate tooltips with correct individual values */}
-            <Bar dataKey="Trainings_target" hide />
-            <Bar dataKey="Trainings_actual" hide />
-            <Bar dataKey="Firms_target" hide />
-            <Bar dataKey="Firms_actual" hide />
-            <Bar dataKey="Participants_target" hide />
-            <Bar dataKey="Participants_actual" hide />
+            <Bar dataKey="Trainings_target" name="Trainings Target" fill="hsl(var(--dost-blue))" hide />
+            <Bar dataKey="Trainings_actual" name="Trainings Accomplishment" fill="hsl(var(--dost-red))" hide />
+            <Bar dataKey="Firms_target" name="Firms Target" fill="hsl(var(--dost-gray))" hide />
+            <Bar dataKey="Firms_actual" name="Firms Accomplishment" fill="hsl(var(--dost-red))" hide />
+            <Bar dataKey="Participants_target" name="Participants Target" fill="hsl(var(--dost-orange))" hide />
+            <Bar dataKey="Participants_actual" name="Participants Accomplishment" fill="hsl(var(--dost-red))" hide />
 
           </BarChart>
         </ResponsiveContainer>

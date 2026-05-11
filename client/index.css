@@ -17,6 +17,9 @@
     --dost-red-foreground: 0 0% 100%;
     --dost-yellow: 44 95% 45%;        /* Amber — deeper for light backgrounds */
     --dost-yellow-foreground: 0 0% 0%;
+    --dost-orange: 25 95% 45%;
+    --dost-gray: 215 15% 55%;
+    --dost-target-marker: 210 83% 25%;
 
     /* Base Layout */
     --background: 210 20% 98%;
@@ -78,6 +81,9 @@
     --dost-red-foreground: 0 0% 100%;
     --dost-yellow: 44 100% 59%;       /* Amber/Yellow */
     --dost-yellow-foreground: 0 0% 0%;
+    --dost-orange: 25 95% 60%;
+    --dost-gray: 215 15% 75%;
+    --dost-target-marker: 0 0% 100%;
 
     /* Base Layout */
     --background: 0 0% 4%;

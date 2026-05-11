@@ -101,13 +101,13 @@ const BulletBarShape = React.memo((props: any) => {
             />
           )}
 
-          {/* Target Marker */}
+          {/* Target Marker (Finish Line) */}
           <line 
             x1={x + targetPxWidth} 
             x2={x + targetPxWidth} 
-            y1={y - 4} 
-            y2={y + height + 4} 
-            stroke="hsl(var(--muted-foreground))" 
+            y1={y - 2} 
+            y2={y + height + 2} 
+            stroke="hsl(var(--dost-target-marker))" 
             strokeWidth={3} 
             strokeLinecap="round" 
           />
@@ -156,7 +156,7 @@ const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccompli
                     <span className="text-sm font-bold text-foreground">₱ {target.toLocaleString()}</span>
                   </div>
                   
-                  {showAccomplishments && (
+                  {showAccomplishments && actual > 0 && (
                     <div className="flex justify-between items-center py-1.5 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
                       <span className="text-[11px] font-bold italic" style={{ color: "hsl(var(--dost-red))" }}>Accomplished</span>
                       <span className="text-sm font-black" style={{ color: "hsl(var(--dost-red))" }}>₱ {actual.toLocaleString()}</span>
@@ -319,8 +319,8 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
             <Legend 
               wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
               payload={[
-                { value: 'SETUP Goal', type: 'rect' as const, id: 'setup', color: 'hsl(var(--dost-blue))' },
-                { value: 'LGIA Goal', type: 'rect' as const, id: 'lgia', color: 'hsl(var(--dost-yellow))' },
+                ...(filter === 'all' || filter === 'SETUP' ? [{ value: 'SETUP Goal', type: 'rect' as const, id: 'setup', color: 'hsl(var(--dost-blue))' }] : []),
+                ...(filter === 'all' || filter === 'LGIA' ? [{ value: 'LGIA Goal', type: 'rect' as const, id: 'lgia', color: 'hsl(var(--dost-yellow))' }] : []),
                 ...(showAccomplishments ? [
                   { value: 'Accomplishment', type: 'rect' as const, id: 'acc', color: 'hsl(var(--dost-red))' }
                 ] : []),
