@@ -19,6 +19,7 @@
     --dost-yellow-foreground: 0 0% 0%;
     --dost-orange: 25 95% 45%;
     --dost-gray: 215 15% 55%;
+    --dost-green: 142 70% 35%;
     --dost-target-marker: 210 83% 25%;
 
     /* Base Layout */
@@ -83,6 +84,7 @@
     --dost-yellow-foreground: 0 0% 0%;
     --dost-orange: 25 95% 60%;
     --dost-gray: 215 15% 75%;
+    --dost-green: 142 70% 50%;
     --dost-target-marker: 0 0% 100%;
 
     /* Base Layout */
