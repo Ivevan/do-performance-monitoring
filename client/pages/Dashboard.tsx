@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Activity, BarChart3, Calendar, Building2 } from "lucide-react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/features/dashboard/components/KpiCard";
 import { QuarterFilter } from "@/features/dashboard/components/QuarterFilter";
 import { CategoryTabs } from "@/features/dashboard/components/CategoryTabs";
@@ -24,6 +25,7 @@ const Dashboard = () => {
   const { data, isLoading } = useDashboardData({ year: 2026 });
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("Annual");
   const [activeSection, setActiveSection] = useState("operations");
+  const [showAccomplishments, setShowAccomplishments] = useState(true);
 
   if (isLoading || !data) {
     return (
@@ -57,6 +59,22 @@ const Dashboard = () => {
     return { q1, q2, q3, q4, annual };
   };
 
+  // ── Accomplishment (Actual) helpers ──────────────────────────────────────────
+  // Sum quarterly values for a given indicator. 
+  const getActuals = (indicator: string) => {
+    const q1 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q1").reduce((s, d) => s + d.value, 0);
+    const q2 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q2").reduce((s, d) => s + d.value, 0);
+    const q3 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q3").reduce((s, d) => s + d.value, 0);
+    const q4 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q4").reduce((s, d) => s + d.value, 0);
+    
+    // Check aggregation type (from first row) to decide how to calculate annual actual
+    const firstRow = data.rawData.find(d => d.indicator === indicator);
+    const isCumulative = firstRow?.aggregation_type !== 'LATEST';
+    const annual = isCumulative ? (q1 + q2 + q3 + q4) : (q4 || q3 || q2 || q1 || 0);
+
+    return { q1, q2, q3, q4, annual };
+  };
+
   // Get targets for a specific program (for charts)
   const getProgTargets = (indicator: string, program: string | null) => {
     const row = data.rawData.find(d =>
@@ -74,19 +92,26 @@ const Dashboard = () => {
     };
   };
 
-  // Build KpiCard props from targets
+  // Build KpiCard props from targets & actuals
   const buildKpi = (indicator: string) => {
     const t = getTargets(indicator);
-    const qMap: Record<string, number> = { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 };
-    const display = activeQuarter === "Annual" ? t.annual : (qMap[activeQuarter] ?? 0);
+    const a = getActuals(indicator);
+    
+    const tMap: Record<string, number> = { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 };
+    const aMap: Record<string, number> = { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 };
+    
+    const displayTarget = activeQuarter === "Annual" ? t.annual : (tMap[activeQuarter] ?? 0);
+    const displayActual = activeQuarter === "Annual" ? a.annual : (aMap[activeQuarter] ?? 0);
+
     return {
-      value:     display,
+      actual:    displayActual,
+      target:    displayTarget,
       annual:    t.annual,
-      breakdown: { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 },
+      breakdown: { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 },
     };
   };
 
-  // ── KPI values (from targets) ───────────────────────────────────────────────
+  // ── KPI values (Actual vs Target) ───────────────────────────────────────────
   const funding      = buildKpi("Amount Funded");
   const trainings    = buildKpi("No. Technology Trainings conducted");
   const firms        = buildKpi("No. of firms assisted (Trainings)");
@@ -143,7 +168,24 @@ const Dashboard = () => {
   return (
     <DashboardLayout
       title="CY 2026 Performance Dashboard"
-      headerActions={<QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />}
+      headerActions={
+        <div className="flex items-center gap-3">
+          <Button
+            variant={showAccomplishments ? "default" : "outline"}
+            size="sm"
+            onClick={() => setShowAccomplishments(!showAccomplishments)}
+            className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
+              showAccomplishments 
+                ? "bg-primary text-primary-foreground shadow-glow border-transparent" 
+                : "text-muted-foreground hover:text-foreground border-border/50"
+            }`}
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span className="hidden xs:inline">With Accomplish</span>
+          </Button>
+          <QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />
+        </div>
+      }
     >
       <div className="flex flex-col gap-8 w-full pb-12">
 
@@ -151,15 +193,15 @@ const Dashboard = () => {
         <section>
           <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
-            Key Performance Indicators — {activeQuarter} Targets
+            Key Performance Indicators — {activeQuarter} {showAccomplishments ? "Accomplishments" : "Targets"}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-            <KpiCard label="Total Funding"            value={funding.annual}      unit="PHP"      breakdown={funding.breakdown}      selectedQuarter={activeQuarter} />
-            <KpiCard label="Trainings Conducted"      value={trainings.annual}                    breakdown={trainings.breakdown}    selectedQuarter={activeQuarter} />
-            <KpiCard label="Firms Assisted"           value={firms.annual}                        breakdown={firms.breakdown}        selectedQuarter={activeQuarter} />
-            <KpiCard label="Participants Trained"     value={participants.annual}                  breakdown={participants.breakdown}  selectedQuarter={activeQuarter} />
-            <KpiCard label="Gross Sales (₱'000)"      value={sales.annual}        unit="PHP '000" breakdown={sales.breakdown}        selectedQuarter={activeQuarter} />
-            <KpiCard label="Employment (Person-Mo.)"  value={jobs.annual}                         breakdown={jobs.breakdown}         selectedQuarter={activeQuarter} />
+            <KpiCard label="Total Funding"            actual={funding.actual}      target={funding.target}      unit="PHP"      breakdown={funding.breakdown}      selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+            <KpiCard label="Trainings Conducted"      actual={trainings.actual}    target={trainings.target}                    breakdown={trainings.breakdown}    selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+            <KpiCard label="Firms Assisted"           actual={firms.actual}        target={firms.target}                        breakdown={firms.breakdown}        selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+            <KpiCard label="Participants Trained"     actual={participants.actual}  target={participants.target}                  breakdown={participants.breakdown}  selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+            <KpiCard label="Gross Sales (₱'000)"      actual={sales.actual}        target={sales.target}        unit="PHP '000" breakdown={sales.breakdown}        selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+            <KpiCard label="Employment (Person-Mo.)"  actual={jobs.actual}         target={jobs.target}                         breakdown={jobs.breakdown}         selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
           </div>
         </section>
 
