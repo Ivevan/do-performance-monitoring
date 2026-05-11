@@ -55,10 +55,9 @@ const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
 ];
 
 /**
- * Custom Bullet Bar Shape
- * Renders a 'Floating Layered' look with Red as dominant for Accomplishment.
+ * Custom Bullet Bar Shape - Optimized with Memoization
  */
-const BulletBarShape = (props: any) => {
+const BulletBarShape = React.memo((props: any) => {
   const { x, y, width, height, fill, payload, showAccomplishments, program } = props;
   if (!payload || (width <= 0 && height <= 0)) return null;
 
@@ -73,12 +72,12 @@ const BulletBarShape = (props: any) => {
 
   return (
     <g>
-      {/* Target Bar (Background Layer - Solid Program Color) */}
+      {/* Target Bar (Background Layer) */}
       <rect 
         x={x} 
-        y={y + height * 0.3} 
+        y={y + height * 0.35} 
         width={targetPxWidth} 
-        height={height * 0.7} 
+        height={height * 0.55} 
         fill={fill}
         stroke={fill}
         strokeWidth={1}
@@ -87,35 +86,94 @@ const BulletBarShape = (props: any) => {
       
       {showAccomplishments && (
         <>
-          {/* Target Marker (Vertical line at the goal point) */}
-          <line 
-            x1={x + targetPxWidth} 
-            x2={x + targetPxWidth} 
-            y1={y + height * 0.2} 
-            y2={y + height + 2} 
-            stroke={fill} 
-            strokeWidth={2} 
-            strokeLinecap="round" 
-          />
-          
-          {/* Accomplishment Bar (Primary Layer - Dominant Red with Border) */}
+          {/* Accomplishment Bar (Floating Layer) */}
           {actualVal > 0 && (
             <rect 
               x={x} 
               y={y} 
               width={actualPxWidth} 
-              height={height * 0.7} 
+              height={height * 0.65} 
               fill="hsl(var(--dost-red))" 
-              stroke="hsl(var(--dost-red-dark, 0 100% 30%))" // Deep red border
-              strokeWidth={2}
+              stroke="hsl(var(--dost-red-dark, 0 100% 30%))" 
+              strokeWidth={1.5}
+              filter="url(#shadow-float)"
               rx={2}
             />
           )}
+
+          {/* Target Marker */}
+          <line 
+            x1={x + targetPxWidth} 
+            x2={x + targetPxWidth} 
+            y1={y - 4} 
+            y2={y + height + 4} 
+            stroke="hsl(var(--muted-foreground))" 
+            strokeWidth={3} 
+            strokeLinecap="round" 
+          />
         </>
       )}
     </g>
   );
-};
+});
+
+BulletBarShape.displayName = "BulletBarShape";
+
+/**
+ * Reliable Standard Tooltip - Optimized with Memoization
+ */
+const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccomplishments }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const allPrograms = ["SETUP", "LGIA"];
+    const activePrograms = filter === "all" ? allPrograms : [filter];
+
+    return (
+      <div className="bg-card/90 backdrop-blur-md border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[280px] animate-in fade-in zoom-in duration-300">
+        <div className="flex items-center justify-between mb-4 border-b border-border/40 pb-3">
+          <span className="text-base font-black text-foreground tracking-tighter">{label} Overview</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Financials</span>
+        </div>
+        
+        <div className="space-y-6">
+          {activePrograms.map(prog => {
+            const target = data[`${prog}_target`] || 0;
+            const actual = data[`${prog}_actual`] || 0;
+            const color = prog === "SETUP" ? "hsl(var(--dost-blue))" : "hsl(var(--dost-yellow))";
+
+            if (target === 0 && actual === 0) return null;
+
+            return (
+              <div key={prog} className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>{prog} Program</span>
+                </div>
+                
+                <div className="pl-4 space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[11px] text-muted-foreground font-medium">Planned Target</span>
+                    <span className="text-sm font-bold text-foreground">₱ {target.toLocaleString()}</span>
+                  </div>
+                  
+                  {showAccomplishments && (
+                    <div className="flex justify-between items-center py-1.5 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                      <span className="text-[11px] font-bold italic" style={{ color: "hsl(var(--dost-red))" }}>Accomplished</span>
+                      <span className="text-sm font-black" style={{ color: "hsl(var(--dost-red))" }}>₱ {actual.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  return null;
+});
+
+SimpleTooltip.displayName = "SimpleTooltip";
 
 export function FundingTrendsChart({ data, showAccomplishments = true }: FundingTrendsChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -127,22 +185,20 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
   const showSETUP = filter === "all" || filter === "SETUP";
   const showLGIA  = filter === "all" || filter === "LGIA";
 
-  const handleChartClick = (state: any) => {
+  const handleChartClick = React.useCallback((state: any) => {
     if (state && state.activePayload) {
-      if (pinnedData?.quarter === state.activeLabel) {
-        setPinnedData(null);
-      } else {
-        setPinnedData({
+      setPinnedData(prev => 
+        prev?.quarter === state.activeLabel ? null : {
           quarter: state.activeLabel,
           payload: state.activePayload
-        });
-      }
+        }
+      );
     } else {
       setPinnedData(null);
     }
-  };
+  }, []);
 
-  const downloadCSV = () => {
+  const downloadCSV = React.useCallback(() => {
     const generated = new Date().toLocaleString("en-PH", { dateStyle: "long", timeStyle: "short" });
     const filename = `funding-performance-${filter}.csv`;
     let headers: string[], rows: (string | number)[][], summaryRow: (string | number)[];
@@ -180,14 +236,14 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob); link.download = filename; link.click();
-  };
+  }, [data, filter]);
 
-  const downloadPNG = async () => {
+  const downloadPNG = React.useCallback(async () => {
     if (!chartRef.current) return;
     const canvas = await html2canvas(chartRef.current, { scale: 2, useCORS: true });
     const link = document.createElement("a");
     link.download = `funding-performance-${filter}.png`; link.href = canvas.toDataURL("image/png"); link.click();
-  };
+  }, [filter]);
 
   return (
     <Card className="bg-card border-border p-4" ref={chartRef}>
@@ -195,7 +251,7 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
         <div>
           <h3 className="text-sm font-medium text-foreground">Funding Trends</h3>
           <p className="text-xs text-muted-foreground italic">
-            {showAccomplishments ? "Red Overlay: Accomplishment | Line: Target Marker" : "Planned Targets Breakdown"}
+            {showAccomplishments ? "Red: Accomplishment | Line: Target Goal" : "Planned Targets Breakdown"}
           </p>
         </div>
 
@@ -246,17 +302,30 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
             margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
             barGap={8}
           >
+            <defs>
+              <filter id="shadow-float" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodOpacity="0.3" />
+              </filter>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
             <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
-            <YAxis type="category" dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={40} />
+            <YAxis type="category" dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={60} />
             <Tooltip
-              contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }}
+              content={<SimpleTooltip filter={filter} showAccomplishments={showAccomplishments} />}
               active={pinnedData ? true : undefined}
               payload={pinnedData ? pinnedData.payload : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
-              formatter={(value: number, name: string) => [`₱${(value || 0).toLocaleString()}`, name.replace("_", " ")]}
             />
-            <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+            <Legend 
+              wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
+              payload={[
+                { value: 'SETUP Goal', type: 'rect' as const, id: 'setup', color: 'hsl(var(--dost-blue))' },
+                { value: 'LGIA Goal', type: 'rect' as const, id: 'lgia', color: 'hsl(var(--dost-yellow))' },
+                ...(showAccomplishments ? [
+                  { value: 'Accomplishment', type: 'rect' as const, id: 'acc', color: 'hsl(var(--dost-red))' }
+                ] : []),
+              ]}
+            />
             
             {/* SETUP Group */}
             {showSETUP && (
@@ -266,6 +335,9 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
                 fill="hsl(var(--dost-blue))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="SETUP" />}
                 barSize={32}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationEasing="ease-out"
               />
             )}
 
@@ -277,8 +349,18 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
                 fill="hsl(var(--dost-yellow))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="LGIA" />}
                 barSize={32}
+                isAnimationActive={true}
+                animationDuration={1200}
+                animationBegin={300} // Staggered start
+                animationEasing="ease-out"
               />
             )}
+
+            {/* Hidden bars to populate tooltips with correct individual values */}
+            <Bar dataKey="SETUP_target" name="SETUP Target" fill="hsl(var(--dost-blue))" hide />
+            <Bar dataKey="SETUP_actual" name="SETUP Accomplishment" fill="hsl(var(--dost-red))" hide />
+            <Bar dataKey="LGIA_target" name="LGIA Target" fill="hsl(var(--dost-yellow))" hide />
+            <Bar dataKey="LGIA_actual" name="LGIA Accomplishment" fill="hsl(var(--dost-red))" hide />
           </BarChart>
         </ResponsiveContainer>
       </div>

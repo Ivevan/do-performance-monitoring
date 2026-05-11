@@ -57,10 +57,9 @@ const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
 ];
 
 /**
- * Custom Bullet Bar Shape
- * Renders both Target (Ghost) and Accomplishment (Solid/Glow) + Marker in one unit.
+ * Custom Bullet Bar Shape - Optimized with Memoization
  */
-const BulletBarShape = (props: any) => {
+const BulletBarShape = React.memo((props: any) => {
   const { x, y, width, height, fill, payload, showAccomplishments, program } = props;
   if (width <= 0 || !payload) return null;
 
@@ -119,7 +118,9 @@ const BulletBarShape = (props: any) => {
       )}
     </g>
   );
-};
+});
+
+BulletBarShape.displayName = "BulletBarShape";
 
 export function TrainingPerformanceChart({ data, showAccomplishments = true }: TrainingPerformanceChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -133,23 +134,21 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
   const showParticipants = filter === "all" || filter === "Participants";
 
   // Handle clicking a point to pin the tooltip
-  const handleChartClick = (state: any) => {
+  const handleChartClick = React.useCallback((state: any) => {
     if (state && state.activePayload) {
-      if (pinnedData?.quarter === state.activeLabel) {
-        setPinnedData(null);
-      } else {
-        setPinnedData({
+      setPinnedData(prev => 
+        prev?.quarter === state.activeLabel ? null : {
           quarter: state.activeLabel,
           payload: state.activePayload
-        });
-      }
+        }
+      );
     } else {
       setPinnedData(null);
     }
-  };
+  }, []);
 
   // ── Download as CSV (filter-aware) ─────────────────────────────────
-  const downloadCSV = () => {
+  const downloadCSV = React.useCallback(() => {
     const generated = new Date().toLocaleString("en-PH", {
       dateStyle: "long", timeStyle: "short",
     });
@@ -205,10 +204,10 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
     const link = document.createElement("a");
     link.href = url; link.download = filename; link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [data, filter]);
 
   // ── Download as PNG (Screenshot Mode) ──────────────────────────────
-  const downloadPNG = async () => {
+  const downloadPNG = React.useCallback(async () => {
     if (!chartRef.current) return;
     try {
       const canvas = await html2canvas(chartRef.current, {
@@ -223,7 +222,7 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
     } catch (err) {
       console.error("Screenshot failed:", err);
     }
-  };
+  }, [filter]);
 
   return (
     <Card className="bg-card border-border p-4" ref={chartRef}>
