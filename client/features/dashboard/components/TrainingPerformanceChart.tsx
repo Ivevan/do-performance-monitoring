@@ -100,6 +100,7 @@ const BulletBarShape = React.memo((props: any) => {
               fill="hsl(var(--dost-red))" 
               filter="url(#shadow-float-train)"
               rx={3}
+              className="animate-reveal-bar"
             />
           )}
 
@@ -367,7 +368,7 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
             data={data} 
             onClick={handleChartClick}
             margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
-            barGap={8}
+            barGap={0}
           >
             <defs>
               <filter id="shadow-float-train" x="-20%" y="-20%" width="140%" height="140%">
@@ -397,31 +398,45 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
             
             {showTrainings && (
               <Bar 
+                key={`train-${filter}`}
                 dataKey={(d) => Math.max(d.Trainings_target, d.Trainings_actual)}
                 name="Trainings" 
                 fill="hsl(var(--dost-blue))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Trainings" />}
-                barSize={32}
+                barSize={filter === 'all' ? 48 : 80}
+                isAnimationActive={true}
+                animationDuration={1000}
+                animationEasing="ease-in-out"
               />
             )}
 
             {showFirms && (
               <Bar 
+                key={`firms-${filter}`}
                 dataKey={(d) => Math.max(d.Firms_target, d.Firms_actual)}
                 name="Firms" 
                 fill="hsl(var(--dost-gray))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Firms" />}
-                barSize={32}
+                barSize={filter === 'all' ? 48 : 80}
+                isAnimationActive={true}
+                animationDuration={1000}
+                animationBegin={100}
+                animationEasing="ease-in-out"
               />
             )}
 
             {showParticipants && (
               <Bar 
+                key={`parts-${filter}`}
                 dataKey={(d) => Math.max(d.Participants_target, d.Participants_actual)}
                 name="Participants" 
                 fill="hsl(var(--dost-orange))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Participants" />}
-                barSize={32}
+                barSize={filter === 'all' ? 48 : 80}
+                isAnimationActive={true}
+                animationDuration={1000}
+                animationBegin={200}
+                animationEasing="ease-in-out"
               />
             )}
             

@@ -94,6 +94,7 @@ const BulletBarShape = React.memo((props: any) => {
               fill="hsl(var(--dost-red))" 
               filter="url(#shadow-float)"
               rx={3}
+              className="animate-reveal-bar"
             />
           )}
 
@@ -346,29 +347,31 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
             {/* SETUP Group */}
             {showSETUP && (
               <Bar 
+                key={`setup-${filter}`}
                 dataKey={(d) => Math.max(d.SETUP_target, d.SETUP_actual)}
                 name="SETUP" 
                 fill="hsl(var(--dost-blue))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="SETUP" />}
-                barSize={32}
+                barSize={filter === 'all' ? 48 : 80}
                 isAnimationActive={true}
-                animationDuration={1200}
-                animationEasing="ease-out"
+                animationDuration={1000}
+                animationEasing="ease-in-out"
               />
             )}
 
             {/* LGIA Group */}
             {showLGIA && (
               <Bar 
+                key={`lgia-${filter}`}
                 dataKey={(d) => Math.max(d.LGIA_target, d.LGIA_actual)}
                 name="LGIA" 
                 fill="hsl(var(--dost-yellow))" 
                 shape={<BulletBarShape showAccomplishments={showAccomplishments} program="LGIA" />}
-                barSize={32}
+                barSize={filter === 'all' ? 48 : 80}
                 isAnimationActive={true}
-                animationDuration={1200}
-                animationBegin={300} // Staggered start
-                animationEasing="ease-out"
+                animationDuration={1000}
+                animationBegin={150}
+                animationEasing="ease-in-out"
               />
             )}
 
