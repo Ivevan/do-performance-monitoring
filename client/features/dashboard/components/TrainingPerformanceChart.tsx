@@ -1,6 +1,22 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { Card } from "@/components/ui/card";
-import html2canvas from "html2canvas";
+import { 
+  Download, 
+  ChevronDown, 
+  Check, 
+  FileSpreadsheet, 
+  Image 
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,11 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
-} from "recharts";
-import { Download, FileSpreadsheet, Image, ChevronDown, Check } from "lucide-react";
+import html2canvas from "html2canvas";
 
 interface TrainingData {
   quarter: string;
@@ -44,6 +56,71 @@ const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
   { key: "Participants", label: "Participants", color: "hsl(var(--dost-yellow))" },
 ];
 
+/**
+ * Custom Bullet Bar Shape
+ * Renders both Target (Ghost) and Accomplishment (Solid/Glow) + Marker in one unit.
+ */
+const BulletBarShape = (props: any) => {
+  const { x, y, width, height, fill, payload, showAccomplishments, program } = props;
+  if (width <= 0 || !payload) return null;
+
+  const targetVal = payload[`${program}_target`] || 0;
+  const actualVal = payload[`${program}_actual`] || 0;
+  const maxVal = Math.max(targetVal, actualVal);
+  
+  if (maxVal <= 0) return null;
+
+  // Calculate relative coordinates
+  const targetPxHeight = (targetVal / maxVal) * height;
+  const targetY = y + height - targetPxHeight;
+
+  const actualPxHeight = (actualVal / maxVal) * height;
+  const actualY = y + height - actualPxHeight;
+
+  return (
+    <g>
+      {/* Ghost Target Bar */}
+      <rect 
+        x={x} 
+        y={targetY} 
+        width={width} 
+        height={targetPxHeight} 
+        fill={fill} 
+        fillOpacity={showAccomplishments ? 0.1 : 0.8}
+        rx={2}
+      />
+      
+      {showAccomplishments && (
+        <>
+          {/* Target Marker */}
+          <line 
+            x1={x - 1} 
+            x2={x + width + 1} 
+            y1={targetY} 
+            y2={targetY} 
+            stroke={fill} 
+            strokeWidth={2} 
+            strokeLinecap="round" 
+          />
+          
+          {/* Accomplishment Bar (Nested) */}
+          {actualVal > 0 && (
+            <rect 
+              x={x + width * 0.25} 
+              y={actualY} 
+              width={width * 0.5} 
+              height={actualPxHeight} 
+              fill={fill} 
+              rx={1}
+              style={{ filter: "url(#glow-train)" }}
+            />
+          )}
+        </>
+      )}
+    </g>
+  );
+};
+
 export function TrainingPerformanceChart({ data, showAccomplishments = true }: TrainingPerformanceChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
@@ -63,8 +140,7 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
       } else {
         setPinnedData({
           quarter: state.activeLabel,
-          payload: state.activePayload,
-          coordinate: state.activeCoordinate
+          payload: state.activePayload
         });
       }
     } else {
@@ -85,7 +161,7 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
     let summaryRow: (string | number)[];
 
     if (filter === "all") {
-      headers = ["Quarter", "Trainings (T)", "Trainings (A)", "Firms (T)", "Firms (A)", "Parts (T)", "Parts (A)"];
+      headers = ["Quarter", "Trainings (T)", "Trainings (Acc)", "Firms (T)", "Firms (Acc)", "Parts (T)", "Parts (Acc)"];
       rows = data.map((d) => [
         d.quarter, d.Trainings_target, d.Trainings_actual, d.Firms_target, d.Firms_actual, d.Participants_target, d.Participants_actual
       ]);
@@ -98,7 +174,7 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
     } else {
       const tKey = `${filter}_target` as keyof TrainingData;
       const aKey = `${filter}_actual` as keyof TrainingData;
-      headers = ["Quarter", `${filter} Target`, `${filter} Actual`, "Performance %"];
+      headers = ["Quarter", `${filter} Target`, `${filter} Accomplishment`, "Performance %"];
       rows    = data.map((d) => {
         const t = d[tKey] as number;
         const a = d[aKey] as number;
@@ -135,18 +211,9 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
   const downloadPNG = async () => {
     if (!chartRef.current) return;
     try {
-      const cardColor = getComputedStyle(document.documentElement).getPropertyValue('--card');
-      const backgroundColor = cardColor ? `hsl(${cardColor.trim()})` : '#ffffff';
-
       const canvas = await html2canvas(chartRef.current, {
-        backgroundColor,
         scale: 2,
         useCORS: true,
-        logging: false,
-        onclone: (documentClone) => {
-          const downloadBtn = documentClone.querySelector('[title="Download chart"]');
-          if (downloadBtn) (downloadBtn as HTMLElement).style.opacity = '0';
-        }
       });
 
       const link = document.createElement("a");
@@ -165,7 +232,7 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
         <div>
           <h3 className="text-sm font-medium text-foreground">Training Trends</h3>
           <p className="text-xs text-muted-foreground italic">
-            {showAccomplishments ? "Solid: Actual | Outline: Target" : "Planned Targets Breakdown"}
+            {showAccomplishments ? "Glow: Accomplishment | Ghost: Target" : "Planned Targets Breakdown"}
           </p>
         </div>
 
@@ -241,7 +308,14 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
             data={data} 
             onClick={handleChartClick}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            barGap={4}
           >
+            <defs>
+              <filter id="glow-train" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="2" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
@@ -254,7 +328,6 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
               }}
               active={pinnedData ? true : undefined}
               payload={pinnedData ? pinnedData.payload : undefined}
-              coordinate={pinnedData ? pinnedData.coordinate : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
               formatter={(value: number, name: string) => [
                 (value || 0).toLocaleString(), 
@@ -263,26 +336,47 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
             />
             <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
             
-            {showTrainings && showAccomplishments && (
-              <Bar dataKey="Trainings_actual" name="Trainings Actual" fill="hsl(var(--dost-blue))" radius={[2, 2, 0, 0]} />
-            )}
+            {/* Trainings */}
             {showTrainings && (
-              <Bar dataKey="Trainings_target" name="Trainings Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-blue))"} stroke="hsl(var(--dost-blue))" strokeWidth={1} strokeDasharray={showAccomplishments ? "4 2" : "0"} radius={[2, 2, 0, 0]} />
+              <Bar 
+                dataKey={(d) => Math.max(d.Trainings_target, d.Trainings_actual)}
+                name="Trainings" 
+                fill="hsl(var(--dost-blue))" 
+                shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Trainings" />}
+                barSize={20}
+              />
             )}
 
-            {showFirms && showAccomplishments && (
-              <Bar dataKey="Firms_actual" name="Firms Actual" fill="hsl(var(--dost-red))" radius={[2, 2, 0, 0]} />
-            )}
+            {/* Firms */}
             {showFirms && (
-              <Bar dataKey="Firms_target" name="Firms Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-red))"} stroke="hsl(var(--dost-red))" strokeWidth={1} strokeDasharray={showAccomplishments ? "4 2" : "0"} radius={[2, 2, 0, 0]} />
+              <Bar 
+                dataKey={(d) => Math.max(d.Firms_target, d.Firms_actual)}
+                name="Firms" 
+                fill="hsl(var(--dost-red))" 
+                shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Firms" />}
+                barSize={20}
+              />
             )}
 
-            {showParticipants && showAccomplishments && (
-              <Bar dataKey="Participants_actual" name="Parts Actual" fill="hsl(var(--dost-yellow))" radius={[2, 2, 0, 0]} />
-            )}
+            {/* Participants */}
             {showParticipants && (
-              <Bar dataKey="Participants_target" name="Parts Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-yellow))"} stroke="hsl(var(--dost-yellow))" strokeWidth={1} strokeDasharray={showAccomplishments ? "4 2" : "0"} radius={[2, 2, 0, 0]} />
+              <Bar 
+                dataKey={(d) => Math.max(d.Participants_target, d.Participants_actual)}
+                name="Participants" 
+                fill="hsl(var(--dost-yellow))" 
+                shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Participants" />}
+                barSize={20}
+              />
             )}
+            
+            {/* Hidden bars to populate tooltips with correct individual values */}
+            <Bar dataKey="Trainings_target" hide />
+            <Bar dataKey="Trainings_actual" hide />
+            <Bar dataKey="Firms_target" hide />
+            <Bar dataKey="Firms_actual" hide />
+            <Bar dataKey="Participants_target" hide />
+            <Bar dataKey="Participants_actual" hide />
+
           </BarChart>
         </ResponsiveContainer>
       </div>

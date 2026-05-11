@@ -207,7 +207,7 @@ const Dashboard = () => {
             }`}
           >
             <Activity className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">With Accomplish</span>
+            <span className="hidden xs:inline">With Accomplishment</span>
           </Button>
           <QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />
         </div>

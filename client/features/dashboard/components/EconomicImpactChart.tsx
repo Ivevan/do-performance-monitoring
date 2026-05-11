@@ -82,7 +82,7 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
     let summaryRow: (string | number)[];
 
     if (filter === "all") {
-      headers = ["Quarter", "Sales (T)", "Sales (A)", "Jobs (T)", "Jobs (A)"];
+      headers = ["Quarter", "Sales (T)", "Sales (Acc)", "Jobs (T)", "Jobs (Acc)"];
       rows = data.map((d) => [
         d.quarter, d.Sales_target, d.Sales_actual, d.Employment_target, d.Employment_actual
       ]);
@@ -94,7 +94,7 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
     } else {
       const tKey = `${filter}_target` as keyof EconomicData;
       const aKey = `${filter}_actual` as keyof EconomicData;
-      headers = ["Quarter", `${filter} Target`, `${filter} Actual`, "Performance %"];
+      headers = ["Quarter", `${filter} Target`, `${filter} Accomplishment`, "Performance %"];
       rows    = data.map((d) => {
         const t = d[tKey] as number;
         const a = d[aKey] as number;
@@ -161,7 +161,7 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
         <div>
           <h3 className="text-sm font-medium text-foreground">Economic Impact</h3>
           <p className="text-xs text-muted-foreground italic">
-            {showAccomplishments ? "Solid: Actual | Dashed: Target" : "Planned Targets Breakdown"}
+            {showAccomplishments ? "Glow: Accomplishment | Dashed: Target" : "Planned Targets Breakdown"}
           </p>
         </div>
 
@@ -238,6 +238,13 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
             onClick={handleChartClick}
             margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           >
+            <defs>
+              <filter id="glow-line" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="currentColor" floodOpacity="0.5" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
@@ -260,17 +267,53 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
             <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
             
             {showSales && showAccomplishments && (
-              <Line type="monotone" dataKey="Sales_actual" name="Sales Actual" stroke="hsl(var(--dost-blue))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              <Line 
+                type="monotone" 
+                dataKey="Sales_actual" 
+                name="Sales Accomplishment" 
+                stroke="hsl(var(--dost-blue))" 
+                strokeWidth={3} 
+                dot={{ r: 4, fill: "hsl(var(--dost-blue))" }} 
+                activeDot={{ r: 6 }} 
+                style={{ filter: "drop-shadow(0px 0px 5px hsl(var(--dost-blue) / 0.5))" }}
+              />
             )}
             {showSales && (
-              <Line type="monotone" dataKey="Sales_target" name="Sales Target" stroke="hsl(var(--dost-blue))" strokeWidth={2} strokeDasharray={showAccomplishments ? "5 5" : "0"} dot={{ r: 3 }} />
+              <Line 
+                type="monotone" 
+                dataKey="Sales_target" 
+                name="Sales Target" 
+                stroke="hsl(var(--dost-blue))" 
+                strokeWidth={2} 
+                strokeDasharray={showAccomplishments ? "5 5" : "0"} 
+                strokeOpacity={showAccomplishments ? 0.3 : 1}
+                dot={{ r: 3, fill: showAccomplishments ? "transparent" : "hsl(var(--dost-blue))" }} 
+              />
             )}
 
             {showEmployment && showAccomplishments && (
-              <Line type="monotone" dataKey="Employment_actual" name="Employment Actual" stroke="hsl(var(--dost-red))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+              <Line 
+                type="monotone" 
+                dataKey="Employment_actual" 
+                name="Employment Accomplishment" 
+                stroke="hsl(var(--dost-red))" 
+                strokeWidth={3} 
+                dot={{ r: 4, fill: "hsl(var(--dost-red))" }} 
+                activeDot={{ r: 6 }} 
+                style={{ filter: "drop-shadow(0px 0px 5px hsl(var(--dost-red) / 0.5))" }}
+              />
             )}
             {showEmployment && (
-              <Line type="monotone" dataKey="Employment_target" name="Employment Target" stroke="hsl(var(--dost-red))" strokeWidth={2} strokeDasharray={showAccomplishments ? "5 5" : "0"} dot={{ r: 3 }} />
+              <Line 
+                type="monotone" 
+                dataKey="Employment_target" 
+                name="Employment Target" 
+                stroke="hsl(var(--dost-red))" 
+                strokeWidth={2} 
+                strokeDasharray={showAccomplishments ? "5 5" : "0"} 
+                strokeOpacity={showAccomplishments ? 0.3 : 1}
+                dot={{ r: 3, fill: showAccomplishments ? "transparent" : "hsl(var(--dost-red))" }} 
+              />
             )}
           </LineChart>
         </ResponsiveContainer>
