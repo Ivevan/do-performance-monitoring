@@ -268,7 +268,7 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <DataTable category={drillDownData} selectedQuarter={activeQuarter} />
+            <DataTable category={drillDownData} selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
           </motion.div>
         </section>
 

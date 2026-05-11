@@ -186,6 +186,7 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
   type MetricAcc = {
     name: string;
     q1: number | null; q2: number | null; q3: number | null; q4: number | null;
+    a1: number; a2: number; a3: number; a4: number; // Actuals
     aggregation_type: string;
     unit: string | null;
   };
@@ -203,26 +204,35 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
     if (!byCategory[catKey][metricKey]) {
       byCategory[catKey][metricKey] = {
         name: metricDisplay,
-        // Since targets are identical across accomplishment rows for the same indicator+program,
-        // we just grab them from the first row we encounter.
         q1: row.q1_target || 0,
         q2: row.q2_target || 0,
         q3: row.q3_target || 0,
         q4: row.q4_target || 0,
+        a1: 0, a2: 0, a3: 0, a4: 0,
         aggregation_type: row.aggregation_type,
         unit: row.unit,
       };
     }
+
+    // Accumulate actuals
+    if (row.label === "Q1") byCategory[catKey][metricKey].a1 += row.value;
+    if (row.label === "Q2") byCategory[catKey][metricKey].a2 += row.value;
+    if (row.label === "Q3") byCategory[catKey][metricKey].a3 += row.value;
+    if (row.label === "Q4") byCategory[catKey][metricKey].a4 += row.value;
   });
 
   // Convert to CategoryData shape
   const subcategories = Object.entries(byCategory).map(([catName, metricsMap]) => {
     const metrics: MetricData[] = Object.values(metricsMap).map(m => {
       // For targets, Annual is usually explicitly defined. 
-      // If we need to calculate it dynamically based on aggregation_type:
       const annual = m.aggregation_type === "LATEST"
         ? (m.q4 || m.q3 || m.q2 || m.q1 || 0)
         : (m.q1 || 0) + (m.q2 || 0) + (m.q3 || 0) + (m.q4 || 0);
+
+      // For accomplishments, same logic
+      const annual_actual = m.aggregation_type === "LATEST"
+        ? (m.a4 || m.a3 || m.a2 || m.a1 || 0)
+        : (m.a1 + m.a2 + m.a3 + m.a4);
 
       return {
         name: m.name,
@@ -231,6 +241,11 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
         Q3: m.q3 ?? 0,
         Q4: m.q4 ?? 0,
         Annual: annual,
+        Q1_actual: m.a1,
+        Q2_actual: m.a2,
+        Q3_actual: m.a3,
+        Q4_actual: m.a4,
+        Annual_actual: annual_actual,
         unit: m.unit || undefined,
       };
     });

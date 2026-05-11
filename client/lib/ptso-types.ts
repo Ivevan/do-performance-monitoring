@@ -10,6 +10,11 @@ export interface MetricData {
   Q3: number | string;
   Q4: number | string;
   Annual: number | string;
+  Q1_actual?: number;
+  Q2_actual?: number;
+  Q3_actual?: number;
+  Q4_actual?: number;
+  Annual_actual?: number;
   unit?: string;
 }
 
