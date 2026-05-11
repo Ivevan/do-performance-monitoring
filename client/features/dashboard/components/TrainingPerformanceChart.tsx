@@ -134,7 +134,10 @@ const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccompli
       <div className="bg-card/90 backdrop-blur-md border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[260px] animate-in fade-in zoom-in duration-300">
         <div className="flex items-center justify-between mb-4 border-b border-border/40 pb-3">
           <span className="text-base font-black text-foreground tracking-tighter">{label} Performance</span>
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Technology Trainings</span>
+          <div className="text-right leading-none">
+            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Technology</div>
+            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Trainings</div>
+          </div>
         </div>
         
         <div className="space-y-6">
@@ -143,14 +146,22 @@ const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccompli
             const actual = data[`${metric}_actual`] || 0;
             const option = FILTER_OPTIONS.find(o => o.key === metric);
             const color = option?.color || "hsl(var(--primary))";
+            const percentage = target > 0 ? (actual / target) * 100 : 0;
 
             if (target === 0 && actual === 0) return null;
 
             return (
               <div key={metric} className="space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>{metric}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
+                    <span className="text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>{metric}</span>
+                  </div>
+                  {showAccomplishments && actual > 0 && (
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-foreground/10 text-foreground border border-foreground/5">
+                      {percentage.toFixed(1)}%
+                    </span>
+                  )}
                 </div>
                 
                 <div className="pl-4 space-y-2.5">
@@ -160,7 +171,7 @@ const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccompli
                   </div>
                   
                   {showAccomplishments && actual > 0 && (
-                    <div className="flex justify-between items-center py-1.5 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                    <div className="flex justify-between items-center py-2 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
                       <span className="text-[11px] font-bold italic" style={{ color: "hsl(var(--dost-red))" }}>Accomplished</span>
                       <span className="text-sm font-black" style={{ color: "hsl(var(--dost-red))" }}>{actual.toLocaleString()}</span>
                     </div>

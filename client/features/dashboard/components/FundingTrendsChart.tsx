@@ -72,32 +72,28 @@ const BulletBarShape = React.memo((props: any) => {
 
   return (
     <g>
-      {/* Target Bar (Background Layer) */}
+      {/* Target Bar (Top-Staggered Base Layer - 70% Thickness) */}
       <rect 
         x={x} 
-        y={y + height * 0.35} 
+        y={y} 
         width={targetPxWidth} 
-        height={height * 0.55} 
-        fill={fill}
-        stroke={fill}
-        strokeWidth={1}
-        rx={2}
+        height={height * 0.7} 
+        fill={fill} 
+        rx={3}
       />
       
       {showAccomplishments && (
         <>
-          {/* Accomplishment Bar (Floating Layer) */}
+          {/* Accomplishment Bar (Bottom-Staggered Top Layer - 70% Thickness) */}
           {actualVal > 0 && (
             <rect 
               x={x} 
-              y={y} 
+              y={y + height * 0.3} 
               width={actualPxWidth} 
-              height={height * 0.65} 
+              height={height * 0.7} 
               fill="hsl(var(--dost-red))" 
-              stroke="hsl(var(--dost-red-dark, 0 100% 30%))" 
-              strokeWidth={1.5}
               filter="url(#shadow-float)"
-              rx={2}
+              rx={3}
             />
           )}
 
@@ -120,7 +116,16 @@ const BulletBarShape = React.memo((props: any) => {
 BulletBarShape.displayName = "BulletBarShape";
 
 /**
- * Reliable Standard Tooltip - Optimized with Memoization
+ * Axis Formatting
+ */
+const formatXAxis = (value: number) => {
+  if (value >= 1_000_000) return `₱${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `₱${(value / 1_000).toFixed(0)}K`;
+  return `₱${value}`;
+};
+
+/**
+ * Reliable Standard Tooltip - 'Smooth & Airy' Edition
  */
 const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccomplishments }: any) => {
   if (active && payload && payload.length) {
@@ -131,8 +136,11 @@ const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccompli
     return (
       <div className="bg-card/90 backdrop-blur-md border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[280px] animate-in fade-in zoom-in duration-300">
         <div className="flex items-center justify-between mb-4 border-b border-border/40 pb-3">
-          <span className="text-base font-black text-foreground tracking-tighter">{label} Overview</span>
-          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Financials</span>
+          <span className="text-base font-black text-foreground tracking-tighter">{label} Performance</span>
+          <div className="text-right leading-none">
+            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Financial</div>
+            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Monitoring</div>
+          </div>
         </div>
         
         <div className="space-y-6">
@@ -140,24 +148,32 @@ const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccompli
             const target = data[`${prog}_target`] || 0;
             const actual = data[`${prog}_actual`] || 0;
             const color = prog === "SETUP" ? "hsl(var(--dost-blue))" : "hsl(var(--dost-yellow))";
+            const percentage = target > 0 ? (actual / target) * 100 : 0;
 
             if (target === 0 && actual === 0) return null;
 
             return (
               <div key={prog} className="space-y-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>{prog} Program</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
+                    <span className="text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>{prog} Program</span>
+                  </div>
+                  {showAccomplishments && actual > 0 && (
+                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-foreground/10 text-foreground border border-foreground/5">
+                      {percentage.toFixed(1)}%
+                    </span>
+                  )}
                 </div>
                 
                 <div className="pl-4 space-y-2.5">
                   <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-muted-foreground font-medium">Planned Target</span>
+                    <span className="text-[11px] text-muted-foreground font-medium italic">Planned Target</span>
                     <span className="text-sm font-bold text-foreground">₱ {target.toLocaleString()}</span>
                   </div>
                   
                   {showAccomplishments && actual > 0 && (
-                    <div className="flex justify-between items-center py-1.5 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
+                    <div className="flex justify-between items-center py-2 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
                       <span className="text-[11px] font-bold italic" style={{ color: "hsl(var(--dost-red))" }}>Accomplished</span>
                       <span className="text-sm font-black" style={{ color: "hsl(var(--dost-red))" }}>₱ {actual.toLocaleString()}</span>
                     </div>
