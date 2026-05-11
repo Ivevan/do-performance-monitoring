@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -123,12 +123,12 @@ const BulletBarShape = React.memo((props: any) => {
 
 BulletBarShape.displayName = "BulletBarShape";
 
-export function TrainingPerformanceChart({ data, showAccomplishments = true }: TrainingPerformanceChartProps) {
+export const TrainingPerformanceChart = React.memo(({ data, showAccomplishments = true }: TrainingPerformanceChartProps) => {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const tooltipConfig = {
+  const tooltipConfig = useMemo(() => ({
     category: "Technology",
     topic: "Trainings",
     metrics: ["Trainings", "Firms", "Participants"],
@@ -138,9 +138,11 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
       Firms: "hsl(var(--dost-gray))",
       Participants: "hsl(var(--dost-orange))"
     }
-  };
+  }), []);
 
-  const activeOption = FILTER_OPTIONS.find((o) => o.key === filter)!;
+  const activeOption = useMemo(() => 
+    FILTER_OPTIONS.find((o) => o.key === filter)!,
+  [filter]);
 
   const showTrainings    = filter === "all" || filter === "Trainings";
   const showFirms        = filter === "all" || filter === "Firms";
@@ -398,4 +400,4 @@ export function TrainingPerformanceChart({ data, showAccomplishments = true }: T
       </div>
     </Card>
   );
-}
+});

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import html2canvas from "html2canvas";
 import {
@@ -48,46 +48,45 @@ const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
   { key: "Employment", label: "Employment", color: "hsl(var(--dost-green))" },
 ];
 
-export function EconomicImpactChart({ data, showAccomplishments = true }: EconomicImpactChartProps) {
+export const EconomicImpactChart = React.memo(({ data, showAccomplishments = true }: EconomicImpactChartProps) => {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const tooltipConfig = {
+  const tooltipConfig = useMemo(() => ({
     category: "Economic",
     topic: "Dynamics",
     metrics: ["Sales", "Employment"],
-    isCurrency: true, // Only Sales is currency, but we can handle prefix per metric in future if needed. 
-    // Actually Sales is currency, Employment is count. I'll tweak the ChartTooltip to handle this.
+    isCurrency: true,
     colors: {
       Sales: "hsl(var(--dost-blue))",
       Employment: "hsl(var(--dost-green))"
     }
-  };
+  }), []);
 
-  const activeOption = FILTER_OPTIONS.find((o) => o.key === filter)!;
+  const activeOption = useMemo(() => 
+    FILTER_OPTIONS.find((o) => o.key === filter)!,
+  [filter]);
 
   const showSales      = filter === "all" || filter === "Sales";
   const showEmployment = filter === "all" || filter === "Employment";
 
   // Handle clicking a point to pin the tooltip
-  const handleChartClick = (state: any) => {
+  const handleChartClick = useCallback((state: any) => {
     if (state && state.activePayload) {
-      if (pinnedData?.quarter === state.activeLabel) {
-        setPinnedData(null);
-      } else {
-        setPinnedData({
+      setPinnedData(prev => 
+        prev?.quarter === state.activeLabel ? null : {
           quarter: state.activeLabel,
           payload: state.activePayload,
           coordinate: state.activeCoordinate
-        });
-      }
+        }
+      );
     } else {
       setPinnedData(null);
     }
-  };
+  }, []);
 
-  const downloadCSV = () => {
+  const downloadCSV = useCallback(() => {
     const generated = new Date().toLocaleString("en-PH", { dateStyle: "long", timeStyle: "short" });
     const filterLabel = filter === "all" ? "Economic Impact" : filter;
     const filename = `economic-impact-${filter}.csv`;
@@ -134,9 +133,9 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
     const link = document.createElement("a");
     link.href = url; link.download = filename; link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [data, filter]);
 
-  const downloadPNG = async () => {
+  const downloadPNG = useCallback(async () => {
     if (!chartRef.current) return;
     try {
       const canvas = await html2canvas(chartRef.current, { backgroundColor: null, scale: 2 });
@@ -145,7 +144,7 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) { console.error(err); }
-  };
+  }, [filter]);
 
   return (
     <Card className="bg-card border-border p-4 flex flex-col relative" ref={chartRef}>
@@ -261,4 +260,4 @@ export function EconomicImpactChart({ data, showAccomplishments = true }: Econom
       </div>
     </Card>
   );
-}
+});

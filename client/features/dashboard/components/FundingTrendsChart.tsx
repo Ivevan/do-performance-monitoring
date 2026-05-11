@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -126,12 +126,12 @@ const formatXAxis = (value: number) => {
   return `₱${value}`;
 };
 
-export function FundingTrendsChart({ data, showAccomplishments = true }: FundingTrendsChartProps) {
+export const FundingTrendsChart = React.memo(({ data, showAccomplishments = true }: FundingTrendsChartProps) => {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const tooltipConfig = {
+  const tooltipConfig = useMemo(() => ({
     category: "Financial",
     topic: "Monitoring",
     metrics: ["SETUP", "LGIA"],
@@ -140,9 +140,11 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
       SETUP: "hsl(var(--dost-blue))",
       LGIA: "hsl(var(--dost-yellow))"
     }
-  };
+  }), []);
 
-  const activeOption = FILTER_OPTIONS.find((o) => o.key === filter)!;
+  const activeOption = useMemo(() => 
+    FILTER_OPTIONS.find((o) => o.key === filter)!,
+  [filter]);
 
   const showSETUP = filter === "all" || filter === "SETUP";
   const showLGIA  = filter === "all" || filter === "LGIA";
@@ -330,4 +332,4 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
       </div>
     </Card>
   );
-}
+});
