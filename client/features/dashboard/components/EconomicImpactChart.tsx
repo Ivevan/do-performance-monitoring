@@ -17,28 +17,32 @@ import { Download, FileSpreadsheet, Image, ChevronDown, Check } from "lucide-rea
 
 interface EconomicData {
   quarter: string;
-  Sales: number;
-  Employment: number;
+  Sales_target: number;
+  Employment_target: number;
+  Sales_actual: number;
+  Employment_actual: number;
 }
 
 interface EconomicImpactChartProps {
   data: EconomicData[];
+  showAccomplishments?: boolean;
 }
 
 const formatYAxis = (value: number) => {
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
   return value.toString();
 };
 
 type FilterKey = "all" | "Sales" | "Employment";
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
-  { key: "all",        label: "All" },
-  { key: "Sales",      label: "Gross Sales", color: "hsl(var(--dost-blue))" },
-  { key: "Employment", label: "Employment",  color: "hsl(var(--dost-yellow))" },
+  { key: "all",        label: "All Impacts" },
+  { key: "Sales",      label: "Sales",      color: "hsl(var(--dost-blue))" },
+  { key: "Employment", label: "Employment", color: "hsl(var(--dost-red))" },
 ];
 
-export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
+export function EconomicImpactChart({ data, showAccomplishments = true }: EconomicImpactChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -70,31 +74,41 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
     const generated = new Date().toLocaleString("en-PH", {
       dateStyle: "long", timeStyle: "short",
     });
-    const filterLabel = filter === "all" ? "All Economic Metrics" : filter;
-    const filename    = `economic-targets-${filter}.csv`;
+    const filterLabel = filter === "all" ? "Economic Impact" : filter;
+    const filename    = `economic-impact-${filter}.csv`;
 
     let headers: string[];
     let rows: (string | number)[][];
     let summaryRow: (string | number)[];
 
     if (filter === "all") {
-      headers = ["Quarter", "Gross Sales (P'000)", "Employment (Person-Mo)"];
-      rows = data.map((d) => [d.quarter, d.Sales, d.Employment]);
+      headers = ["Quarter", "Sales (T)", "Sales (A)", "Jobs (T)", "Jobs (A)"];
+      rows = data.map((d) => [
+        d.quarter, d.Sales_target, d.Sales_actual, d.Employment_target, d.Employment_actual
+      ]);
       summaryRow = [
         "TOTAL",
-        data.reduce((s, d) => s + d.Sales, 0),
-        data.reduce((s, d) => s + d.Employment, 0),
+        data.reduce((s, d) => s + d.Sales_target, 0), data.reduce((s, d) => s + d.Sales_actual, 0),
+        data.reduce((s, d) => s + d.Employment_target, 0), data.reduce((s, d) => s + d.Employment_actual, 0),
       ];
     } else {
-      const colLabel = filter === "Sales" ? "Gross Sales (P'000)" : "Employment (Person-Mo)";
-      headers = ["Quarter", colLabel];
-      rows    = data.map((d) => [d.quarter, d[filter]]);
-      summaryRow = ["TOTAL", data.reduce((s, d) => s + d[filter], 0)];
+      const tKey = `${filter}_target` as keyof EconomicData;
+      const aKey = `${filter}_actual` as keyof EconomicData;
+      headers = ["Quarter", `${filter} Target`, `${filter} Actual`, "Performance %"];
+      rows    = data.map((d) => {
+        const t = d[tKey] as number;
+        const a = d[aKey] as number;
+        const p = t > 0 ? `${((a / t) * 100).toFixed(1)}%` : "—";
+        return [d.quarter, t, a, p];
+      });
+      const tt = data.reduce((s, d) => s + (d[tKey] as number), 0);
+      const ta = data.reduce((s, d) => s + (d[aKey] as number), 0);
+      summaryRow = ["TOTAL", tt, ta, tt > 0 ? `${((ta / tt) * 100).toFixed(1)}%` : "—"];
     }
 
     const lines = [
-      [`DOST Region XI — Economic Impact Targets (${filterLabel})`],
-      ["CY 2026 Annual Performance Targets"],
+      [`DOST Region XI — Economic Impact Report (${filterLabel})`],
+      ["CY 2026 Performance vs. Accomplishments"],
       [`Generated: ${generated}`],
       [],
       headers,
@@ -132,7 +146,7 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
       });
 
       const link = document.createElement("a");
-      link.download = `economic-targets-${filter}.png`;
+      link.download = `economic-impact-${filter}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -145,8 +159,10 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Economic Targets</h3>
-          <p className="text-xs text-muted-foreground">Gross Sales & Employment Generated</p>
+          <h3 className="text-sm font-medium text-foreground">Economic Impact</h3>
+          <p className="text-xs text-muted-foreground italic">
+            {showAccomplishments ? "Solid: Actual | Dashed: Target" : "Planned Targets Breakdown"}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -217,7 +233,11 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
       {/* Chart */}
       <div className="h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} onClick={handleChartClick}>
+          <LineChart 
+            data={data} 
+            onClick={handleChartClick}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
@@ -232,16 +252,25 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
               payload={pinnedData ? pinnedData.payload : undefined}
               coordinate={pinnedData ? pinnedData.coordinate : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
-              formatter={(value: number, name: string) =>
-                (filter === "all" || filter === name) ? [value.toLocaleString(), name] : []
-              }
+              formatter={(value: number, name: string) => [
+                (value || 0).toLocaleString(), 
+                name.replace("_", " ")
+              ]}
             />
-            <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
+            <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+            
+            {showSales && showAccomplishments && (
+              <Line type="monotone" dataKey="Sales_actual" name="Sales Actual" stroke="hsl(var(--dost-blue))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+            )}
             {showSales && (
-              <Line type="monotone" dataKey="Sales" stroke="hsl(var(--dost-blue))" strokeWidth={2} dot={{ fill: "hsl(var(--dost-blue))", strokeWidth: 2 }} name="Gross Sales" />
+              <Line type="monotone" dataKey="Sales_target" name="Sales Target" stroke="hsl(var(--dost-blue))" strokeWidth={2} strokeDasharray={showAccomplishments ? "5 5" : "0"} dot={{ r: 3 }} />
+            )}
+
+            {showEmployment && showAccomplishments && (
+              <Line type="monotone" dataKey="Employment_actual" name="Employment Actual" stroke="hsl(var(--dost-red))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
             )}
             {showEmployment && (
-              <Line type="monotone" dataKey="Employment" stroke="hsl(var(--dost-yellow))" strokeWidth={2} dot={{ fill: "hsl(var(--dost-yellow))", strokeWidth: 2 }} name="Employment" />
+              <Line type="monotone" dataKey="Employment_target" name="Employment Target" stroke="hsl(var(--dost-red))" strokeWidth={2} strokeDasharray={showAccomplishments ? "5 5" : "0"} dot={{ r: 3 }} />
             )}
           </LineChart>
         </ResponsiveContainer>

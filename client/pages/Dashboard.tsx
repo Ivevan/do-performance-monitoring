@@ -119,32 +119,58 @@ const Dashboard = () => {
   const sales        = buildKpi("Gross Sales (P000)");
   const jobs         = buildKpi("Employment Generated (in Person-Months)");
 
-  // ── Chart data (from targets) ───────────────────────────────────────────────
+  // ── Chart data (Actual vs Target) ──────────────────────────────────────────
   const setupT = getProgTargets("Amount Funded", "SETUP");
   const lgiaT  = getProgTargets("Amount Funded", "LGIA");
+  const fundA  = getActuals("Amount Funded");
+  const fundSetupA = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "SETUP");
+  const fundLgiaA  = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "LGIA");
+
   const allFundingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
-    quarter: q, SETUP: setupT[q], LGIA: lgiaT[q],
+    quarter: q, 
+    SETUP_target: setupT[q], 
+    LGIA_target:  lgiaT[q],
+    SETUP_actual: fundSetupA.find(d => d.label === q)?.value || 0,
+    LGIA_actual:  fundLgiaA.find(d => d.label === q)?.value || 0,
   }));
   const fundingData = activeQuarter === "Annual" ? allFundingData : allFundingData.filter(d => d.quarter === activeQuarter);
 
   const trainT  = getTargets("No. Technology Trainings conducted");
   const firmsT  = getTargets("No. of firms assisted (Trainings)");
   const partT   = getTargets("No. of training participants");
-  const allTrainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
-    quarter: q,
-    Trainings:    ({ Q1: trainT.q1, Q2: trainT.q2, Q3: trainT.q3, Q4: trainT.q4 } as Record<string,number>)[q],
-    Firms:        ({ Q1: firmsT.q1, Q2: firmsT.q2, Q3: firmsT.q3, Q4: firmsT.q4 } as Record<string,number>)[q],
-    Participants: ({ Q1: partT.q1,  Q2: partT.q2,  Q3: partT.q3,  Q4: partT.q4  } as Record<string,number>)[q],
-  }));
+  const trainA  = getActuals("No. Technology Trainings conducted");
+  const firmsA  = getActuals("No. of firms assisted (Trainings)");
+  const partA   = getActuals("No. of training participants");
+
+  const allTrainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => {
+    const qKey = q.toLowerCase() as keyof typeof trainT;
+    return {
+      quarter: q,
+      Trainings_target:    trainT[qKey],
+      Firms_target:        firmsT[qKey],
+      Participants_target: partT[qKey],
+      Trainings_actual:    trainA[qKey],
+      Firms_actual:        firmsA[qKey],
+      Participants_actual: partA[qKey],
+    };
+  });
   const trainingData = activeQuarter === "Annual" ? allTrainingData : allTrainingData.filter(d => d.quarter === activeQuarter);
 
   const salesT = getProgTargets("Gross Sales (P000)", null);
   const jobsT  = getTargets("Employment Generated (in Person-Months)");
-  const allEconomicData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
-    quarter: q,
-    Sales:      salesT[q],
-    Employment: ({ Q1: jobsT.q1, Q2: jobsT.q2, Q3: jobsT.q3, Q4: jobsT.q4 } as Record<string,number>)[q],
-  }));
+  const salesA = getActuals("Gross Sales (P000)");
+  const jobsA  = getActuals("Employment Generated (in Person-Months)");
+
+  const allEconomicData = (["Q1","Q2","Q3","Q4"] as const).map(q => {
+    const qKey = q.toLowerCase() as keyof typeof jobsT;
+    return {
+      quarter: q,
+      Sales_target:      salesT[q],
+      Employment_target: jobsT[qKey],
+      Sales_actual:      salesA[qKey],
+      Employment_actual: jobsA[qKey],
+    };
+  });
   const economicData = activeQuarter === "Annual" ? allEconomicData : allEconomicData.filter(d => d.quarter === activeQuarter);
 
   // ── Strategic metrics — show annual target values directly ──────────────────
@@ -209,17 +235,17 @@ const Dashboard = () => {
         <section>
           <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Quarterly Targets
+            Quarterly Trends
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <FundingTrendsChart data={fundingData} />
-            <TrainingPerformanceChart data={trainingData} />
+            <FundingTrendsChart data={fundingData} showAccomplishments={showAccomplishments} />
+            <TrainingPerformanceChart data={trainingData} showAccomplishments={showAccomplishments} />
           </div>
         </section>
 
         {/* ── 3. Economic & Strategic ── */}
         <section className="grid gap-4 md:grid-cols-2">
-          <EconomicImpactChart data={economicData} />
+          <EconomicImpactChart data={economicData} showAccomplishments={showAccomplishments} />
           <StrategicMetrics metrics={strategicMetrics} />
         </section>
 

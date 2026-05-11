@@ -10,19 +10,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { Download, FileSpreadsheet, Image, ChevronDown, Check } from "lucide-react";
 
 interface FundingData {
   quarter: string;
-  SETUP: number;
-  LGIA: number;
+  SETUP_target: number;
+  LGIA_target: number;
+  SETUP_actual: number;
+  LGIA_actual: number;
 }
 
 interface FundingTrendsChartProps {
   data: FundingData[];
+  showAccomplishments?: boolean;
 }
 
 const formatYAxis = (value: number) => {
@@ -34,12 +37,12 @@ const formatYAxis = (value: number) => {
 type FilterKey = "all" | "SETUP" | "LGIA";
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
-  { key: "all",   label: "All" },
+  { key: "all",   label: "All Programs" },
   { key: "SETUP", label: "SETUP", color: "hsl(var(--dost-blue))" },
   { key: "LGIA",  label: "LGIA",  color: "hsl(var(--dost-yellow))" },
 ];
 
-export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
+export function FundingTrendsChart({ data, showAccomplishments = true }: FundingTrendsChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -52,7 +55,6 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
   // Handle clicking a point to pin the tooltip
   const handleChartClick = (state: any) => {
     if (state && state.activePayload) {
-      // If clicking the same point, unpin it
       if (pinnedData?.quarter === state.activeLabel) {
         setPinnedData(null);
       } else {
@@ -72,38 +74,39 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
     const generated = new Date().toLocaleString("en-PH", {
       dateStyle: "long", timeStyle: "short",
     });
-    const filterLabel = filter === "all" ? "SETUP & LGIA" : filter;
-    const filename    = `funding-targets-${filter}.csv`;
+    const filterLabel = filter === "all" ? "All Programs" : filter;
+    const filename    = `funding-performance-${filter}.csv`;
 
     let headers: string[];
     let rows: (string | number)[][];
     let summaryRow: (string | number)[];
 
     if (filter === "all") {
-      headers = ["Quarter", "SETUP (PHP)", "LGIA (PHP)", "Total (PHP)", "SETUP Share", "LGIA Share"];
-      rows = data.map((d) => {
-        const total     = d.SETUP + d.LGIA;
-        const setupPct  = total > 0 ? `${((d.SETUP / total) * 100).toFixed(1)}%` : "—";
-        const lgiaPct   = total > 0 ? `${((d.LGIA  / total) * 100).toFixed(1)}%` : "—";
-        return [d.quarter, d.SETUP, d.LGIA, total, setupPct, lgiaPct];
-      });
-      const tS = data.reduce((s, d) => s + d.SETUP, 0);
-      const tL = data.reduce((s, d) => s + d.LGIA,  0);
-      const gT = tS + tL;
-      summaryRow = ["TOTAL", tS, tL, gT,
-        gT > 0 ? `${((tS / gT) * 100).toFixed(1)}%` : "—",
-        gT > 0 ? `${((tL / gT) * 100).toFixed(1)}%` : "—",
+      headers = ["Quarter", "SETUP Target", "SETUP Actual", "LGIA Target", "LGIA Actual"];
+      rows = data.map((d) => [d.quarter, d.SETUP_target, d.SETUP_actual, d.LGIA_target, d.LGIA_actual]);
+      summaryRow = [
+        "TOTAL",
+        data.reduce((s, d) => s + d.SETUP_target, 0), data.reduce((s, d) => s + d.SETUP_actual, 0),
+        data.reduce((s, d) => s + d.LGIA_target, 0), data.reduce((s, d) => s + d.LGIA_actual, 0),
       ];
     } else {
-      headers = ["Quarter", `${filter} (PHP)`];
-      rows    = data.map((d) => [d.quarter, d[filter]]);
-      const total = data.reduce((s, d) => s + d[filter], 0);
-      summaryRow  = ["TOTAL", total];
+      const tKey = `${filter}_target` as keyof FundingData;
+      const aKey = `${filter}_actual` as keyof FundingData;
+      headers = ["Quarter", `${filter} Target`, `${filter} Actual`, "Performance %"];
+      rows    = data.map((d) => {
+        const t = d[tKey] as number;
+        const a = d[aKey] as number;
+        const p = t > 0 ? `${((a / t) * 100).toFixed(1)}%` : "—";
+        return [d.quarter, t, a, p];
+      });
+      const tt = data.reduce((s, d) => s + (d[tKey] as number), 0);
+      const ta = data.reduce((s, d) => s + (d[aKey] as number), 0);
+      summaryRow = ["TOTAL", tt, ta, tt > 0 ? `${((ta / tt) * 100).toFixed(1)}%` : "—"];
     }
 
     const lines = [
-      [`DOST Region XI — Funding Targets Report (${filterLabel})`],
-      ["CY 2026 Annual Performance Targets"],
+      [`DOST Region XI — Funding Performance Report (${filterLabel})`],
+      ["CY 2026 Performance vs. Accomplishments"],
       [`Generated: ${generated}`],
       [],
       headers,
@@ -125,26 +128,23 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
   // ── Download as PNG (Screenshot Mode) ──────────────────────────────
   const downloadPNG = async () => {
     if (!chartRef.current) return;
-    
     try {
-      // Resolve the current theme card color for the background
       const cardColor = getComputedStyle(document.documentElement).getPropertyValue('--card');
       const backgroundColor = cardColor ? `hsl(${cardColor.trim()})` : '#ffffff';
 
       const canvas = await html2canvas(chartRef.current, {
         backgroundColor,
-        scale: 2, // High resolution
+        scale: 2,
         useCORS: true,
         logging: false,
         onclone: (documentClone) => {
-          // You can hide elements in the clone if needed (e.g. the download button itself)
           const downloadBtn = documentClone.querySelector('[title="Download chart"]');
           if (downloadBtn) (downloadBtn as HTMLElement).style.opacity = '0';
         }
       });
 
       const link = document.createElement("a");
-      link.download = `funding-targets-${filter}.png`;
+      link.download = `funding-performance-${filter}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -152,14 +152,15 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
     }
   };
 
-
   return (
-    <Card className="bg-card border-border p-4">
+    <Card className="bg-card border-border p-4" ref={chartRef}>
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Funding Targets</h3>
-          <p className="text-xs text-muted-foreground">SETUP vs LGIA (PHP)</p>
+          <h3 className="text-sm font-medium text-foreground">Funding Trends</h3>
+          <p className="text-xs text-muted-foreground italic">
+            {showAccomplishments ? "Solid: Actual | Outline: Target" : "Planned Targets Breakdown"}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -179,13 +180,13 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
                 <ChevronDown className="h-3 w-3 ml-0.5 opacity-60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36">
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Show</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Show Program</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {FILTER_OPTIONS.map(({ key, label, color }) => (
                 <DropdownMenuItem
                   key={key}
-                  onClick={() => setFilter(key)}
+                  onClick={() => { setFilter(key); setPinnedData(null); }}
                   className="gap-2 text-xs cursor-pointer"
                 >
                   <span
@@ -228,22 +229,13 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
       </div>
 
       {/* Chart */}
-      <div className="h-[200px]" ref={chartRef}>
+      <div className="h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart 
+          <BarChart 
             data={data} 
             onClick={handleChartClick}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
           >
-            <defs>
-              <linearGradient id="colorSETUP" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="hsl(var(--dost-blue))"   stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--dost-blue))"   stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="colorLGIA" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="hsl(var(--dost-yellow))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--dost-yellow))" stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
@@ -258,18 +250,27 @@ export function FundingTrendsChart({ data }: FundingTrendsChartProps) {
               payload={pinnedData ? pinnedData.payload : undefined}
               coordinate={pinnedData ? pinnedData.coordinate : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
-              formatter={(value: number, name: string) =>
-                (filter === "all" || filter === name) ? [`₱${value.toLocaleString()}`, name] : []
-              }
+              formatter={(value: number, name: string) => [
+                `₱${(value || 0).toLocaleString()}`, 
+                name.replace("_", " ")
+              ]}
             />
-            <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
+            <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+            
+            {showSETUP && showAccomplishments && (
+              <Bar dataKey="SETUP_actual" name="SETUP Actual" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} barSize={25} />
+            )}
             {showSETUP && (
-              <Area type="monotone" dataKey="SETUP" stroke="hsl(var(--dost-blue))"   fill="url(#colorSETUP)" strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--dost-blue))" }} />
+              <Bar dataKey="SETUP_target" name="SETUP Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-blue))"} stroke="hsl(var(--dost-blue))" strokeWidth={2} strokeDasharray={showAccomplishments ? "4 4" : "0"} radius={[4, 4, 0, 0]} barSize={25} />
+            )}
+            
+            {showLGIA && showAccomplishments && (
+              <Bar dataKey="LGIA_actual" name="LGIA Actual" fill="hsl(var(--dost-yellow))" radius={[4, 4, 0, 0]} barSize={25} />
             )}
             {showLGIA && (
-              <Area type="monotone" dataKey="LGIA"  stroke="hsl(var(--dost-yellow))" fill="url(#colorLGIA)"  strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: "hsl(var(--dost-yellow))" }} />
+              <Bar dataKey="LGIA_target" name="LGIA Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-yellow))"} stroke="hsl(var(--dost-yellow))" strokeWidth={2} strokeDasharray={showAccomplishments ? "4 4" : "0"} radius={[4, 4, 0, 0]} barSize={25} />
             )}
-          </AreaChart>
+          </BarChart>
         </ResponsiveContainer>
       </div>
     </Card>

@@ -17,13 +17,17 @@ import { Download, FileSpreadsheet, Image, ChevronDown, Check } from "lucide-rea
 
 interface TrainingData {
   quarter: string;
-  Trainings: number;
-  Participants: number;
-  Firms: number;
+  Trainings_target: number;
+  Firms_target: number;
+  Participants_target: number;
+  Trainings_actual: number;
+  Firms_actual: number;
+  Participants_actual: number;
 }
 
 interface TrainingPerformanceChartProps {
   data: TrainingData[];
+  showAccomplishments?: boolean;
 }
 
 const formatYAxis = (value: number) => {
@@ -34,13 +38,13 @@ const formatYAxis = (value: number) => {
 type FilterKey = "all" | "Trainings" | "Participants" | "Firms";
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
-  { key: "all",          label: "All" },
+  { key: "all",          label: "All Metrics" },
   { key: "Trainings",    label: "Trainings",    color: "hsl(var(--dost-blue))" },
   { key: "Firms",        label: "Firms",        color: "hsl(var(--dost-red))" },
   { key: "Participants", label: "Participants", color: "hsl(var(--dost-yellow))" },
 ];
 
-export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps) {
+export function TrainingPerformanceChart({ data, showAccomplishments = true }: TrainingPerformanceChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -74,30 +78,41 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
       dateStyle: "long", timeStyle: "short",
     });
     const filterLabel = filter === "all" ? "All Training Metrics" : filter;
-    const filename    = `training-targets-${filter}.csv`;
+    const filename    = `training-performance-${filter}.csv`;
 
     let headers: string[];
     let rows: (string | number)[][];
     let summaryRow: (string | number)[];
 
     if (filter === "all") {
-      headers = ["Quarter", "Trainings", "Firms Assisted", "Participants"];
-      rows = data.map((d) => [d.quarter, d.Trainings, d.Firms, d.Participants]);
+      headers = ["Quarter", "Trainings (T)", "Trainings (A)", "Firms (T)", "Firms (A)", "Parts (T)", "Parts (A)"];
+      rows = data.map((d) => [
+        d.quarter, d.Trainings_target, d.Trainings_actual, d.Firms_target, d.Firms_actual, d.Participants_target, d.Participants_actual
+      ]);
       summaryRow = [
         "TOTAL",
-        data.reduce((s, d) => s + d.Trainings, 0),
-        data.reduce((s, d) => s + d.Firms, 0),
-        data.reduce((s, d) => s + d.Participants, 0),
+        data.reduce((s, d) => s + d.Trainings_target, 0), data.reduce((s, d) => s + d.Trainings_actual, 0),
+        data.reduce((s, d) => s + d.Firms_target, 0), data.reduce((s, d) => s + d.Firms_actual, 0),
+        data.reduce((s, d) => s + d.Participants_target, 0), data.reduce((s, d) => s + d.Participants_actual, 0),
       ];
     } else {
-      headers = ["Quarter", filter];
-      rows    = data.map((d) => [d.quarter, d[filter]]);
-      summaryRow = ["TOTAL", data.reduce((s, d) => s + d[filter], 0)];
+      const tKey = `${filter}_target` as keyof TrainingData;
+      const aKey = `${filter}_actual` as keyof TrainingData;
+      headers = ["Quarter", `${filter} Target`, `${filter} Actual`, "Performance %"];
+      rows    = data.map((d) => {
+        const t = d[tKey] as number;
+        const a = d[aKey] as number;
+        const p = t > 0 ? `${((a / t) * 100).toFixed(1)}%` : "—";
+        return [d.quarter, t, a, p];
+      });
+      const tt = data.reduce((s, d) => s + (d[tKey] as number), 0);
+      const ta = data.reduce((s, d) => s + (d[aKey] as number), 0);
+      summaryRow = ["TOTAL", tt, ta, tt > 0 ? `${((ta / tt) * 100).toFixed(1)}%` : "—"];
     }
 
     const lines = [
-      [`DOST Region XI — Training Performance Targets (${filterLabel})`],
-      ["CY 2026 Annual Performance Targets"],
+      [`DOST Region XI — Training Performance Report (${filterLabel})`],
+      ["CY 2026 Performance vs. Accomplishments"],
       [`Generated: ${generated}`],
       [],
       headers,
@@ -135,7 +150,7 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
       });
 
       const link = document.createElement("a");
-      link.download = `training-targets-${filter}.png`;
+      link.download = `training-performance-${filter}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -148,8 +163,10 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Training Targets</h3>
-          <p className="text-xs text-muted-foreground">Trainings, Firms & Participants</p>
+          <h3 className="text-sm font-medium text-foreground">Training Trends</h3>
+          <p className="text-xs text-muted-foreground italic">
+            {showAccomplishments ? "Solid: Actual | Outline: Target" : "Planned Targets Breakdown"}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -220,7 +237,11 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
       {/* Chart */}
       <div className="h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} onClick={handleChartClick}>
+          <BarChart 
+            data={data} 
+            onClick={handleChartClick}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
@@ -235,19 +256,32 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
               payload={pinnedData ? pinnedData.payload : undefined}
               coordinate={pinnedData ? pinnedData.coordinate : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
-              formatter={(value: number, name: string) =>
-                (filter === "all" || filter === name) ? [value.toLocaleString(), name] : []
-              }
+              formatter={(value: number, name: string) => [
+                (value || 0).toLocaleString(), 
+                name.replace("_", " ")
+              ]}
             />
-            <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
+            <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+            
+            {showTrainings && showAccomplishments && (
+              <Bar dataKey="Trainings_actual" name="Trainings Actual" fill="hsl(var(--dost-blue))" radius={[2, 2, 0, 0]} />
+            )}
             {showTrainings && (
-              <Bar dataKey="Trainings" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Trainings_target" name="Trainings Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-blue))"} stroke="hsl(var(--dost-blue))" strokeWidth={1} strokeDasharray={showAccomplishments ? "4 2" : "0"} radius={[2, 2, 0, 0]} />
+            )}
+
+            {showFirms && showAccomplishments && (
+              <Bar dataKey="Firms_actual" name="Firms Actual" fill="hsl(var(--dost-red))" radius={[2, 2, 0, 0]} />
             )}
             {showFirms && (
-              <Bar dataKey="Firms" fill="hsl(var(--dost-red))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Firms_target" name="Firms Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-red))"} stroke="hsl(var(--dost-red))" strokeWidth={1} strokeDasharray={showAccomplishments ? "4 2" : "0"} radius={[2, 2, 0, 0]} />
+            )}
+
+            {showParticipants && showAccomplishments && (
+              <Bar dataKey="Participants_actual" name="Parts Actual" fill="hsl(var(--dost-yellow))" radius={[2, 2, 0, 0]} />
             )}
             {showParticipants && (
-              <Bar dataKey="Participants" fill="hsl(var(--dost-yellow))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="Participants_target" name="Parts Target" fill={showAccomplishments ? "transparent" : "hsl(var(--dost-yellow))"} stroke="hsl(var(--dost-yellow))" strokeWidth={1} strokeDasharray={showAccomplishments ? "4 2" : "0"} radius={[2, 2, 0, 0]} />
             )}
           </BarChart>
         </ResponsiveContainer>
