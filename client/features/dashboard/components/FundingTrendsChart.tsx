@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import html2canvas from "html2canvas";
+import { ChartTooltip } from "./ChartTooltip";
 
 interface FundingData {
   quarter: string;
@@ -125,77 +126,21 @@ const formatXAxis = (value: number) => {
   return `₱${value}`;
 };
 
-/**
- * Reliable Standard Tooltip - 'Smooth & Airy' Edition
- */
-const SimpleTooltip = React.memo(({ active, payload, label, filter, showAccomplishments }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    const allPrograms = ["SETUP", "LGIA"];
-    const activePrograms = filter === "all" ? allPrograms : [filter];
-
-    return (
-      <div className="bg-card/90 backdrop-blur-md border border-white/10 p-5 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.4)] min-w-[280px] animate-in fade-in zoom-in duration-300">
-        <div className="flex items-center justify-between mb-4 border-b border-border/40 pb-3">
-          <span className="text-base font-black text-foreground tracking-tighter">{label} Performance</span>
-          <div className="text-right leading-none">
-            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Financial</div>
-            <div className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em]">Monitoring</div>
-          </div>
-        </div>
-        
-        <div className="space-y-6">
-          {activePrograms.map(prog => {
-            const target = data[`${prog}_target`] || 0;
-            const actual = data[`${prog}_actual`] || 0;
-            const color = prog === "SETUP" ? "hsl(var(--dost-blue))" : "hsl(var(--dost-yellow))";
-            const percentage = target > 0 ? (actual / target) * 100 : 0;
-
-            if (target === 0 && actual === 0) return null;
-
-            return (
-              <div key={prog} className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-1.5 h-4 rounded-full" style={{ backgroundColor: color }} />
-                    <span className="text-xs font-black uppercase tracking-[0.1em]" style={{ color }}>{prog} Program</span>
-                  </div>
-                  {showAccomplishments && actual > 0 && (
-                    <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-foreground/10 text-foreground border border-foreground/5">
-                      {percentage.toFixed(1)}%
-                    </span>
-                  )}
-                </div>
-                
-                <div className="pl-4 space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[11px] text-muted-foreground font-medium italic">Planned Target</span>
-                    <span className="text-sm font-bold text-foreground">₱ {target.toLocaleString()}</span>
-                  </div>
-                  
-                  {showAccomplishments && actual > 0 && (
-                    <div className="flex justify-between items-center py-2 px-3 rounded-xl bg-red-500/5 border border-red-500/10">
-                      <span className="text-[11px] font-bold italic" style={{ color: "hsl(var(--dost-red))" }}>Accomplished</span>
-                      <span className="text-sm font-black" style={{ color: "hsl(var(--dost-red))" }}>₱ {actual.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-  return null;
-});
-
-SimpleTooltip.displayName = "SimpleTooltip";
-
 export function FundingTrendsChart({ data, showAccomplishments = true }: FundingTrendsChartProps) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+
+  const tooltipConfig = {
+    category: "Financial",
+    topic: "Monitoring",
+    metrics: ["SETUP", "LGIA"],
+    isCurrency: true,
+    colors: {
+      SETUP: "hsl(var(--dost-blue))",
+      LGIA: "hsl(var(--dost-yellow))"
+    }
+  };
 
   const activeOption = FILTER_OPTIONS.find((o) => o.key === filter)!;
 
@@ -327,8 +272,8 @@ export function FundingTrendsChart({ data, showAccomplishments = true }: Funding
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
             <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
             <YAxis type="category" dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} width={60} />
-            <Tooltip
-              content={<SimpleTooltip filter={filter} showAccomplishments={showAccomplishments} />}
+            <Tooltip 
+              content={<ChartTooltip filter={filter} showAccomplishments={showAccomplishments} config={tooltipConfig} />}
               active={pinnedData ? true : undefined}
               payload={pinnedData ? pinnedData.payload : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
