@@ -31,9 +31,9 @@ import { ChartTooltip } from "./ChartTooltip";
 interface FundingData {
   quarter: string;
   SETUP_target: number;
-  SETUP_actual: number;
+  SETUP_actual: number | null;
   LGIA_target: number;
-  LGIA_actual: number;
+  LGIA_actual: number | null;
 }
 
 interface FundingTrendsChartProps {

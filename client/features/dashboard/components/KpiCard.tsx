@@ -3,10 +3,10 @@ import type { Quarter } from "@/lib/ptso-types";
 
 interface KpiCardProps {
   label: string;
-  actual: number;
+  actual: number | null;
   target: number;
   unit?: string;
-  breakdown: { Q1: number; Q2: number; Q3: number; Q4: number };
+  breakdown: { Q1: number | null; Q2: number | null; Q3: number | null; Q4: number | null };
   selectedQuarter: Quarter;
   showAccomplishments?: boolean;
 }
@@ -21,15 +21,16 @@ export function KpiCard({
   showAccomplishments = true,
 }: KpiCardProps) {
   // Show exact numbers — no M/K abbreviation for PHP to preserve full precision
-  const formatValue = (val: number) => {
+  const formatValue = (val: number | null | undefined) => {
+    const value = val ?? 0;
     if (unit === "PHP" || unit === "PHP '000") {
-      return val.toLocaleString("en-US", { maximumFractionDigits: 0 });
+      return value.toLocaleString("en-US", { maximumFractionDigits: 0 });
     }
-    return val.toLocaleString();
+    return value.toLocaleString();
   };
 
-  const displayValue = showAccomplishments ? actual : target;
-  const progress = target > 0 ? (actual / target) * 100 : 0;
+  const displayValue = showAccomplishments ? (actual ?? 0) : target;
+  const progress = target > 0 ? ((actual ?? 0) / target) * 100 : 0;
 
   // Standardized font size for better alignment across the row
   const valueFontClass = displayValue >= 1_000_000

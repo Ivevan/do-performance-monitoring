@@ -33,9 +33,9 @@ interface TrainingData {
   Trainings_target: number;
   Firms_target: number;
   Participants_target: number;
-  Trainings_actual: number;
-  Firms_actual: number;
-  Participants_actual: number;
+  Trainings_actual: number | null;
+  Firms_actual: number | null;
+  Participants_actual: number | null;
 }
 
 interface TrainingPerformanceChartProps {

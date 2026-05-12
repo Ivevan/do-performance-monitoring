@@ -62,15 +62,22 @@ const Dashboard = () => {
   // ── Accomplishment (Actual) helpers ──────────────────────────────────────────
   // Sum quarterly values for a given indicator. 
   const getActuals = (indicator: string) => {
-    const q1 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q1").reduce((s, d) => s + d.value, 0);
-    const q2 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q2").reduce((s, d) => s + d.value, 0);
-    const q3 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q3").reduce((s, d) => s + d.value, 0);
-    const q4 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q4").reduce((s, d) => s + d.value, 0);
+    const q1Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q1");
+    const q2Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q2");
+    const q3Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q3");
+    const q4Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q4");
+
+    const q1 = q1Rows.length > 0 ? q1Rows.reduce((s, d) => s + d.value, 0) : null;
+    const q2 = q2Rows.length > 0 ? q2Rows.reduce((s, d) => s + d.value, 0) : null;
+    const q3 = q3Rows.length > 0 ? q3Rows.reduce((s, d) => s + d.value, 0) : null;
+    const q4 = q4Rows.length > 0 ? q4Rows.reduce((s, d) => s + d.value, 0) : null;
     
     // Check aggregation type (from first row) to decide how to calculate annual actual
     const firstRow = data.rawData.find(d => d.indicator === indicator);
     const isCumulative = firstRow?.aggregation_type !== 'LATEST';
-    const annual = isCumulative ? (q1 + q2 + q3 + q4) : (q4 || q3 || q2 || q1 || 0);
+    const annual = isCumulative 
+      ? ((q1 || 0) + (q2 || 0) + (q3 || 0) + (q4 || 0)) 
+      : (q4 ?? q3 ?? q2 ?? q1 ?? 0);
 
     return { q1, q2, q3, q4, annual };
   };
@@ -98,7 +105,7 @@ const Dashboard = () => {
     const a = getActuals(indicator);
     
     const tMap: Record<string, number> = { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 };
-    const aMap: Record<string, number> = { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 };
+    const aMap: Record<string, number | null> = { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 };
     
     const displayTarget = activeQuarter === "Annual" ? t.annual : (tMap[activeQuarter] ?? 0);
     const displayActual = activeQuarter === "Annual" ? a.annual : (aMap[activeQuarter] ?? 0);
@@ -122,7 +129,6 @@ const Dashboard = () => {
   // ── Chart data (Actual vs Target) ──────────────────────────────────────────
   const setupT = getProgTargets("Amount Funded", "SETUP");
   const lgiaT  = getProgTargets("Amount Funded", "LGIA");
-  const fundA  = getActuals("Amount Funded");
   const fundSetupA = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "SETUP");
   const fundLgiaA  = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "LGIA");
 
@@ -130,8 +136,8 @@ const Dashboard = () => {
     quarter: q, 
     SETUP_target: setupT[q], 
     LGIA_target:  lgiaT[q],
-    SETUP_actual: fundSetupA.find(d => d.label === q)?.value || 0,
-    LGIA_actual:  fundLgiaA.find(d => d.label === q)?.value || 0,
+    SETUP_actual: fundSetupA.find(d => d.label === q)?.value ?? null,
+    LGIA_actual:  fundLgiaA.find(d => d.label === q)?.value ?? null,
   }));
   const fundingData = activeQuarter === "Annual" ? allFundingData : allFundingData.filter(d => d.quarter === activeQuarter);
 
@@ -149,9 +155,9 @@ const Dashboard = () => {
       Trainings_target:    trainT[qKey],
       Firms_target:        firmsT[qKey],
       Participants_target: partT[qKey],
-      Trainings_actual:    trainA[qKey],
-      Firms_actual:        firmsA[qKey],
-      Participants_actual: partA[qKey],
+      Trainings_actual:    trainA[qKey as keyof typeof trainA],
+      Firms_actual:        firmsA[qKey as keyof typeof firmsA],
+      Participants_actual: partA[qKey as keyof typeof partA],
     };
   });
   const trainingData = activeQuarter === "Annual" ? allTrainingData : allTrainingData.filter(d => d.quarter === activeQuarter);
@@ -167,8 +173,8 @@ const Dashboard = () => {
       quarter: q,
       Sales_target:      salesT[q],
       Employment_target: jobsT[qKey],
-      Sales_actual:      salesA[qKey],
-      Employment_actual: jobsA[qKey],
+      Sales_actual:      salesA[qKey as keyof typeof salesA],
+      Employment_actual: jobsA[qKey as keyof typeof jobsA],
     };
   });
   const economicData = activeQuarter === "Annual" ? allEconomicData : allEconomicData.filter(d => d.quarter === activeQuarter);

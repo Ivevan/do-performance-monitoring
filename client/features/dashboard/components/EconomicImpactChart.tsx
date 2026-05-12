@@ -20,8 +20,8 @@ interface EconomicData {
   quarter: string;
   Sales_target: number;
   Employment_target: number;
-  Sales_actual: number;
-  Employment_actual: number;
+  Sales_actual: number | null;
+  Employment_actual: number | null;
 }
 
 interface EconomicImpactChartProps {
