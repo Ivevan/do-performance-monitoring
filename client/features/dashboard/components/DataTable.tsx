@@ -11,17 +11,31 @@ interface DataTableProps {
   showAccomplishments: boolean;
 }
 
-function formatValue(value: number | string, unit?: string): string {
+function formatValue(value: number | string | null | undefined, unit?: string): string {
+  if (value === null || value === undefined) return "0";
   if (typeof value === "string") return value;
-  if (value === 0) return "—";
-  if (unit === "PHP") return `₱${value.toLocaleString()}`;
-  if (unit === "PHP '000") return `₱${value.toLocaleString()}K`;
-  if (unit === "%") return `${value}%`;
-  return value.toLocaleString();
+  
+  const val = Number(value);
+  if (isNaN(val)) return "0";
+
+  // Format based on unit
+  if (unit === "PHP" || unit === "CURRENCY") {
+    return `₱${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  }
+  if (unit === "PHP '000") {
+    return `₱${val.toLocaleString()}K`;
+  }
+  if (unit === "%" || unit === "PERCENTAGE") {
+    return `${val}%`;
+  }
+  return val.toLocaleString();
 }
 
 function PerformanceCell({ target, actual, unit, showAccomplishments }: { target: number | string, actual?: number, unit?: string, showAccomplishments: boolean }) {
-  const hasActual = showAccomplishments && actual !== undefined && actual !== null;
+  // Always show accomplishment label if toggle is ON, defaulting to 0 if data is missing
+  const hasActual = showAccomplishments;
+  const displayActual = actual ?? 0;
+  
   return (
     <div className="flex flex-col items-right text-right">
       <span className={hasActual ? "text-[10px] text-muted-foreground/60 line-through decoration-muted-foreground/30" : "text-xs text-muted-foreground"}>
@@ -29,7 +43,7 @@ function PerformanceCell({ target, actual, unit, showAccomplishments }: { target
       </span>
       {hasActual && (
         <span className="text-[11px] font-black text-red-500 mt-0.5">
-          {formatValue(actual, unit)}
+          {formatValue(displayActual, unit)}
         </span>
       )}
     </div>
@@ -111,27 +125,37 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                       </table>
                     </div>
                   ) : (
-                    /* Single quarter — detailed comparison list */
-                    <div className="p-4 space-y-3">
+                    /* Single quarter — detailed high-density comparison */
+                    <div className="px-4 py-2 divide-y divide-border/5">
                       {sub.metrics.map((metric) => {
                         const qActualKey = `${selectedQuarter}_actual` as keyof typeof metric;
                         const actual = metric[qActualKey] as number | undefined;
                         
                         return (
-                          <div key={metric.name} className="flex justify-between items-start py-2 border-b border-border/10 last:border-0 gap-4">
-                            <span className="text-xs text-foreground font-medium flex-1">{metric.name}</span>
-                            <div className="flex flex-col items-end shrink-0">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Target</span>
-                                <span className="text-xs font-bold text-foreground">
+                          <div key={metric.name} className="flex justify-between items-center py-2.5 gap-4 group">
+                            <span className="text-xs text-foreground font-medium flex-1 line-clamp-1" title={metric.name}>
+                              {metric.name}
+                            </span>
+                            
+                            <div className="flex items-center gap-6 shrink-0">
+                              {/* Target Column */}
+                              <div className="flex flex-col items-end min-w-[70px]">
+                                <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter leading-tight mb-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  Target
+                                </span>
+                                <span className="text-xs font-bold text-foreground/80 leading-none">
                                   {formatValue(metric[selectedQuarter], metric.unit)}
                                 </span>
                               </div>
-                              {showAccomplishments && actual !== undefined && actual !== null && (
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-[10px] text-red-500 uppercase font-black tracking-tighter italic">Accomplished</span>
-                                  <span className="text-xs font-black text-red-500 italic">
-                                    {formatValue(actual, metric.unit)}
+
+                              {/* Accomplishment Column */}
+                              {showAccomplishments && (
+                                <div className="flex flex-col items-end min-w-[70px] border-l border-border/10 pl-4">
+                                  <span className="text-[8px] text-red-500 uppercase font-bold tracking-tighter leading-tight mb-0.5">
+                                    Accomplished
+                                  </span>
+                                  <span className="text-xs font-black text-red-500 italic leading-none">
+                                    {formatValue(actual ?? 0, metric.unit)}
                                   </span>
                                 </div>
                               )}

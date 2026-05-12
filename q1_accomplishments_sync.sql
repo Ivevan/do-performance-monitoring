@@ -241,5 +241,197 @@ BEGIN
         ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 59.62;
     END IF;
 
-    RAISE NOTICE 'Q1 Accomplishments have been fully synchronized (Impact, i-Fund, Trainings, Consultancies, Strategic).';
+    -- 30. No. of S&T Promotional Activities Conducted
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of S&T Promotional Activities Conducted' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 9)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 9;
+    END IF;
+
+    -- 31. No. of Examinees (Undergrad & JLSS)
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Examinees (Undergrad & JLSS)' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 432)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 432;
+    END IF;
+
+    -- 32. No. of On-Going Scholars
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of On-Going Scholars' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 32)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 32;
+    END IF;
+
+    -- 33. Percentage of municipalities with DOST Scholarship applicants
+    SELECT id INTO ind_id FROM indicators WHERE name = 'Percentage of municipalities with DOST Scholarship applicants' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 100)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 100;
+    END IF;
+
+    -- 34. No. of Networks/Linkages Established and Maintained
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Networks/Linkages Established and Maintained' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 12)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 12;
+    END IF;
+
+    -- 35. No. of Projects co-funded (LGU-DOST)
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Projects co-funded (LGU-DOST)' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 1)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 1;
+    END IF;
+
+    -- 36. No. of Trainings / fora conducted for LGUs
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Trainings / fora conducted for LGUs' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 6)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 6;
+    END IF;
+
+    -- 37. No. of trainings conducted for NGAs
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of trainings conducted for NGAs' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 4)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 4;
+    END IF;
+
+    -- 38. Non-Paying Lab Services (Setting to 0 explicitly)
+    SELECT id INTO ind_id FROM indicators WHERE name = 'Number of non-paying laboratory services' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) ON CONFLICT DO NOTHING;
+    END IF;
+
+    -- 39. % GRIND activity facilitated and coordinated for the grassroots
+    SELECT id INTO ind_id FROM indicators WHERE name = '% GRIND activity facilitated and coordinated for the grassroots' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 0)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+
+    -- 40. No. of NRCP membership promotion/fora conducted/facilitated
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of NRCP membership promotion/fora conducted/facilitated' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 0)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+
+    -- 41. % of targeted SETI ecosystem engagement rate
+    SELECT id INTO ind_id FROM indicators WHERE name = '% of targeted SETI ecosystem engagement rate' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 0)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+
+    -- 42. % of public elementary and HS with STARBOOKS
+    SELECT id INTO ind_id FROM indicators WHERE name = '% of public elementary and HS with STARBOOKS' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 32.00)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 32.00;
+    END IF;
+
+    -- 43. No. of STARBOOKS installation, deployment, and knowledge
+    -- Note: DB name is truncated: 'No. of STARBOOKS installation, deployment, and knowledge'
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of STARBOOKS installation, deployment, and knowledge' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 2)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 2;
+    END IF;
+
+    -- 44. No. of Report of Disbursement prepared and submitted
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Report of Disbursement prepared and submitted' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) 
+        VALUES (ind_id, 2026, 1, 2)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 2;
+    END IF;
+
+    -- 45. % Increase of investment from project cooperators/stakeholders
+    SELECT id INTO ind_id FROM indicators WHERE name = '% Increase of investment from project cooperators/stakeholders' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0)
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+
+    -- 46. Financial Ratings (Obligation/Disbursement)
+    SELECT id INTO ind_id FROM indicators WHERE name = '% Rating for Obligation/Allotment attained' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = '% Rating for Disbursement/Allotment attained' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = '% Rating for Disbursement/Obligation attained' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+
+    -- 47. Support to Operations - Functional
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of training attended before the end of the year' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Quality Management System Maintained' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = '5S Audit Score attained' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+
+    -- 48. Support to Operations - Strategic
+    SELECT id INTO ind_id FROM indicators WHERE name = '% of personnel with Subject Matter Expertise' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = '% of personnel with >=4.2 Overall Employee Morale Index/Score' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = 'Rating of IQA for 5S in PSTO' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = 'Overall CSF Rating' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = 'Overall Net Promoter Score' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+    SELECT id INTO ind_id FROM indicators WHERE name = 'Project Fund Utilization' LIMIT 1;
+    IF ind_id IS NOT NULL THEN
+        INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0) 
+        ON CONFLICT (indicator_id, year, quarter) DO UPDATE SET value = 0;
+    END IF;
+
+    RAISE NOTICE 'Q1 Accomplishments have been fully synchronized (Operations, Enhancement, Admin, Support).';
 END $$;
