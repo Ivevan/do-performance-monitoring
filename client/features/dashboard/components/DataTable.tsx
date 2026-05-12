@@ -21,7 +21,7 @@ function formatValue(value: number | string, unit?: string): string {
 }
 
 function PerformanceCell({ target, actual, unit, showAccomplishments }: { target: number | string, actual?: number, unit?: string, showAccomplishments: boolean }) {
-  const hasActual = showAccomplishments && typeof actual === 'number' && actual > 0;
+  const hasActual = showAccomplishments && actual !== undefined && actual !== null;
   return (
     <div className="flex flex-col items-right text-right">
       <span className={hasActual ? "text-[10px] text-muted-foreground/60 line-through decoration-muted-foreground/30" : "text-xs text-muted-foreground"}>
@@ -127,7 +127,7 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                                   {formatValue(metric[selectedQuarter], metric.unit)}
                                 </span>
                               </div>
-                              {showAccomplishments && actual !== undefined && actual > 0 && (
+                              {showAccomplishments && actual !== undefined && actual !== null && (
                                 <div className="flex items-center gap-2 mt-1">
                                   <span className="text-[10px] text-red-500 uppercase font-black tracking-tighter italic">Accomplished</span>
                                   <span className="text-xs font-black text-red-500 italic">

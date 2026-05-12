@@ -525,12 +525,12 @@ BEGIN
     
     -- Amount Funded (SETUP)
     SELECT id INTO ind_id FROM indicators WHERE name = 'Amount Funded' AND program = 'SETUP' LIMIT 1;
-    INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 1200000);
+    INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 3131000);
     INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 2, 2100000);
 
     -- Amount Funded (LGIA)
     SELECT id INTO ind_id FROM indicators WHERE name = 'Amount Funded' AND program = 'LGIA' LIMIT 1;
-    INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 150000);
+    INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 410775);
     INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 2, 2300000);
 
     -- Trainings Conducted
@@ -550,7 +550,11 @@ BEGIN
 
     -- Projects Approved (SETUP)
     SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Projects Approved' AND program = 'SETUP' LIMIT 1;
-    INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 1);
+    INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 0);
     INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 2, 2);
+
+    -- Projects Approved (LGIA)
+    SELECT id INTO ind_id FROM indicators WHERE name = 'No. of Projects Approved' AND program = 'LGIA' LIMIT 1;
+    INSERT INTO accomplishments (indicator_id, year, quarter, value) VALUES (ind_id, 2026, 1, 2);
 
 END $$;
