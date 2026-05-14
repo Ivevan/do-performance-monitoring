@@ -8,8 +8,6 @@ import { QuarterFilter } from "@/features/dashboard/components/QuarterFilter";
 import { CategoryTabs } from "@/features/dashboard/components/CategoryTabs";
 import { FundingTrendsChart } from "@/features/dashboard/components/FundingTrendsChart";
 import { TrainingPerformanceChart } from "@/features/dashboard/components/TrainingPerformanceChart";
-import { EconomicImpactChart } from "@/features/dashboard/components/EconomicImpactChart";
-import { StrategicMetrics } from "@/features/dashboard/components/StrategicMetrics";
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import type { Quarter } from "@/lib/ptso-types";
@@ -162,37 +160,6 @@ const Dashboard = () => {
   });
   const trainingData = activeQuarter === "Annual" ? allTrainingData : allTrainingData.filter(d => d.quarter === activeQuarter);
 
-  const salesT = getProgTargets("Gross Sales (P000)", null);
-  const jobsT  = getTargets("Employment Generated (in Person-Months)");
-  const salesA = getActuals("Gross Sales (P000)");
-  const jobsA  = getActuals("Employment Generated (in Person-Months)");
-
-  const allEconomicData = (["Q1","Q2","Q3","Q4"] as const).map(q => {
-    const qKey = q.toLowerCase() as keyof typeof jobsT;
-    return {
-      quarter: q,
-      Sales_target:      salesT[q],
-      Employment_target: jobsT[qKey],
-      Sales_actual:      salesA[qKey as keyof typeof salesA],
-      Employment_actual: jobsA[qKey as keyof typeof jobsA],
-    };
-  });
-  const economicData = activeQuarter === "Annual" ? allEconomicData : allEconomicData.filter(d => d.quarter === activeQuarter);
-
-  // ── Strategic metrics — show annual target values directly ──────────────────
-  const strategicDefs = [
-    { label: "SETUP Coverage (%)",    prefix: "% municipalities availed SETUP" },
-    { label: "GIA Coverage (%)",      prefix: "% municipalities availed GIA" },
-    { label: "SETUP Refund Rate (%)", prefix: "% SETUP refund rate" },
-    { label: "SMART SETI (%)",        prefix: "% business enterprise adopting" },
-    { label: "Net Promoter Score (%)",prefix: "Overall Net Promoter Score" },
-    { label: "Fund Utilization (%)",  prefix: "Project Fund Utilization" },
-  ];
-  const strategicMetrics = strategicDefs.map(def => {
-    const row = data.rawData.find(d => d.indicator.startsWith(def.prefix.slice(0, 18)));
-    return { label: def.label, value: row?.annual_target || 0 };
-  });
-
   // ── Drill-down DataTable ────────────────────────────────────────────────────
   const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
   const drillDownData       = data.getDrillDown(activeSectionFilter);
@@ -249,11 +216,6 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* ── 3. Economic & Strategic ── */}
-        <section className="grid gap-4 md:grid-cols-2">
-          <EconomicImpactChart data={economicData} showAccomplishments={showAccomplishments} />
-          <StrategicMetrics metrics={strategicMetrics} />
-        </section>
 
         {/* ── 4. Detailed Breakdown ── */}
         <section className="border-t border-border/50 pt-8">
