@@ -10,7 +10,6 @@ DECLARE
 
     cat_tech_acq UUID;
     cat_inn_fund UUID;
-    cat_econ_imp UUID;
     cat_tech_train UUID;
     cat_tech_cons UUID;
     cat_pkg_lbl UUID;
@@ -48,12 +47,11 @@ BEGIN
     -- ==========================================
     INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Technology Acquisition & Upgrading', 'Functional', 1) RETURNING id INTO cat_tech_acq;
     INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Innovation Fund', 'Functional', 2) RETURNING id INTO cat_inn_fund;
-    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Economic Impact', 'Functional', 3) RETURNING id INTO cat_econ_imp;
-    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Technology Trainings & Techno Fora', 'Functional', 4) RETURNING id INTO cat_tech_train;
-    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Technical Consultancy Services', 'Functional', 5) RETURNING id INTO cat_tech_cons;
-    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Packaging and Labeling Design', 'Functional', 6) RETURNING id INTO cat_pkg_lbl;
-    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'S&T Information and Referral', 'Functional', 7) RETURNING id INTO cat_st_info;
-    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Strategic Deliverables', 'Strategic', 8) RETURNING id INTO cat_strat_op;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Technology Trainings & Techno Fora', 'Functional', 3) RETURNING id INTO cat_tech_train;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Technical Consultancy Services', 'Functional', 4) RETURNING id INTO cat_tech_cons;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Packaging and Labeling Design', 'Functional', 5) RETURNING id INTO cat_pkg_lbl;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'S&T Information and Referral', 'Functional', 6) RETURNING id INTO cat_st_info;
+    INSERT INTO categories (section_id, name, deliverable_type, order_index) VALUES (sect_op, 'Strategic Deliverables', 'Strategic', 7) RETURNING id INTO cat_strat_op;
 
     -- ==========================================
     -- 2b. Create Categories (for Enhancement)
@@ -118,29 +116,29 @@ BEGIN
     INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
     VALUES (ind_id, 2026, 0, 0, 0, 0, 0);
 
-    -- Economic Impact
+    -- Economic Impact (under Innovation Fund)
     INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
-    VALUES (cat_econ_imp, 'Gross Sales (P000)', NULL, 'CURRENCY', 'SUM', 1) RETURNING id INTO ind_id;
+    VALUES (cat_inn_fund, 'Gross Sales (P000)', NULL, 'CURRENCY', 'SUM', 4) RETURNING id INTO ind_id;
     INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
     VALUES (ind_id, 2026, 1350, 1400, 1400, 1400, 5550);
 
     INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
-    VALUES (cat_econ_imp, 'No. of New Jobs Generated', NULL, 'COUNT', 'SUM', 2) RETURNING id INTO ind_id;
+    VALUES (cat_inn_fund, 'No. of New Jobs Generated', NULL, 'COUNT', 'SUM', 5) RETURNING id INTO ind_id;
     INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
     VALUES (ind_id, 2026, 3, 0, 0, 3, 6);
 
     INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
-    VALUES (cat_econ_imp, 'Employment Generated (in Person-Months)', NULL, 'COUNT', 'SUM', 3) RETURNING id INTO ind_id;
+    VALUES (cat_inn_fund, 'Employment Generated (in Person-Months)', NULL, 'COUNT', 'SUM', 6) RETURNING id INTO ind_id;
     INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
     VALUES (ind_id, 2026, 120, 100, 100, 85, 405);
 
     INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
-    VALUES (cat_econ_imp, 'Percentage increased in productivity', NULL, 'PERCENTAGE', 'LATEST', 4) RETURNING id INTO ind_id;
+    VALUES (cat_inn_fund, 'Percentage increased in productivity', NULL, 'PERCENTAGE', 'LATEST', 7) RETURNING id INTO ind_id;
     INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
     VALUES (ind_id, 2026, 0, 0, 0, 25, 25);
 
     INSERT INTO indicators (category_id, name, program, data_type, aggregation_type, order_index) 
-    VALUES (cat_econ_imp, 'Percentage increased in employment generated', NULL, 'PERCENTAGE', 'LATEST', 5) RETURNING id INTO ind_id;
+    VALUES (cat_inn_fund, 'Percentage increased in employment generated', NULL, 'PERCENTAGE', 'LATEST', 8) RETURNING id INTO ind_id;
     INSERT INTO targets (indicator_id, year, q1_target, q2_target, q3_target, q4_target, annual_target) 
     VALUES (ind_id, 2026, 0, 0, 0, 2, 2);
 

@@ -78,7 +78,7 @@ const BulletBarShape = React.memo((props: any) => {
   const actualY = y + height - actualPxHeight;
 
   return (
-    <g>
+    <g key={`${program}-${payload?.quarter}-${showAccomplishments}-${targetVal}-${actualVal}`}>
       {/* Target Bar (Left-Staggered Base Layer - 70% Width) */}
       <rect 
         x={x} 
@@ -87,6 +87,7 @@ const BulletBarShape = React.memo((props: any) => {
         height={targetPxHeight} 
         fill={fill} 
         rx={3}
+        className="animate-reveal-bar-vertical"
       />
       
       {showAccomplishments && (
@@ -101,7 +102,7 @@ const BulletBarShape = React.memo((props: any) => {
               fill="hsl(var(--dost-red))" 
               filter="url(#shadow-float-train)"
               rx={3}
-              className="animate-reveal-bar"
+              className="animate-reveal-bar-vertical"
             />
           )}
 
