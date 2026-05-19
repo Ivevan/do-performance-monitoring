@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Calendar, Building2 } from "lucide-react";
+import { Activity, BarChart3, Calendar, Building2, ArrowLeft } from "lucide-react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/features/dashboard/components/KpiCard";
@@ -20,14 +21,31 @@ const SECTIONS = [
 ];
 
 const Dashboard = () => {
-  const { data, isLoading } = useDashboardData({ year: 2026 });
+  const navigate = useNavigate();
+  const { year } = useParams<{ year?: string }>();
+  const selectedYear = year ? Number(year) : 2026;
+
+  const { data, isLoading } = useDashboardData({ year: selectedYear });
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("Annual");
   const [activeSection, setActiveSection] = useState("operations");
   const [showAccomplishments, setShowAccomplishments] = useState(false);
 
   if (isLoading || !data) {
     return (
-      <DashboardLayout title="CY 2026 Performance Dashboard">
+      <DashboardLayout 
+        title={`CY ${selectedYear} Performance Dashboard`}
+        headerActions={
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate("/dashboard")}
+            className="border-border hover:bg-sidebar-accent text-xs font-semibold gap-1.5 h-9"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Workspaces
+          </Button>
+        }
+      >
         <div className="flex h-[400px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -166,9 +184,19 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout
-      title="CY 2026 Performance Dashboard"
+      title={`CY ${selectedYear} Performance Dashboard`}
       headerActions={
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate("/dashboard")}
+            className="border-border hover:bg-sidebar-accent text-[10px] sm:text-xs font-semibold gap-1.5 h-8 px-2.5 shrink-0"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="hidden xs:inline">Back to Workspaces</span>
+            <span className="xs:hidden">Back</span>
+          </Button>
           <Button
             variant={showAccomplishments ? "default" : "outline"}
             size="sm"
@@ -244,7 +272,7 @@ const Dashboard = () => {
         <footer className="pt-4 border-t border-border/30">
           <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
             <Activity className="h-3 w-3" />
-            CY 2026 Annual Performance Targets &bull; Last updated: {new Date().toLocaleDateString()}
+            CY {selectedYear} Annual Performance Targets &bull; Last updated: {new Date().toLocaleDateString()}
           </p>
         </footer>
 
