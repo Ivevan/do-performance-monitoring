@@ -407,9 +407,6 @@ export default function Workspaces() {
                             <Badge className="font-extrabold bg-dost-blue/10 text-dost-blue border-0 rounded-md">
                               CY {ws.year}
                             </Badge>
-                            <Badge variant="outline" className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-md ${statusColors}`}>
-                              {ws.status}
-                            </Badge>
                           </div>
                         </div>
                       </CardHeader>
