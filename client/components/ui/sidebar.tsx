@@ -136,7 +136,7 @@ const Sidebar = React.forwardRef<
     collapsible?: "offcanvas" | "icon" | "none";
   }
 >(({ side = "left", variant = "sidebar", collapsible = "offcanvas", className, children, ...props }, ref) => {
-  const { isMobile, state, open, setOpen, openMobile, setOpenMobile } = useSidebar();
+  const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
 
   if (collapsible === "none") {
     return (
@@ -150,38 +150,72 @@ const Sidebar = React.forwardRef<
     );
   }
 
-  // Always use the Sheet (pop up panel) for the sidebar on both desktop and mobile
-  const isOpen = isMobile ? openMobile : open;
-  const setIsOpen = isMobile ? setOpenMobile : setOpen;
+  if (isMobile) {
+    return (
+      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
+        <SheetContent
+          data-sidebar="sidebar"
+          data-mobile="true"
+          className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+          style={
+            {
+              "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
+            } as React.CSSProperties
+          }
+          side={side}
+        >
+          <div className="flex h-full w-full flex-col">{children}</div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
-    <Sheet open={isOpen} onOpenChange={setIsOpen} {...props}>
-      <SheetContent
-        data-sidebar="sidebar"
-        data-mobile={isMobile ? "true" : "false"}
-        className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-        style={
-          {
-            "--sidebar-width": isMobile ? SIDEBAR_WIDTH_MOBILE : SIDEBAR_WIDTH,
-          } as React.CSSProperties
-        }
-        side={side}
+    <div
+      ref={ref}
+      className="group peer hidden md:block text-sidebar-foreground"
+      data-state={state}
+      data-collapsible={state === "collapsed" ? collapsible : ""}
+      data-variant={variant}
+      data-side={side}
+      data-expand-on-hover={props["data-expand-on-hover"]}
+    >
+      <div
+        className={cn(
+          "duration-200 relative h-[calc(100svh-4rem)] w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+          "group-data-[collapsible=offcanvas]:w-0",
+          "group-data-[side=right]:rotate-180",
+          variant === "floating" || variant === "inset"
+            ? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)] group-data-[expand-on-hover=true]:hover:w-[calc(var(--sidebar-width)_+_theme(spacing.4)_+2px)]"
+            : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[expand-on-hover=true]:hover:w-[--sidebar-width]"
+        )}
+      />
+      <div
+        className={cn(
+          "group duration-200 fixed top-16 bottom-0 z-20 hidden h-[calc(100svh-4rem)] w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
+          side === "left"
+            ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
+            : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
+          // Adjust the padding for floating and inset variants.
+          variant === "floating" || variant === "inset"
+            ? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)_+_theme(spacing.4)_+2px)] group-data-[expand-on-hover=true]:hover:w-[calc(var(--sidebar-width)_+_theme(spacing.4)_+2px)]"
+            : "group-data-[collapsible=icon]:w-[--sidebar-width-icon] group-data-[expand-on-hover=true]:hover:w-[--sidebar-width] group-data-[side=left]:border-r group-data-[side=right]:border-l",
+          className
+        )}
+        data-state={state}
+        data-collapsible={state === "collapsed" ? collapsible : ""}
+        data-expand-on-hover={props["data-expand-on-hover"]}
+        {...props}
       >
-        <div className="flex h-full w-full flex-col relative">
+        <div
+          data-sidebar="sidebar"
+          className="flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow"
+        >
           {children}
-          {/* Custom closing tab sticking out slightly to the right */}
-          <button
-            onClick={() => setIsOpen(false)}
-            className="absolute -right-6 top-1/2 -translate-y-1/2 z-50 flex h-16 w-6 items-center justify-center rounded-r-xl bg-sidebar border-y border-r border-sidebar-border shadow-lg hover:bg-muted hover:text-primary transition-colors focus:outline-none"
-            aria-label="Close Sidebar"
-          >
-            <ChevronLeft className="h-4 w-4 text-sidebar-foreground hover:text-primary transition-colors" />
-          </button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </div>
   );
-
 });
 Sidebar.displayName = "Sidebar";
 
@@ -331,7 +365,7 @@ const SidebarGroupLabel = React.forwardRef<HTMLDivElement, React.ComponentProps<
         data-sidebar="group-label"
         className={cn(
           "flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opa] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
-          "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
+          "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 group-data-[expand-on-hover=true]:group-hover:mt-0 group-data-[expand-on-hover=true]:group-hover:opacity-100",
           className,
         )}
         {...props}
@@ -381,7 +415,7 @@ const SidebarMenuItem = React.forwardRef<HTMLLIElement, React.ComponentProps<"li
 SidebarMenuItem.displayName = "SidebarMenuItem";
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 group-data-[expand-on-hover=true]:group-hover:!w-full [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
   {
     variants: {
       variant: {

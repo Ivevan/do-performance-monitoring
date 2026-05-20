@@ -1,8 +1,8 @@
-import { LayoutDashboard, BarChart3, FileText, Settings, LogOut, HelpCircle, Bell } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, PanelLeft } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ThemeSwitch } from "@/components/ThemeSwitch";
 import {
   Sidebar,
   SidebarContent,
@@ -10,7 +10,6 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -19,24 +18,44 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import sealUrl from "/DOST_seal.ico.png";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const mainItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  //{ title: "Analytics", url: "/dashboard/analytics", icon: BarChart3 },
-  //{ title: "Reports", url: "/dashboard/reports", icon: FileText, },
 ];
 
 const supportItems = [
   { title: "Settings", url: "/dashboard/settings", icon: Settings },
-  //{ title: "Help", url: "/dashboard/help", icon: HelpCircle },
 ];
 
+type SidebarPref = "expanded" | "collapsed" | "hover";
+
 export function AppSidebar() {
-  const { state, setOpenMobile, isMobile } = useSidebar();
+  const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+
+  const [preference, setPreference] = useState<SidebarPref>(() => {
+    return (localStorage.getItem("sidebar-preference") as SidebarPref) || "hover";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-preference", preference);
+    if (preference === "expanded") {
+      setOpen(true);
+    } else {
+      setOpen(false);
+    }
+  }, [preference, setOpen]);
 
   const renderItem = (item: { title: string; url: string; icon: any; badge?: string }) => {
     const isActive = location.pathname === item.url;
@@ -55,7 +74,7 @@ export function AppSidebar() {
             <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full bg-dost-red" />
           )}
           <item.icon className="h-4 w-4 shrink-0" />
-          <div className="flex flex-1 items-center justify-between overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0">
+          <div className="flex flex-1 items-center justify-between overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[expand-on-hover=true]:group-hover:w-[150px] group-data-[expand-on-hover=true]:group-hover:opacity-100">
             <span className="truncate">{item.title}</span>
             {item.badge && (
               <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-dost-yellow text-dost-yellow-foreground border-0 shrink-0">
@@ -72,82 +91,66 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
-      <Sidebar variant="floating" collapsible="icon">
-        <SidebarHeader className="h-14 shrink-0 p-0 border-b border-sidebar-border">
-          <div className="flex h-full items-center gap-2 px-4 overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:justify-center">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-sidebar-accent/40">
-              <img
-                src={sealUrl}
-                alt="DOST seal"
-                className="h-7 w-7 object-contain"
-                draggable={false}
-              />
-            </div>
-            <div className="flex flex-col leading-tight overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0">
-              <span className="text-sm font-bold text-sidebar-foreground truncate">DOST Davao Oriental</span>
-              <span className="text-[10px] text-sidebar-foreground/70 truncate">Performance Monitoring</span>
-            </div>
-          </div>
-        </SidebarHeader>
-
+      <Sidebar variant="sidebar" collapsible="icon" data-expand-on-hover={preference === "hover"}>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Main</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{mainItems.map(renderItem)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
 
           <SidebarGroup>
-            <SidebarGroupLabel>Support</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>{supportItems.map(renderItem)}</SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter className="border-t border-sidebar-border relative overflow-hidden p-2 gap-1">
-          {/* Theme Toggle Section - Above Profile */}
-          <div className="transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
-            <ThemeSwitch />
-          </div>
-
-          <div className="flex items-center gap-2 px-2 py-2 transition-opacity duration-200 group-data-[collapsible=icon]:opacity-0 group-data-[collapsible=icon]:pointer-events-none">
-            <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="bg-dost-blue text-white text-xs font-semibold">DA</AvatarFallback>
+        <SidebarFooter className="border-t border-sidebar-border flex flex-col p-2 gap-2">
+          {/* Profile Section */}
+          <div className="flex items-center gap-2 px-2 overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center group-data-[expand-on-hover=true]:group-hover:justify-start group-data-[expand-on-hover=true]:group-hover:px-2 mt-1">
+            <Avatar className="h-6 w-6 shrink-0">
+              <AvatarFallback className="bg-dost-blue text-white text-[10px] font-semibold">DA</AvatarFallback>
             </Avatar>
-            <div className="flex-1 overflow-hidden leading-tight">
+            <div className="flex-1 overflow-hidden leading-tight transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[expand-on-hover=true]:group-hover:w-[150px] group-data-[expand-on-hover=true]:group-hover:opacity-100">
               <p className="text-xs font-medium text-sidebar-foreground truncate">DOST Admin</p>
-              <p className="text-[10px] text-sidebar-foreground/60 truncate">admin@dost.gov.ph</p>
+              <p className="text-[9px] text-sidebar-foreground/60 truncate">admin@dost.gov.ph</p>
             </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => navigate("/")}
-                  className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-dost-red transition-colors shrink-0"
-                  aria-label="Sign out"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="top">Sign out</TooltipContent>
-            </Tooltip>
           </div>
 
-          {/* Collapsed State Footer - absolutely positioned to fade in */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200 group-data-[collapsible=icon]:opacity-100 group-data-[collapsible=icon]:pointer-events-auto py-2 gap-1">
-            <ThemeToggle className="h-8 w-8 border-0 bg-transparent hover:bg-sidebar-accent" />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button 
-                  onClick={() => navigate("/")}
-                  className="rounded-md p-2 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-dost-red transition-colors"
-                >
-                  <LogOut className="h-4 w-4 shrink-0" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Sign out</TooltipContent>
-            </Tooltip>
+          {/* Quick Actions (Toggle, Logout, Sidebar Control) */}
+          <div className="flex items-center gap-1 px-2 justify-between transition-all duration-200 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:flex-col group-data-[expand-on-hover=true]:group-hover:flex-row group-data-[expand-on-hover=true]:group-hover:px-2 pt-2 border-t border-sidebar-border/50">
+            {/* The Sidebar Control Icon at bottom left */}
+            <DropdownMenu>
+              <DropdownMenuTrigger className="-ml-1.5 group-data-[collapsible=icon]:ml-0 group-data-[expand-on-hover=true]:group-hover:-ml-1.5 flex h-7 w-7 items-center justify-center rounded-md hover:bg-sidebar-accent text-sidebar-foreground/70 hover:text-primary transition-colors shrink-0 focus:outline-none">
+                <PanelLeft className="h-4 w-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="top" className="w-48 ml-2">
+                <DropdownMenuLabel className="text-xs">Sidebar Control</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={preference} onValueChange={(val) => setPreference(val as SidebarPref)}>
+                  <DropdownMenuRadioItem value="expanded">Expanded</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="collapsed">Collapsed</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="hover">Expand on hover</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <div className="flex items-center gap-1 group-data-[collapsible=icon]:hidden group-data-[expand-on-hover=true]:group-hover:flex">
+              <ThemeToggle className="h-8 w-8 border-0 bg-transparent hover:bg-sidebar-accent" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigate("/")}
+                    className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-dost-red transition-colors shrink-0"
+                    aria-label="Sign out"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Sign out</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </SidebarFooter>
       </Sidebar>
