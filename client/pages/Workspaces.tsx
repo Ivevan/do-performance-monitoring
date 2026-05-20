@@ -325,28 +325,15 @@ export default function Workspaces() {
         ) : (
           /* Normal Dashboard Workspace Grid */
           <>
-            {/* Title Summary Panel */}
-            <div className="flex flex-col gap-1.5 border-b border-border pb-5">
-              <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
-                <Folder className="h-4 w-4" />
-                Active Calendar Folders
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Review operational deliverables, register custom target matrices, and synchronize accomplishment folders.
-              </p>
-            </div>
-
-            {/* Filter and Search Action Row */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search performance folders (e.g. CY 2026)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
-                />
-              </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search folders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
+              />
             </div>
 
             {/* Loading Spinner */}
