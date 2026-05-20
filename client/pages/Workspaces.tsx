@@ -347,20 +347,6 @@ export default function Workspaces() {
                   className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
                 />
               </div>
-              
-              <div className="w-full sm:w-[180px]">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-10 border-border/80 bg-card/30">
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="Active">Active Folders</SelectItem>
-                    <SelectItem value="Draft">Drafts Only</SelectItem>
-                    <SelectItem value="Archived">Archived Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             {/* Loading Spinner */}
@@ -421,9 +407,6 @@ export default function Workspaces() {
                             <Badge className="font-extrabold bg-dost-blue/10 text-dost-blue border-0 rounded-md">
                               CY {ws.year}
                             </Badge>
-                            <Badge variant="outline" className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-md ${statusColors}`}>
-                              {ws.status}
-                            </Badge>
                           </div>
                         </div>
                       </CardHeader>
@@ -460,7 +443,7 @@ export default function Workspaces() {
                         </div>
                         
                         <div className="flex items-center gap-1.5 text-xs text-dost-blue font-bold tracking-wide group-hover:translate-x-1 transition-transform duration-300">
-                          Open Folder
+                          View Charts
                           <ArrowRight className="h-3.5 w-3.5" />
                         </div>
                       </CardFooter>
