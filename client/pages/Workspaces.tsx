@@ -325,42 +325,15 @@ export default function Workspaces() {
         ) : (
           /* Normal Dashboard Workspace Grid */
           <>
-            {/* Title Summary Panel */}
-            <div className="flex flex-col gap-1.5 border-b border-border pb-5">
-              <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
-                <Folder className="h-4 w-4" />
-                Active Calendar Folders
-              </h2>
-              <p className="text-xs text-muted-foreground">
-                Review operational deliverables, register custom target matrices, and synchronize accomplishment folders.
-              </p>
-            </div>
-
-            {/* Filter and Search Action Row */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search performance folders (e.g. CY 2026)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
-                />
-              </div>
-              
-              <div className="w-full sm:w-[180px]">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-10 border-border/80 bg-card/30">
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="Active">Active Folders</SelectItem>
-                    <SelectItem value="Draft">Drafts Only</SelectItem>
-                    <SelectItem value="Archived">Archived Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search folders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
+              />
             </div>
 
             {/* Loading Spinner */}
@@ -421,9 +394,6 @@ export default function Workspaces() {
                             <Badge className="font-extrabold bg-dost-blue/10 text-dost-blue border-0 rounded-md">
                               CY {ws.year}
                             </Badge>
-                            <Badge variant="outline" className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-md ${statusColors}`}>
-                              {ws.status}
-                            </Badge>
                           </div>
                         </div>
                       </CardHeader>
@@ -460,7 +430,7 @@ export default function Workspaces() {
                         </div>
                         
                         <div className="flex items-center gap-1.5 text-xs text-dost-blue font-bold tracking-wide group-hover:translate-x-1 transition-transform duration-300">
-                          Open Folder
+                          View Charts
                           <ArrowRight className="h-3.5 w-3.5" />
                         </div>
                       </CardFooter>
