@@ -347,20 +347,6 @@ export default function Workspaces() {
                   className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
                 />
               </div>
-              
-              <div className="w-full sm:w-[180px]">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-10 border-border/80 bg-card/30">
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="Active">Active Folders</SelectItem>
-                    <SelectItem value="Draft">Drafts Only</SelectItem>
-                    <SelectItem value="Archived">Archived Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             {/* Loading Spinner */}
