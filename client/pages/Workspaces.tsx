@@ -497,24 +497,8 @@ export default function Workspaces() {
                   className="min-h-[80px] text-xs resize-none"
                 />
               </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="status" className="text-xs font-bold text-muted-foreground">Workspace Status</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(val: any) => setFormData({ ...formData, status: val })}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active (Visible)</SelectItem>
-                    <SelectItem value="Draft">Draft (Editable)</SelectItem>
-                    <SelectItem value="Archived">Archived (Read-Only)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
+
 
             <DialogFooter className="pt-3 border-t border-border flex items-center justify-end gap-2">
               <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
