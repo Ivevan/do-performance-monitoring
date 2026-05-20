@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Calendar, Building2 } from "lucide-react";
+import { Activity, BarChart3, Calendar, Building2, ArrowLeft } from "lucide-react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/features/dashboard/components/KpiCard";
@@ -8,8 +9,6 @@ import { QuarterFilter } from "@/features/dashboard/components/QuarterFilter";
 import { CategoryTabs } from "@/features/dashboard/components/CategoryTabs";
 import { FundingTrendsChart } from "@/features/dashboard/components/FundingTrendsChart";
 import { TrainingPerformanceChart } from "@/features/dashboard/components/TrainingPerformanceChart";
-import { EconomicImpactChart } from "@/features/dashboard/components/EconomicImpactChart";
-import { StrategicMetrics } from "@/features/dashboard/components/StrategicMetrics";
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import type { Quarter } from "@/lib/ptso-types";
@@ -22,14 +21,31 @@ const SECTIONS = [
 ];
 
 const Dashboard = () => {
-  const { data, isLoading } = useDashboardData({ year: 2026 });
+  const navigate = useNavigate();
+  const { year } = useParams<{ year?: string }>();
+  const selectedYear = year ? Number(year) : 2026;
+
+  const { data, isLoading } = useDashboardData({ year: selectedYear });
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("Annual");
   const [activeSection, setActiveSection] = useState("operations");
-  const [showAccomplishments, setShowAccomplishments] = useState(true);
+  const [showAccomplishments, setShowAccomplishments] = useState(false);
 
   if (isLoading || !data) {
     return (
-      <DashboardLayout title="CY 2026 Performance Dashboard">
+      <DashboardLayout 
+        title={`CY ${selectedYear} Performance Dashboard`}
+        headerActions={
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate("/dashboard")}
+            className="border-border hover:bg-sidebar-accent text-xs font-semibold gap-1.5 h-9"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Workspaces
+          </Button>
+        }
+      >
         <div className="flex h-[400px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -62,15 +78,22 @@ const Dashboard = () => {
   // ── Accomplishment (Actual) helpers ──────────────────────────────────────────
   // Sum quarterly values for a given indicator. 
   const getActuals = (indicator: string) => {
-    const q1 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q1").reduce((s, d) => s + d.value, 0);
-    const q2 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q2").reduce((s, d) => s + d.value, 0);
-    const q3 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q3").reduce((s, d) => s + d.value, 0);
-    const q4 = data.rawData.filter(d => d.indicator === indicator && d.label === "Q4").reduce((s, d) => s + d.value, 0);
+    const q1Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q1");
+    const q2Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q2");
+    const q3Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q3");
+    const q4Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q4");
+
+    const q1 = q1Rows.length > 0 ? q1Rows.reduce((s, d) => s + d.value, 0) : null;
+    const q2 = q2Rows.length > 0 ? q2Rows.reduce((s, d) => s + d.value, 0) : null;
+    const q3 = q3Rows.length > 0 ? q3Rows.reduce((s, d) => s + d.value, 0) : null;
+    const q4 = q4Rows.length > 0 ? q4Rows.reduce((s, d) => s + d.value, 0) : null;
     
     // Check aggregation type (from first row) to decide how to calculate annual actual
     const firstRow = data.rawData.find(d => d.indicator === indicator);
     const isCumulative = firstRow?.aggregation_type !== 'LATEST';
-    const annual = isCumulative ? (q1 + q2 + q3 + q4) : (q4 || q3 || q2 || q1 || 0);
+    const annual = isCumulative 
+      ? ((q1 || 0) + (q2 || 0) + (q3 || 0) + (q4 || 0)) 
+      : (q4 ?? q3 ?? q2 ?? q1 ?? 0);
 
     return { q1, q2, q3, q4, annual };
   };
@@ -98,7 +121,7 @@ const Dashboard = () => {
     const a = getActuals(indicator);
     
     const tMap: Record<string, number> = { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 };
-    const aMap: Record<string, number> = { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 };
+    const aMap: Record<string, number | null> = { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 };
     
     const displayTarget = activeQuarter === "Annual" ? t.annual : (tMap[activeQuarter] ?? 0);
     const displayActual = activeQuarter === "Annual" ? a.annual : (aMap[activeQuarter] ?? 0);
@@ -119,47 +142,41 @@ const Dashboard = () => {
   const sales        = buildKpi("Gross Sales (P000)");
   const jobs         = buildKpi("Employment Generated (in Person-Months)");
 
-  // ── Chart data (from targets) ───────────────────────────────────────────────
+  // ── Chart data (Actual vs Target) ──────────────────────────────────────────
   const setupT = getProgTargets("Amount Funded", "SETUP");
   const lgiaT  = getProgTargets("Amount Funded", "LGIA");
+  const fundSetupA = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "SETUP");
+  const fundLgiaA  = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "LGIA");
+
   const allFundingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
-    quarter: q, SETUP: setupT[q], LGIA: lgiaT[q],
+    quarter: q, 
+    SETUP_target: setupT[q], 
+    LGIA_target:  lgiaT[q],
+    SETUP_actual: fundSetupA.find(d => d.label === q)?.value ?? null,
+    LGIA_actual:  fundLgiaA.find(d => d.label === q)?.value ?? null,
   }));
   const fundingData = activeQuarter === "Annual" ? allFundingData : allFundingData.filter(d => d.quarter === activeQuarter);
 
   const trainT  = getTargets("No. Technology Trainings conducted");
   const firmsT  = getTargets("No. of firms assisted (Trainings)");
   const partT   = getTargets("No. of training participants");
-  const allTrainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
-    quarter: q,
-    Trainings:    ({ Q1: trainT.q1, Q2: trainT.q2, Q3: trainT.q3, Q4: trainT.q4 } as Record<string,number>)[q],
-    Firms:        ({ Q1: firmsT.q1, Q2: firmsT.q2, Q3: firmsT.q3, Q4: firmsT.q4 } as Record<string,number>)[q],
-    Participants: ({ Q1: partT.q1,  Q2: partT.q2,  Q3: partT.q3,  Q4: partT.q4  } as Record<string,number>)[q],
-  }));
-  const trainingData = activeQuarter === "Annual" ? allTrainingData : allTrainingData.filter(d => d.quarter === activeQuarter);
+  const trainA  = getActuals("No. Technology Trainings conducted");
+  const firmsA  = getActuals("No. of firms assisted (Trainings)");
+  const partA   = getActuals("No. of training participants");
 
-  const salesT = getProgTargets("Gross Sales (P000)", null);
-  const jobsT  = getTargets("Employment Generated (in Person-Months)");
-  const allEconomicData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
-    quarter: q,
-    Sales:      salesT[q],
-    Employment: ({ Q1: jobsT.q1, Q2: jobsT.q2, Q3: jobsT.q3, Q4: jobsT.q4 } as Record<string,number>)[q],
-  }));
-  const economicData = activeQuarter === "Annual" ? allEconomicData : allEconomicData.filter(d => d.quarter === activeQuarter);
-
-  // ── Strategic metrics — show annual target values directly ──────────────────
-  const strategicDefs = [
-    { label: "SETUP Coverage (%)",    prefix: "% municipalities availed SETUP" },
-    { label: "GIA Coverage (%)",      prefix: "% municipalities availed GIA" },
-    { label: "SETUP Refund Rate (%)", prefix: "% SETUP refund rate" },
-    { label: "SMART SETI (%)",        prefix: "% business enterprise adopting" },
-    { label: "Net Promoter Score (%)",prefix: "Overall Net Promoter Score" },
-    { label: "Fund Utilization (%)",  prefix: "Project Fund Utilization" },
-  ];
-  const strategicMetrics = strategicDefs.map(def => {
-    const row = data.rawData.find(d => d.indicator.startsWith(def.prefix.slice(0, 18)));
-    return { label: def.label, value: row?.annual_target || 0 };
+  const allTrainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => {
+    const qKey = q.toLowerCase() as keyof typeof trainT;
+    return {
+      quarter: q,
+      Trainings_target:    trainT[qKey],
+      Firms_target:        firmsT[qKey],
+      Participants_target: partT[qKey],
+      Trainings_actual:    trainA[qKey as keyof typeof trainA],
+      Firms_actual:        firmsA[qKey as keyof typeof firmsA],
+      Participants_actual: partA[qKey as keyof typeof partA],
+    };
   });
+  const trainingData = activeQuarter === "Annual" ? allTrainingData : allTrainingData.filter(d => d.quarter === activeQuarter);
 
   // ── Drill-down DataTable ────────────────────────────────────────────────────
   const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
@@ -167,9 +184,19 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout
-      title="CY 2026 Performance Dashboard"
+      title={`CY ${selectedYear} Performance Dashboard`}
       headerActions={
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate("/dashboard")}
+            className="border-border hover:bg-sidebar-accent text-[10px] sm:text-xs font-semibold gap-1.5 h-8 px-2.5 shrink-0"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="hidden xs:inline">Back to Workspaces</span>
+            <span className="xs:hidden">Back</span>
+          </Button>
           <Button
             variant={showAccomplishments ? "default" : "outline"}
             size="sm"
@@ -181,7 +208,7 @@ const Dashboard = () => {
             }`}
           >
             <Activity className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">With Accomplish</span>
+            <span className="hidden xs:inline">With Accomplishment</span>
           </Button>
           <QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />
         </div>
@@ -209,19 +236,14 @@ const Dashboard = () => {
         <section>
           <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Quarterly Targets
+            Quarterly Trends
           </h2>
           <div className="grid gap-4 md:grid-cols-2">
-            <FundingTrendsChart data={fundingData} />
-            <TrainingPerformanceChart data={trainingData} />
+            <FundingTrendsChart data={fundingData} showAccomplishments={showAccomplishments} />
+            <TrainingPerformanceChart data={trainingData} showAccomplishments={showAccomplishments} />
           </div>
         </section>
 
-        {/* ── 3. Economic & Strategic ── */}
-        <section className="grid gap-4 md:grid-cols-2">
-          <EconomicImpactChart data={economicData} />
-          <StrategicMetrics metrics={strategicMetrics} />
-        </section>
 
         {/* ── 4. Detailed Breakdown ── */}
         <section className="border-t border-border/50 pt-8">
@@ -242,7 +264,7 @@ const Dashboard = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
           >
-            <DataTable category={drillDownData} selectedQuarter={activeQuarter} />
+            <DataTable category={drillDownData} selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
           </motion.div>
         </section>
 
@@ -250,7 +272,7 @@ const Dashboard = () => {
         <footer className="pt-4 border-t border-border/30">
           <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
             <Activity className="h-3 w-3" />
-            CY 2026 Annual Performance Targets &bull; Last updated: {new Date().toLocaleDateString()}
+            CY {selectedYear} Annual Performance Targets &bull; Last updated: {new Date().toLocaleDateString()}
           </p>
         </footer>
 

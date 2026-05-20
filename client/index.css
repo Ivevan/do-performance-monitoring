@@ -17,6 +17,10 @@
     --dost-red-foreground: 0 0% 100%;
     --dost-yellow: 44 95% 45%;        /* Amber — deeper for light backgrounds */
     --dost-yellow-foreground: 0 0% 0%;
+    --dost-orange: 25 95% 45%;
+    --dost-gray: 215 15% 55%;
+    --dost-green: 142 70% 35%;
+    --dost-target-marker: 210 83% 25%;
 
     /* Base Layout */
     --background: 210 20% 98%;
@@ -78,6 +82,10 @@
     --dost-red-foreground: 0 0% 100%;
     --dost-yellow: 44 100% 59%;       /* Amber/Yellow */
     --dost-yellow-foreground: 0 0% 0%;
+    --dost-orange: 25 95% 60%;
+    --dost-gray: 215 15% 75%;
+    --dost-green: 142 70% 50%;
+    --dost-target-marker: 0 0% 100%;
 
     /* Base Layout */
     --background: 0 0% 4%;
@@ -204,4 +212,48 @@
     color: transparent;
     animation: shimmer 5s linear infinite;
   }
+}
+
+/* Chart Animations */
+@keyframes reveal-bar-horizontal {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes reveal-bar-vertical {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+.animate-reveal-bar {
+  transform: scaleX(0);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: reveal-bar-horizontal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-reveal-bar-horizontal {
+  transform: scaleX(0);
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: reveal-bar-horizontal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-reveal-bar-vertical {
+  transform: scaleY(0);
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: reveal-bar-vertical 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }

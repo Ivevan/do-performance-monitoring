@@ -1,6 +1,22 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 import { Card } from "@/components/ui/card";
-import html2canvas from "html2canvas";
+import { 
+  Download, 
+  ChevronDown, 
+  Check, 
+  FileSpreadsheet, 
+  Image 
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,21 +25,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
-} from "recharts";
-import { Download, FileSpreadsheet, Image, ChevronDown, Check } from "lucide-react";
+import html2canvas from "html2canvas";
+import { ChartTooltip } from "./ChartTooltip";
 
 interface TrainingData {
   quarter: string;
-  Trainings: number;
-  Participants: number;
-  Firms: number;
+  Trainings_target: number;
+  Firms_target: number;
+  Participants_target: number;
+  Trainings_actual: number | null;
+  Firms_actual: number | null;
+  Participants_actual: number | null;
 }
 
 interface TrainingPerformanceChartProps {
   data: TrainingData[];
+  showAccomplishments?: boolean;
 }
 
 const formatYAxis = (value: number) => {
@@ -34,70 +51,157 @@ const formatYAxis = (value: number) => {
 type FilterKey = "all" | "Trainings" | "Participants" | "Firms";
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
-  { key: "all",          label: "All" },
+  { key: "all",          label: "All Metrics" },
   { key: "Trainings",    label: "Trainings",    color: "hsl(var(--dost-blue))" },
-  { key: "Firms",        label: "Firms",        color: "hsl(var(--dost-red))" },
-  { key: "Participants", label: "Participants", color: "hsl(var(--dost-yellow))" },
+  { key: "Firms",        label: "Firms",        color: "hsl(var(--dost-gray))" },
+  { key: "Participants", label: "Participants", color: "hsl(var(--dost-orange))" },
 ];
 
-export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps) {
+/**
+ * Custom Bullet Bar Shape - Vertical Premium Edition
+ * Renders a nested, floating look with 3D depth.
+ */
+const BulletBarShape = React.memo((props: any) => {
+  const { x, y, width, height, fill, payload, showAccomplishments, program } = props;
+  if (!payload || width <= 0) return null;
+
+  const targetVal = payload[`${program}_target`] || 0;
+  const actualVal = payload[`${program}_actual`] || 0;
+  const maxVal = Math.max(targetVal, actualVal);
+  
+  if (maxVal <= 0) return null;
+
+  const targetPxHeight = (targetVal / maxVal) * height;
+  const targetY = y + height - targetPxHeight;
+
+  const actualPxHeight = (actualVal / maxVal) * height;
+  const actualY = y + height - actualPxHeight;
+
+  return (
+    <g key={`${program}-${payload?.quarter}-${showAccomplishments}-${targetVal}-${actualVal}`}>
+      {/* Target Bar (Left-Staggered Base Layer - 70% Width) */}
+      <rect 
+        x={x} 
+        y={targetY} 
+        width={width * 0.7} 
+        height={targetPxHeight} 
+        fill={fill} 
+        rx={3}
+        className="animate-reveal-bar-vertical"
+      />
+      
+      {showAccomplishments && (
+        <>
+          {/* Accomplishment Bar (Right-Staggered Top Layer - 70% Width) */}
+          {actualVal > 0 && (
+            <rect 
+              x={x + width * 0.3} 
+              y={actualY} 
+              width={width * 0.7} 
+              height={actualPxHeight} 
+              fill="hsl(var(--dost-red))" 
+              filter="url(#shadow-float-train)"
+              rx={3}
+              className="animate-reveal-bar-vertical"
+            />
+          )}
+
+          {/* Target Goal Marker (Horizontal Finish Line) */}
+          <line 
+            x1={x - 2} 
+            x2={x + width + 2} 
+            y1={targetY} 
+            y2={targetY} 
+            stroke="hsl(var(--dost-target-marker))" 
+            strokeWidth={3} 
+            strokeLinecap="round" 
+          />
+        </>
+      )}
+    </g>
+  );
+});
+
+BulletBarShape.displayName = "BulletBarShape";
+
+export const TrainingPerformanceChart = React.memo(({ data, showAccomplishments = true }: TrainingPerformanceChartProps) => {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const activeOption = FILTER_OPTIONS.find((o) => o.key === filter)!;
+  const tooltipConfig = useMemo(() => ({
+    category: "Technology",
+    topic: "Trainings",
+    metrics: ["Trainings", "Firms", "Participants"],
+    isCurrency: false,
+    colors: {
+      Trainings: "hsl(var(--dost-blue))",
+      Firms: "hsl(var(--dost-gray))",
+      Participants: "hsl(var(--dost-orange))"
+    }
+  }), []);
+
+  const activeOption = useMemo(() => 
+    FILTER_OPTIONS.find((o) => o.key === filter)!,
+  [filter]);
 
   const showTrainings    = filter === "all" || filter === "Trainings";
   const showFirms        = filter === "all" || filter === "Firms";
   const showParticipants = filter === "all" || filter === "Participants";
 
-  // Handle clicking a point to pin the tooltip
-  const handleChartClick = (state: any) => {
+  const handleChartClick = React.useCallback((state: any) => {
     if (state && state.activePayload) {
-      if (pinnedData?.quarter === state.activeLabel) {
-        setPinnedData(null);
-      } else {
-        setPinnedData({
+      setPinnedData(prev => 
+        prev?.quarter === state.activeLabel ? null : {
           quarter: state.activeLabel,
-          payload: state.activePayload,
-          coordinate: state.activeCoordinate
-        });
-      }
+          payload: state.activePayload
+        }
+      );
     } else {
       setPinnedData(null);
     }
-  };
+  }, []);
 
-  // ── Download as CSV (filter-aware) ─────────────────────────────────
-  const downloadCSV = () => {
+  const downloadCSV = React.useCallback(() => {
     const generated = new Date().toLocaleString("en-PH", {
       dateStyle: "long", timeStyle: "short",
     });
     const filterLabel = filter === "all" ? "All Training Metrics" : filter;
-    const filename    = `training-targets-${filter}.csv`;
+    const filename    = `training-performance-${filter}.csv`;
 
     let headers: string[];
     let rows: (string | number)[][];
     let summaryRow: (string | number)[];
 
     if (filter === "all") {
-      headers = ["Quarter", "Trainings", "Firms Assisted", "Participants"];
-      rows = data.map((d) => [d.quarter, d.Trainings, d.Firms, d.Participants]);
+      headers = ["Quarter", "Trainings (T)", "Trainings (Acc)", "Firms (T)", "Firms (Acc)", "Parts (T)", "Parts (Acc)"];
+      rows = data.map((d) => [
+        d.quarter, d.Trainings_target, d.Trainings_actual, d.Firms_target, d.Firms_actual, d.Participants_target, d.Participants_actual
+      ]);
       summaryRow = [
         "TOTAL",
-        data.reduce((s, d) => s + d.Trainings, 0),
-        data.reduce((s, d) => s + d.Firms, 0),
-        data.reduce((s, d) => s + d.Participants, 0),
+        data.reduce((s, d) => s + d.Trainings_target, 0), data.reduce((s, d) => s + d.Trainings_actual, 0),
+        data.reduce((s, d) => s + d.Firms_target, 0), data.reduce((s, d) => s + d.Firms_actual, 0),
+        data.reduce((s, d) => s + d.Participants_target, 0), data.reduce((s, d) => s + d.Participants_actual, 0),
       ];
     } else {
-      headers = ["Quarter", filter];
-      rows    = data.map((d) => [d.quarter, d[filter]]);
-      summaryRow = ["TOTAL", data.reduce((s, d) => s + d[filter], 0)];
+      const tKey = `${filter}_target` as keyof TrainingData;
+      const aKey = `${filter}_actual` as keyof TrainingData;
+      headers = ["Quarter", `${filter} Target`, `${filter} Accomplishment`, "Performance %"];
+      rows    = data.map((d) => {
+        const t = d[tKey] as number;
+        const a = d[aKey] as number;
+        const p = t > 0 ? `${((a / t) * 100).toFixed(1)}%` : "—";
+        return [d.quarter, t, a, p];
+      });
+      const tt = data.reduce((s, d) => s + (d[tKey] as number), 0);
+      const ta = data.reduce((s, d) => s + (d[aKey] as number), 0);
+      summaryRow = ["TOTAL", tt, ta, tt > 0 ? `${((ta / tt) * 100).toFixed(1)}%` : "—"];
     }
 
     const lines = [
-      [`DOST Region XI — Training Performance Targets (${filterLabel})`],
-      ["CY 2026 Annual Performance Targets"],
+      [`DOST Region XI — Training Performance Report (${filterLabel})`],
+      ["CY 2026 Performance vs. Accomplishments"],
       [`Generated: ${generated}`],
       [],
       headers,
@@ -114,46 +218,36 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
     const link = document.createElement("a");
     link.href = url; link.download = filename; link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [data, filter]);
 
-  // ── Download as PNG (Screenshot Mode) ──────────────────────────────
-  const downloadPNG = async () => {
+  const downloadPNG = React.useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const cardColor = getComputedStyle(document.documentElement).getPropertyValue('--card');
-      const backgroundColor = cardColor ? `hsl(${cardColor.trim()})` : '#ffffff';
-
       const canvas = await html2canvas(chartRef.current, {
-        backgroundColor,
         scale: 2,
         useCORS: true,
-        logging: false,
-        onclone: (documentClone) => {
-          const downloadBtn = documentClone.querySelector('[title="Download chart"]');
-          if (downloadBtn) (downloadBtn as HTMLElement).style.opacity = '0';
-        }
       });
 
       const link = document.createElement("a");
-      link.download = `training-targets-${filter}.png`;
+      link.download = `training-performance-${filter}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
       console.error("Screenshot failed:", err);
     }
-  };
+  }, [filter]);
 
   return (
     <Card className="bg-card border-border p-4" ref={chartRef}>
-      {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Training Targets</h3>
-          <p className="text-xs text-muted-foreground">Trainings, Firms & Participants</p>
+          <h3 className="text-sm font-medium text-foreground">Technology Trainings</h3>
+          <p className="text-xs text-muted-foreground italic">
+            {showAccomplishments ? "Red: Accomplishment | Line: Target Goal" : "Planned Targets Breakdown"}
+          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* Filter Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -189,7 +283,6 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Download Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -217,41 +310,95 @@ export function TrainingPerformanceChart({ data }: TrainingPerformanceChartProps
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-[200px]">
+      <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} onClick={handleChartClick}>
+          <BarChart 
+            data={data} 
+            onClick={handleChartClick}
+            margin={{ top: 10, right: 30, left: 20, bottom: 0 }}
+            barGap={0}
+          >
+            <defs>
+              <filter id="shadow-float-train" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.4" />
+              </filter>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
             <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
             <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "8px",
-                color: "hsl(var(--foreground))",
-              }}
+              content={<ChartTooltip filter={filter} showAccomplishments={showAccomplishments} config={tooltipConfig} />}
               active={pinnedData ? true : undefined}
               payload={pinnedData ? pinnedData.payload : undefined}
-              coordinate={pinnedData ? pinnedData.coordinate : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
-              formatter={(value: number, name: string) =>
-                (filter === "all" || filter === name) ? [value.toLocaleString(), name] : []
-              }
             />
-            <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
+            <Legend 
+              wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
+              payload={[
+                ...(filter === 'all' || filter === 'Trainings' ? [{ value: 'Trainings', type: 'rect' as const, id: 'train', color: 'hsl(var(--dost-blue))' }] : []),
+                ...(filter === 'all' || filter === 'Firms' ? [{ value: 'Firms', type: 'rect' as const, id: 'firms', color: 'hsl(var(--dost-gray))' }] : []),
+                ...(filter === 'all' || filter === 'Participants' ? [{ value: 'Participants', type: 'rect' as const, id: 'parts', color: 'hsl(var(--dost-orange))' }] : []),
+                ...(showAccomplishments ? [
+                  { value: 'Accomplishment', type: 'rect' as const, id: 'acc', color: 'hsl(var(--dost-red))' }
+                ] : []),
+              ]}
+            />
+            
             {showTrainings && (
-              <Bar dataKey="Trainings" fill="hsl(var(--dost-blue))" radius={[4, 4, 0, 0]} />
+              <Bar 
+                key={`train-${filter}`}
+                dataKey={(d) => Math.max(d.Trainings_target, d.Trainings_actual)}
+                name="Trainings" 
+                fill="hsl(var(--dost-blue))" 
+                shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Trainings" />}
+                barSize={filter === 'all' ? 48 : 80}
+                isAnimationActive={true}
+                animationDuration={1000}
+                animationEasing="ease-in-out"
+              />
             )}
+
             {showFirms && (
-              <Bar dataKey="Firms" fill="hsl(var(--dost-red))" radius={[4, 4, 0, 0]} />
+              <Bar 
+                key={`firms-${filter}`}
+                dataKey={(d) => Math.max(d.Firms_target, d.Firms_actual)}
+                name="Firms" 
+                fill="hsl(var(--dost-gray))" 
+                shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Firms" />}
+                barSize={filter === 'all' ? 48 : 80}
+                isAnimationActive={true}
+                animationDuration={1000}
+                animationBegin={100}
+                animationEasing="ease-in-out"
+              />
             )}
+
             {showParticipants && (
-              <Bar dataKey="Participants" fill="hsl(var(--dost-yellow))" radius={[4, 4, 0, 0]} />
+              <Bar 
+                key={`parts-${filter}`}
+                dataKey={(d) => Math.max(d.Participants_target, d.Participants_actual)}
+                name="Participants" 
+                fill="hsl(var(--dost-orange))" 
+                shape={<BulletBarShape showAccomplishments={showAccomplishments} program="Participants" />}
+                barSize={filter === 'all' ? 48 : 80}
+                isAnimationActive={true}
+                animationDuration={1000}
+                animationBegin={200}
+                animationEasing="ease-in-out"
+              />
             )}
+            
+            {/* Hidden bars to populate tooltips with correct individual values */}
+            <Bar dataKey="Trainings_target" name="Trainings Target" fill="hsl(var(--dost-blue))" hide />
+            <Bar dataKey="Trainings_actual" name="Trainings Accomplishment" fill="hsl(var(--dost-red))" hide />
+            <Bar dataKey="Firms_target" name="Firms Target" fill="hsl(var(--dost-gray))" hide />
+            <Bar dataKey="Firms_actual" name="Firms Accomplishment" fill="hsl(var(--dost-red))" hide />
+            <Bar dataKey="Participants_target" name="Participants Target" fill="hsl(var(--dost-orange))" hide />
+            <Bar dataKey="Participants_actual" name="Participants Accomplishment" fill="hsl(var(--dost-red))" hide />
+
           </BarChart>
         </ResponsiveContainer>
       </div>
     </Card>
   );
-}
+});

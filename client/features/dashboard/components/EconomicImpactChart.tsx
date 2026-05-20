@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import React, { useState, useRef, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import html2canvas from "html2canvas";
 import {
@@ -11,90 +11,114 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
+  Tooltip, ResponsiveContainer, Legend, Area, AreaChart
 } from "recharts";
 import { Download, FileSpreadsheet, Image, ChevronDown, Check } from "lucide-react";
+import { ChartTooltip } from "./ChartTooltip";
 
 interface EconomicData {
   quarter: string;
-  Sales: number;
-  Employment: number;
+  Sales_target: number;
+  Employment_target: number;
+  Sales_actual: number | null;
+  Employment_actual: number | null;
 }
 
 interface EconomicImpactChartProps {
   data: EconomicData[];
+  showAccomplishments?: boolean;
 }
 
 const formatYAxis = (value: number) => {
-  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  if (value >= 1_000_000) return `₱${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `₱${(value / 1_000).toFixed(0)}K`;
+  return `₱${value}`;
+};
+
+const formatEmploymentAxis = (value: number) => {
+  if (value >= 1_000) return `${(value / 1_000).toFixed(0)}K`;
   return value.toString();
 };
 
 type FilterKey = "all" | "Sales" | "Employment";
 
 const FILTER_OPTIONS: { key: FilterKey; label: string; color?: string }[] = [
-  { key: "all",        label: "All" },
-  { key: "Sales",      label: "Gross Sales", color: "hsl(var(--dost-blue))" },
-  { key: "Employment", label: "Employment",  color: "hsl(var(--dost-yellow))" },
+  { key: "all",        label: "All Impacts" },
+  { key: "Sales",      label: "Sales",      color: "hsl(var(--dost-blue))" },
+  { key: "Employment", label: "Employment", color: "hsl(var(--dost-green))" },
 ];
 
-export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
+export const EconomicImpactChart = React.memo(({ data, showAccomplishments = true }: EconomicImpactChartProps) => {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [pinnedData, setPinnedData] = useState<any | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const activeOption = FILTER_OPTIONS.find((o) => o.key === filter)!;
+  const tooltipConfig = useMemo(() => ({
+    category: "Economic",
+    topic: "Dynamics",
+    metrics: ["Sales", "Employment"],
+    isCurrency: true,
+    colors: {
+      Sales: "hsl(var(--dost-blue))",
+      Employment: "hsl(var(--dost-green))"
+    }
+  }), []);
+
+  const activeOption = useMemo(() => 
+    FILTER_OPTIONS.find((o) => o.key === filter)!,
+  [filter]);
 
   const showSales      = filter === "all" || filter === "Sales";
   const showEmployment = filter === "all" || filter === "Employment";
 
   // Handle clicking a point to pin the tooltip
-  const handleChartClick = (state: any) => {
+  const handleChartClick = useCallback((state: any) => {
     if (state && state.activePayload) {
-      if (pinnedData?.quarter === state.activeLabel) {
-        setPinnedData(null);
-      } else {
-        setPinnedData({
+      setPinnedData(prev => 
+        prev?.quarter === state.activeLabel ? null : {
           quarter: state.activeLabel,
           payload: state.activePayload,
           coordinate: state.activeCoordinate
-        });
-      }
+        }
+      );
     } else {
       setPinnedData(null);
     }
-  };
+  }, []);
 
-  // ── Download as CSV (filter-aware) ─────────────────────────────────
-  const downloadCSV = () => {
-    const generated = new Date().toLocaleString("en-PH", {
-      dateStyle: "long", timeStyle: "short",
-    });
-    const filterLabel = filter === "all" ? "All Economic Metrics" : filter;
-    const filename    = `economic-targets-${filter}.csv`;
-
+  const downloadCSV = useCallback(() => {
+    const generated = new Date().toLocaleString("en-PH", { dateStyle: "long", timeStyle: "short" });
+    const filterLabel = filter === "all" ? "Economic Impact" : filter;
+    const filename = `economic-impact-${filter}.csv`;
     let headers: string[];
     let rows: (string | number)[][];
     let summaryRow: (string | number)[];
 
     if (filter === "all") {
-      headers = ["Quarter", "Gross Sales (P'000)", "Employment (Person-Mo)"];
-      rows = data.map((d) => [d.quarter, d.Sales, d.Employment]);
+      headers = ["Quarter", "Sales (T)", "Sales (Acc)", "Jobs (T)", "Jobs (Acc)"];
+      rows = data.map((d) => [d.quarter, d.Sales_target, d.Sales_actual, d.Employment_target, d.Employment_actual]);
       summaryRow = [
         "TOTAL",
-        data.reduce((s, d) => s + d.Sales, 0),
-        data.reduce((s, d) => s + d.Employment, 0),
+        data.reduce((s, d) => s + d.Sales_target, 0), data.reduce((s, d) => s + d.Sales_actual, 0),
+        data.reduce((s, d) => s + d.Employment_target, 0), data.reduce((s, d) => s + d.Employment_actual, 0),
       ];
     } else {
-      const colLabel = filter === "Sales" ? "Gross Sales (P'000)" : "Employment (Person-Mo)";
-      headers = ["Quarter", colLabel];
-      rows    = data.map((d) => [d.quarter, d[filter]]);
-      summaryRow = ["TOTAL", data.reduce((s, d) => s + d[filter], 0)];
+      const tKey = `${filter}_target` as keyof EconomicData;
+      const aKey = `${filter}_actual` as keyof EconomicData;
+      headers = ["Quarter", `${filter} Target`, `${filter} Accomplishment`, "Performance %"];
+      rows = data.map((d) => {
+        const t = d[tKey] as number;
+        const a = d[aKey] as number;
+        return [d.quarter, t, a, t > 0 ? `${((a / t) * 100).toFixed(1)}%` : "—"];
+      });
+      const tt = data.reduce((s, d) => s + (d[tKey] as number), 0);
+      const ta = data.reduce((s, d) => s + (d[aKey] as number), 0);
+      summaryRow = ["TOTAL", tt, ta, tt > 0 ? `${((ta / tt) * 100).toFixed(1)}%` : "—"];
     }
 
-    const lines = [
-      [`DOST Region XI — Economic Impact Targets (${filterLabel})`],
-      ["CY 2026 Annual Performance Targets"],
+    const csvLines = [
+      [`DOST Region XI — Economic Impact Report (${filterLabel})`],
+      ["CY 2026 Performance vs. Accomplishments"],
       [`Generated: ${generated}`],
       [],
       headers,
@@ -103,65 +127,41 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
       summaryRow,
     ];
 
-    const csv  = lines
-      .map((row) => row.map((v) => (typeof v === "string" && v.includes(",") ? `"${v}"` : v)).join(","))
-      .join("\n");
+    const csv = csvLines.map(r => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url  = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url; link.download = filename; link.click();
     URL.revokeObjectURL(url);
-  };
+  }, [data, filter]);
 
-  // ── Download as PNG (Screenshot Mode) ──────────────────────────────
-  const downloadPNG = async () => {
+  const downloadPNG = useCallback(async () => {
     if (!chartRef.current) return;
     try {
-      const cardColor = getComputedStyle(document.documentElement).getPropertyValue('--card');
-      const backgroundColor = cardColor ? `hsl(${cardColor.trim()})` : '#ffffff';
-
-      const canvas = await html2canvas(chartRef.current, {
-        backgroundColor,
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        onclone: (documentClone) => {
-          const downloadBtn = documentClone.querySelector('[title="Download chart"]');
-          if (downloadBtn) (downloadBtn as HTMLElement).style.opacity = '0';
-        }
-      });
-
+      const canvas = await html2canvas(chartRef.current, { backgroundColor: null, scale: 2 });
       const link = document.createElement("a");
-      link.download = `economic-targets-${filter}.png`;
+      link.download = `economic-impact-${filter}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    } catch (err) {
-      console.error("Screenshot failed:", err);
-    }
-  };
+    } catch (err) { console.error(err); }
+  }, [filter]);
 
   return (
-    <Card className="bg-card border-border p-4" ref={chartRef}>
+    <Card className="bg-card border-border p-4 flex flex-col relative" ref={chartRef}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-4">
+      <div className="flex items-start justify-between gap-2 mb-4 relative z-10">
         <div>
-          <h3 className="text-sm font-medium text-foreground">Economic Targets</h3>
-          <p className="text-xs text-muted-foreground">Gross Sales & Employment Generated</p>
+          <h3 className="text-sm font-medium text-foreground">Economic Impact</h3>
+          <p className="text-xs text-muted-foreground italic">
+            Economic / Dynamics
+          </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Filter Dropdown */}
+        <div className="flex items-center gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus:outline-none"
-              >
-                {activeOption.color && (
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ backgroundColor: activeOption.color }}
-                  />
-                )}
+              <button className="flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border text-xs font-medium text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus:outline-none">
+                {activeOption.color && <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: activeOption.color }} />}
                 {activeOption.label}
                 <ChevronDown className="h-3 w-3 ml-0.5 opacity-60" />
               </button>
@@ -169,83 +169,95 @@ export function EconomicImpactChart({ data }: EconomicImpactChartProps) {
             <DropdownMenuContent align="end" className="w-40">
               <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Show Metric</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              {FILTER_OPTIONS.map(({ key, label, color }) => (
-                <DropdownMenuItem
-                  key={key}
-                  onClick={() => { setFilter(key); setPinnedData(null); }}
-                  className="gap-2 text-xs cursor-pointer"
-                >
-                  <span
-                    className="h-2 w-2 rounded-full shrink-0"
-                    style={{ backgroundColor: color ?? "transparent", border: color ? "none" : "1px solid hsl(var(--border))" }}
-                  />
-                  <span className="flex-1">{label}</span>
-                  {filter === key && <Check className="h-3 w-3 text-primary" />}
+              {FILTER_OPTIONS.map((opt) => (
+                <DropdownMenuItem key={opt.key} onClick={() => setFilter(opt.key)} className="text-xs cursor-pointer gap-2">
+                  <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: opt.color || "transparent", border: opt.color ? "none" : "1px solid hsl(var(--border))" }} />
+                  <span className="flex-1">{opt.label}</span>
+                  {filter === opt.key && <Check className="h-3 w-3 text-primary" />}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Download Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="flex items-center justify-center h-7 w-7 rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus:outline-none"
-                title="Download chart"
-              >
-                <Download className="h-3.5 w-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
-              <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-                Export As
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={downloadPNG} className="gap-2 text-xs cursor-pointer">
-                <Image className="h-3.5 w-3.5 text-muted-foreground" />
-                PNG Image
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadCSV} className="gap-2 text-xs cursor-pointer">
-                <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" />
-                CSV Spreadsheet
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <button onClick={downloadPNG} className="flex items-center justify-center h-7 w-7 rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground transition-colors focus:outline-none" title="Export Dashboard">
+            <Download className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-[200px]">
+      <div className="h-[230px] w-full relative">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} onClick={handleChartClick}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-            <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={formatYAxis} />
+          <LineChart data={data} onClick={handleChartClick} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.4} />
+            <XAxis dataKey="quarter" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} tickFormatter={filter === "Employment" ? formatEmploymentAxis : formatYAxis} />
+            
             <Tooltip
-              contentStyle={{
-                backgroundColor: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
-                borderRadius: "8px",
-                color: "hsl(var(--foreground))",
-              }}
+              content={<ChartTooltip filter={filter} showAccomplishments={showAccomplishments} config={tooltipConfig} />}
               active={pinnedData ? true : undefined}
               payload={pinnedData ? pinnedData.payload : undefined}
-              coordinate={pinnedData ? pinnedData.coordinate : undefined}
               label={pinnedData ? pinnedData.quarter : undefined}
-              formatter={(value: number, name: string) =>
-                (filter === "all" || filter === name) ? [value.toLocaleString(), name] : []
-              }
             />
-            <Legend wrapperStyle={{ fontSize: "12px", color: "hsl(var(--muted-foreground))" }} />
+            
+            <Legend 
+              wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }}
+              payload={[
+                ...(showSales ? [{ value: 'Sales Target', type: 'line' as const, color: 'hsl(var(--dost-blue))' }] : []),
+                ...(showEmployment ? [{ value: 'Employment Target', type: 'line' as const, color: 'hsl(var(--dost-green))' }] : []),
+                ...(showAccomplishments ? [{ value: 'Accomplishment', type: 'line' as const, color: 'hsl(var(--dost-red))' }] : [])
+              ]}
+            />
+            
+            {/* Sales Lines */}
             {showSales && (
-              <Line type="monotone" dataKey="Sales" stroke="hsl(var(--dost-blue))" strokeWidth={2} dot={{ fill: "hsl(var(--dost-blue))", strokeWidth: 2 }} name="Gross Sales" />
+              <Line 
+                type="monotone" 
+                dataKey="Sales_target" 
+                stroke="hsl(var(--dost-blue))" 
+                strokeWidth={2} 
+                dot={{ r: 3, fill: "hsl(var(--dost-blue))" }} 
+              />
             )}
+            {showSales && showAccomplishments && (
+              <Line 
+                key={`sales-acc-${filter}`}
+                type="monotone" 
+                dataKey="Sales_actual" 
+                stroke="hsl(var(--dost-red))" 
+                strokeWidth={4} 
+                dot={{ r: 4, fill: "hsl(var(--dost-red))", stroke: "white", strokeWidth: 1 }} 
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1500}
+                animationEasing="ease-in-out"
+              />
+            )}
+
+            {/* Employment Lines */}
             {showEmployment && (
-              <Line type="monotone" dataKey="Employment" stroke="hsl(var(--dost-yellow))" strokeWidth={2} dot={{ fill: "hsl(var(--dost-yellow))", strokeWidth: 2 }} name="Employment" />
+              <Line 
+                type="monotone" 
+                dataKey="Employment_target" 
+                stroke="hsl(var(--dost-green))" 
+                strokeWidth={2} 
+                dot={{ r: 3, fill: "hsl(var(--dost-green))" }} 
+              />
+            )}
+            {showEmployment && showAccomplishments && (
+              <Line 
+                key={`emp-acc-${filter}`}
+                type="monotone" 
+                dataKey="Employment_actual" 
+                stroke="hsl(var(--dost-red))" 
+                strokeWidth={4} 
+                dot={{ r: 4, fill: "hsl(var(--dost-red))", stroke: "white", strokeWidth: 1 }} 
+                activeDot={{ r: 6, strokeWidth: 0 }}
+                animationDuration={1500}
+                animationEasing="ease-in-out"
+              />
             )}
           </LineChart>
         </ResponsiveContainer>
       </div>
     </Card>
   );
-}
+});
