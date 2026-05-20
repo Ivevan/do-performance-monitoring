@@ -443,7 +443,7 @@ export default function Workspaces() {
                         </div>
                         
                         <div className="flex items-center gap-1.5 text-xs text-dost-blue font-bold tracking-wide group-hover:translate-x-1 transition-transform duration-300">
-                          Open Folder
+                          View Charts
                           <ArrowRight className="h-3.5 w-3.5" />
                         </div>
                       </CardFooter>
