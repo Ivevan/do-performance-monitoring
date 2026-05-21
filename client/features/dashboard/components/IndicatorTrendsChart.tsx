@@ -277,6 +277,7 @@ export const IndicatorTrendsChart = React.memo(({
       <div className="h-[280px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
+            key={data.map(d => d.name).join("-")}
             data={data}
             margin={{ top: 15, right: 10, left: 10, bottom: 5 }}
             barSize={80}
