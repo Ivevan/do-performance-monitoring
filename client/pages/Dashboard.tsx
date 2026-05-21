@@ -1,16 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Calendar, Building2, ArrowLeft } from "lucide-react";
+import { Activity, BarChart3, Calendar, ArrowLeft, Filter } from "lucide-react";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/features/dashboard/components/KpiCard";
 import { QuarterFilter } from "@/features/dashboard/components/QuarterFilter";
 import { CategoryTabs } from "@/features/dashboard/components/CategoryTabs";
-import { FundingTrendsChart } from "@/features/dashboard/components/FundingTrendsChart";
-import { TrainingPerformanceChart } from "@/features/dashboard/components/TrainingPerformanceChart";
+import { IndicatorTrendsChart } from "@/features/dashboard/components/IndicatorTrendsChart";
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Quarter } from "@/lib/ptso-types";
 
 const SECTIONS = [
@@ -29,6 +35,130 @@ const Dashboard = () => {
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("Annual");
   const [activeSection, setActiveSection] = useState("operations");
   const [showAccomplishments, setShowAccomplishments] = useState(false);
+
+  // 1. Get current section filter (e.g. "I. Operations")
+  const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
+
+  // 2. Get all unique categories inside the current active section (e.g. "Technology Acquisition & Upgrading")
+  const categoryOptions = useMemo(() => {
+    if (!data?.rawData) return [];
+    return Array.from(
+      new Set(
+        data.rawData
+          .filter(d => d.section === activeSectionFilter)
+          .map(d => d.category || "Other")
+      )
+    );
+  }, [data?.rawData, activeSectionFilter]);
+
+  // State for the selected Category dropdown
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  // Sync selected category when section changes
+  useEffect(() => {
+    if (categoryOptions.length > 0) {
+      if (!categoryOptions.includes(selectedCategory)) {
+        setSelectedCategory(categoryOptions[0]);
+      }
+    } else {
+      setSelectedCategory("");
+    }
+  }, [categoryOptions, selectedCategory]);
+
+  // 3. Get all unique metrics (indicator + program) for the currently selected category
+  const metricOptions = useMemo(() => {
+    if (!data?.rawData || !selectedCategory) return [];
+    
+    const rows = data.rawData.filter(
+      d => d.section === activeSectionFilter && (d.category || "Other") === selectedCategory
+    );
+    
+    const map = new Map<string, { label: string; indicator: string; program: string }>();
+    rows.forEach(r => {
+      const prog = r.program && r.program !== "N/A" ? r.program : "";
+      const key = `${r.indicator}||${prog}`;
+      const label = prog ? `${r.indicator} (${prog})` : r.indicator;
+      if (!map.has(key)) {
+        map.set(key, { label, indicator: r.indicator, program: prog });
+      }
+    });
+    
+    return Array.from(map.values());
+  }, [data?.rawData, selectedCategory, activeSectionFilter]);
+
+  // State for the selected Metric dropdown
+  const [selectedMetricKey, setSelectedMetricKey] = useState<string>("");
+
+  // Sync selected metric when metricOptions list changes
+  useEffect(() => {
+    if (metricOptions.length > 0) {
+      const keys = metricOptions.map(m => `${m.indicator}||${m.program}`);
+      if (!keys.includes(selectedMetricKey)) {
+        setSelectedMetricKey(keys[0]);
+      }
+    } else {
+      setSelectedMetricKey("");
+    }
+  }, [metricOptions, selectedMetricKey]);
+
+  // 4. Get dynamic chart data from selected indicator + program combination
+  const { chartPoints, chartMeta } = useMemo(() => {
+    if (!selectedMetricKey || !data?.rawData) {
+      return { 
+        chartPoints: [], 
+        chartMeta: { indicator: "", value_type: "count", unit: null } 
+      };
+    }
+    const [indName, progName] = selectedMetricKey.split("||");
+    
+    const matchedRows = data.rawData.filter(d => 
+      d.indicator === indName && 
+      (!progName ? !d.program || d.program === "N/A" : d.program === progName)
+    );
+
+    const grouped: Record<string, number> = {};
+    matchedRows.forEach(row => {
+      grouped[row.label] = (grouped[row.label] || 0) + row.value;
+    });
+
+    let q1_target = 0, q2_target = 0, q3_target = 0, q4_target = 0;
+    let valType = "count";
+    let unitVal: string | null = null;
+
+    if (matchedRows.length > 0) {
+      const firstRow = matchedRows[0];
+      q1_target = firstRow.q1_target || 0;
+      q2_target = firstRow.q2_target || 0;
+      q3_target = firstRow.q3_target || 0;
+      q4_target = firstRow.q4_target || 0;
+      valType = firstRow.value_type;
+      unitVal = firstRow.unit;
+    }
+
+    const points = [
+      { name: "Q1", value: grouped["Q1"] ?? 0, target: q1_target },
+      { name: "Q2", value: grouped["Q2"] ?? 0, target: q2_target },
+      { name: "Q3", value: grouped["Q3"] ?? 0, target: q3_target },
+      { name: "Q4", value: grouped["Q4"] ?? 0, target: q4_target },
+    ];
+
+    const displayLabel = progName ? `${indName} (${progName})` : indName;
+
+    return {
+      chartPoints: points,
+      chartMeta: {
+        indicator: displayLabel,
+        value_type: valType,
+        unit: unitVal
+      }
+    };
+  }, [selectedMetricKey, data?.rawData]);
+
+  // 5. Filter by quarter selection
+  const filteredChartPoints = useMemo(() => {
+    if (activeQuarter === "Annual") return chartPoints;
+    return chartPoints.filter(d => d.name === activeQuarter);
+  }, [chartPoints, activeQuarter]);
 
   if (isLoading || !data) {
     return (
@@ -98,23 +228,6 @@ const Dashboard = () => {
     return { q1, q2, q3, q4, annual };
   };
 
-  // Get targets for a specific program (for charts)
-  const getProgTargets = (indicator: string, program: string | null) => {
-    const row = data.rawData.find(d =>
-      d.indicator === indicator &&
-      (program === null
-        ? !d.program || d.program === "N/A"
-        : d.program === program)
-    );
-    return {
-      Q1: row?.q1_target || 0,
-      Q2: row?.q2_target || 0,
-      Q3: row?.q3_target || 0,
-      Q4: row?.q4_target || 0,
-      Annual: row?.annual_target || 0,
-    };
-  };
-
   // Build KpiCard props from targets & actuals
   const buildKpi = (indicator: string) => {
     const t = getTargets(indicator);
@@ -142,45 +255,8 @@ const Dashboard = () => {
   const sales        = buildKpi("Gross Sales (P000)");
   const jobs         = buildKpi("Employment Generated (in Person-Months)");
 
-  // ── Chart data (Actual vs Target) ──────────────────────────────────────────
-  const setupT = getProgTargets("Amount Funded", "SETUP");
-  const lgiaT  = getProgTargets("Amount Funded", "LGIA");
-  const fundSetupA = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "SETUP");
-  const fundLgiaA  = data.rawData.filter(d => d.indicator === "Amount Funded" && d.program === "LGIA");
-
-  const allFundingData = (["Q1","Q2","Q3","Q4"] as const).map(q => ({
-    quarter: q, 
-    SETUP_target: setupT[q], 
-    LGIA_target:  lgiaT[q],
-    SETUP_actual: fundSetupA.find(d => d.label === q)?.value ?? null,
-    LGIA_actual:  fundLgiaA.find(d => d.label === q)?.value ?? null,
-  }));
-  const fundingData = activeQuarter === "Annual" ? allFundingData : allFundingData.filter(d => d.quarter === activeQuarter);
-
-  const trainT  = getTargets("No. Technology Trainings conducted");
-  const firmsT  = getTargets("No. of firms assisted (Trainings)");
-  const partT   = getTargets("No. of training participants");
-  const trainA  = getActuals("No. Technology Trainings conducted");
-  const firmsA  = getActuals("No. of firms assisted (Trainings)");
-  const partA   = getActuals("No. of training participants");
-
-  const allTrainingData = (["Q1","Q2","Q3","Q4"] as const).map(q => {
-    const qKey = q.toLowerCase() as keyof typeof trainT;
-    return {
-      quarter: q,
-      Trainings_target:    trainT[qKey],
-      Firms_target:        firmsT[qKey],
-      Participants_target: partT[qKey],
-      Trainings_actual:    trainA[qKey as keyof typeof trainA],
-      Firms_actual:        firmsA[qKey as keyof typeof firmsA],
-      Participants_actual: partA[qKey as keyof typeof partA],
-    };
-  });
-  const trainingData = activeQuarter === "Annual" ? allTrainingData : allTrainingData.filter(d => d.quarter === activeQuarter);
-
   // ── Drill-down DataTable ────────────────────────────────────────────────────
-  const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
-  const drillDownData       = data.getDrillDown(activeSectionFilter);
+  const drillDownData = data.getDrillDown(activeSectionFilter);
 
   return (
     <DashboardLayout
@@ -232,25 +308,12 @@ const Dashboard = () => {
           </div>
         </section>
 
-        {/* ── 2. Quarterly Trends ── */}
-        <section>
-          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            Quarterly Trends
-          </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <FundingTrendsChart data={fundingData} showAccomplishments={showAccomplishments} />
-            <TrainingPerformanceChart data={trainingData} showAccomplishments={showAccomplishments} />
-          </div>
-        </section>
-
-
-        {/* ── 4. Detailed Breakdown ── */}
-        <section className="border-t border-border/50 pt-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        {/* ── 2. Quarterly Trends & Detailed Breakdown ── */}
+        <section className="border-t border-border/50 pt-8 space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
-              <Building2 className="h-4 w-4" />
-              Detailed Targets
+              <Calendar className="h-4 w-4" />
+              Quarterly Trends & Detailed Breakdown
             </h2>
             <CategoryTabs
               categories={SECTIONS.map(s => ({ id: s.id, label: s.label }))}
@@ -258,11 +321,72 @@ const Dashboard = () => {
               onChange={setActiveSection}
             />
           </div>
+
+          {/* Indicator & Metric Double Dropdown Filters */}
+          {categoryOptions.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-card/25 border border-border/40 rounded-xl p-4 backdrop-blur-md">
+              {/* Dropdown 1: Category */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Filter className="h-3 w-3 text-dost-blue" />
+                  Category Group
+                </label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger className="h-9 text-xs border-border bg-card/30">
+                    <SelectValue placeholder="Select Category..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoryOptions.map((cat) => (
+                      <SelectItem key={cat} value={cat} className="text-xs cursor-pointer">
+                        {cat}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Dropdown 2: Specific Metric */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Activity className="h-3 w-3 text-dost-red" />
+                  Specific Metric / Program
+                </label>
+                <Select value={selectedMetricKey} onValueChange={setSelectedMetricKey}>
+                  <SelectTrigger className="h-9 text-xs border-border bg-card/30">
+                    <SelectValue placeholder="Select Metric..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {metricOptions.map((m) => {
+                      const key = `${m.indicator}||${m.program}`;
+                      return (
+                        <SelectItem key={key} value={key} className="text-xs cursor-pointer">
+                          {m.label}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Dynamic Unified Trend Chart */}
+          {selectedMetricKey && filteredChartPoints.length > 0 && (
+            <IndicatorTrendsChart 
+              indicatorName={chartMeta.indicator}
+              data={filteredChartPoints}
+              valueType={chartMeta.value_type}
+              unit={chartMeta.unit}
+              showAccomplishments={showAccomplishments}
+            />
+          )}
+
           <motion.div
             key={activeSection}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25 }}
+            className="pt-2"
           >
             <DataTable category={drillDownData} selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
           </motion.div>
