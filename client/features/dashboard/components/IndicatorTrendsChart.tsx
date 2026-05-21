@@ -66,30 +66,48 @@ const CustomBulletBar = React.memo((props: any) => {
   const redColor = colors?.red || "hsl(var(--dost-red))";
   const yellowColor = colors?.yellow || "hsl(var(--dost-yellow))";
 
-  // Balanced Staggered Overlay (width 70% each, overlapping by 40% in the middle)
-  const barWidth = width * 0.7;
-  const targetX = x;
-  const actualX = x + width * 0.3;
+  const hasAccomplishment = showAccomplishments && actualHeight > 0;
+
+  let targetWidth = width * 0.7;
+  let targetX = x;
+  let actualWidth = width * 0.7;
+  let actualX = x + width * 0.3;
+  let lineX1 = targetX - 4;
+  let lineX2 = targetX + targetWidth + 4;
+
+  if (hasAccomplishment) {
+    targetWidth = width * 0.7;
+    targetX = x;
+    actualWidth = width * 0.7;
+    actualX = x + width * 0.3;
+    lineX1 = targetX - 4;
+    lineX2 = actualX + actualWidth + 4;
+  } else {
+    targetWidth = width * 0.8;
+    targetX = x + (width - targetWidth) / 2;
+    lineX1 = targetX - 4;
+    lineX2 = targetX + targetWidth + 4;
+  }
 
   return (
     <g key={`${payload.name}-${targetVal}-${actualVal}-${showAccomplishments}`}>
-      {/* Target Bar (Left Layer, DOST Blue — always shown) */}
+      {/* Target Bar (DOST Blue — always shown) */}
       <rect 
         x={targetX} 
         y={targetY} 
-        width={barWidth} 
+        width={targetWidth} 
         height={targetHeight} 
         fill={blueColor} 
         rx={4}
         opacity={0.85}
       />
       
-      {/* Accomplishment Bar (Right Layer, Crimson Red — shown when toggled) */}
-      {showAccomplishments && actualHeight > 0 && (
+      {/* Accomplishment Bar (Crimson Red — shown when toggled) */}
+      {hasAccomplishment && (
         <rect 
           x={actualX} 
           y={actualY} 
-          width={barWidth} 
+          width={actualWidth} 
           height={actualHeight} 
           fill={redColor} 
           filter="url(#chart-shadow)"
@@ -99,8 +117,8 @@ const CustomBulletBar = React.memo((props: any) => {
 
       {/* Target Marker Line (Finish line — always shown) */}
       <line 
-        x1={targetX - 2} 
-        x2={targetX + barWidth + 2} 
+        x1={lineX1} 
+        x2={lineX2} 
         y1={targetY} 
         y2={targetY} 
         stroke={yellowColor} 
