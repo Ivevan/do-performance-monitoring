@@ -18,3 +18,20 @@ VALUES (
     'Active'
 )
 ON CONFLICT (year) DO NOTHING;
+
+-- Automated Trigger to Cascade Delete Targets and Accomplishments on Folder deletion
+CREATE OR REPLACE FUNCTION delete_performance_data_for_year()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM targets WHERE year = OLD.year;
+    DELETE FROM accomplishments WHERE year = OLD.year;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_delete_performance_data_for_year ON performance_folders;
+
+CREATE TRIGGER trg_delete_performance_data_for_year
+AFTER DELETE ON performance_folders
+FOR EACH ROW
+EXECUTE FUNCTION delete_performance_data_for_year();

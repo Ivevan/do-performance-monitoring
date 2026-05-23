@@ -31,7 +31,7 @@ export function DashboardLayout({ children, title, headerActions }: DashboardLay
                 {title || "Performance Dashboard"}
               </h1>
               <p className="text-[10px] sm:text-xs text-muted-foreground font-medium tracking-wide truncate hidden xs:block">
-                Functional &amp; Strategic Contributions
+                Functional and Strategic Contributions
               </p>
             </div>
           </div>

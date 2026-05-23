@@ -274,7 +274,7 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout
-      title={isEntryMode ? `CY ${selectedYear} Data Entry Sheet` : `CY ${selectedYear} Performance Dashboard`}
+      title={`CY ${selectedYear} Performance Targets`}
       headerActions={
         <div className="flex items-center gap-2 sm:gap-3">
           <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border transition-all ${
