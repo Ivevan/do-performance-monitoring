@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Calendar, ArrowLeft, Filter } from "lucide-react";
+import { Activity, BarChart3, Calendar, ArrowLeft, Filter, Edit3 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { KpiCard } from "@/features/dashboard/components/KpiCard";
@@ -9,6 +10,7 @@ import { QuarterFilter } from "@/features/dashboard/components/QuarterFilter";
 import { CategoryTabs } from "@/features/dashboard/components/CategoryTabs";
 import { IndicatorTrendsChart } from "@/features/dashboard/components/IndicatorTrendsChart";
 import { DataTable } from "@/features/dashboard/components/DataTable";
+import { DataEntryGrid } from "@/features/dashboard/components/DataEntryGrid";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import {
   Select,
@@ -35,6 +37,29 @@ const Dashboard = () => {
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("Annual");
   const [activeSection, setActiveSection] = useState("operations");
   const [showAccomplishments, setShowAccomplishments] = useState(false);
+  const [isEntryMode, setIsEntryMode] = useState(false);
+  const [gridIsDirty, setGridIsDirty] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleSaveGrid = async (rows: any[]) => {
+    const response = await fetch("http://localhost:8000/api/dashboard/save-grid", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        year: selectedYear,
+        rows,
+      }),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || "Failed to save data entry grid changes");
+    }
+
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+  };
 
   // 1. Get current section filter (e.g. "I. Operations")
   const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
@@ -274,22 +299,54 @@ const Dashboard = () => {
             <span className="xs:hidden">Back</span>
           </Button>
           <Button
-            variant={showAccomplishments ? "default" : "outline"}
+            variant={isEntryMode ? "default" : "outline"}
             size="sm"
-            onClick={() => setShowAccomplishments(!showAccomplishments)}
+            onClick={() => {
+              if (isEntryMode && gridIsDirty) {
+                const confirmLeave = window.confirm("You have unsaved changes. Are you sure you want to go back and discard them?");
+                if (!confirmLeave) return;
+              }
+              setIsEntryMode(!isEntryMode);
+            }}
             className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
-              showAccomplishments 
-                ? "bg-primary text-primary-foreground shadow-glow border-transparent" 
+              isEntryMode
+                ? "bg-dost-blue text-white shadow-glow border-transparent"
                 : "text-muted-foreground hover:text-foreground border-border/50"
             }`}
           >
-            <Activity className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">With Accomplishment</span>
+            <Edit3 className="h-3.5 w-3.5" />
+            <span className="hidden xs:inline">Data Sheet</span>
           </Button>
-          <QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />
+          {!isEntryMode && (
+            <>
+              <Button
+                variant={showAccomplishments ? "default" : "outline"}
+                size="sm"
+                onClick={() => setShowAccomplishments(!showAccomplishments)}
+                className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
+                  showAccomplishments 
+                    ? "bg-primary text-primary-foreground shadow-glow border-transparent" 
+                    : "text-muted-foreground hover:text-foreground border-border/50"
+                }`}
+              >
+                <Activity className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">With Accomplishment</span>
+              </Button>
+              <QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />
+            </>
+          )}
         </div>
       }
     >
+      {isEntryMode ? (
+        <DataEntryGrid
+          year={selectedYear}
+          rawData={data.rawData}
+          onBack={() => setIsEntryMode(false)}
+          onSave={handleSaveGrid}
+          onChangeDirty={setGridIsDirty}
+        />
+      ) : (
       <div className="flex flex-col gap-8 w-full pb-12">
 
         {/* ── 1. KPI Cards ── */}
@@ -401,6 +458,7 @@ const Dashboard = () => {
         </footer>
 
       </div>
+      )}
     </DashboardLayout>
   );
 };

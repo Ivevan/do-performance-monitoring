@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { ArrowRight, Loader2, AlertCircle, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +22,7 @@ export const SignupForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const capsPw = useCapsLock();
   const capsConfirm = useCapsLock();
+  const navigate = useNavigate();
 
   const strength = useMemo(() => scorePassword(password), [password]);
   const matches = confirmPassword.length > 0 && confirmPassword === password;
@@ -50,7 +53,11 @@ export const SignupForm = () => {
       return;
     }
     setSubmitting(true);
-    setTimeout(() => setSubmitting(false), 800);
+    setTimeout(() => {
+      setSubmitting(false);
+      toast.success("Account created successfully!");
+      navigate("/dashboard");
+    }, 800);
   };
 
   return (

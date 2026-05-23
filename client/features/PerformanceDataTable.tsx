@@ -65,12 +65,12 @@ export default function PerformanceDataTable() {
   // Display the data in a responsive table
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Performance Data Dashboard</h2>
+      <h2 className="text-2xl font-bold mb-4 text-foreground">Performance Data Dashboard</h2>
       
-      <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
+      <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 text-gray-700 font-semibold border-b border-gray-200">
+            <thead className="bg-muted/50 text-muted-foreground font-semibold border-b border-border">
               <tr>
                 <th className="px-6 py-3">Indicator ID</th>
                 <th className="px-6 py-3">Year</th>
@@ -81,16 +81,16 @@ export default function PerformanceDataTable() {
                 <th className="px-6 py-3 text-right font-bold">Annual</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-border">
               {performanceData.map((row, index) => (
-                <tr key={row.id || index} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">{row.indicator_id}</td>
-                  <td className="px-6 py-4">{row.year}</td>
-                  <td className="px-6 py-4 text-right text-gray-500">{row.q1 ?? '-'}</td>
-                  <td className="px-6 py-4 text-right text-gray-500">{row.q2 ?? '-'}</td>
-                  <td className="px-6 py-4 text-right text-gray-500">{row.q3 ?? '-'}</td>
-                  <td className="px-6 py-4 text-right text-gray-500">{row.q4 ?? '-'}</td>
-                  <td className="px-6 py-4 text-right font-bold text-gray-900">{row.annual ?? '-'}</td>
+                <tr key={row.id || index} className="hover:bg-accent/50 transition-colors">
+                   <td className="px-6 py-4 font-medium text-foreground">{row.indicator_id}</td>
+                   <td className="px-6 py-4 text-foreground">{row.year}</td>
+                   <td className="px-6 py-4 text-right text-muted-foreground">{row.q1 ?? '-'}</td>
+                   <td className="px-6 py-4 text-right text-muted-foreground">{row.q2 ?? '-'}</td>
+                   <td className="px-6 py-4 text-right text-muted-foreground">{row.q3 ?? '-'}</td>
+                   <td className="px-6 py-4 text-right text-muted-foreground">{row.q4 ?? '-'}</td>
+                   <td className="px-6 py-4 text-right font-bold text-foreground">{row.annual ?? '-'}</td>
                 </tr>
               ))}
             </tbody>

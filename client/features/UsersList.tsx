@@ -53,14 +53,14 @@ export default function UsersList() {
 
   return (
     <div className="max-w-2xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">User Profiles</h2>
+      <h2 className="text-2xl font-bold mb-4 text-foreground">User Profiles</h2>
       
-      <div className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-        <ul className="divide-y divide-gray-200">
+      <div className="bg-card rounded-lg shadow border border-border overflow-hidden">
+        <ul className="divide-y divide-border">
           {users.map((user) => (
-            <li key={user.id} className="p-4 hover:bg-gray-50 transition-colors">
-              <p className="font-medium text-gray-900">{user.first_name || 'No Name'}</p>
-              <p className="text-sm text-gray-500">{user.email}</p>
+            <li key={user.id} className="p-4 hover:bg-accent/50 transition-colors">
+              <p className="font-medium text-foreground">{user.first_name || 'No Name'}</p>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
             </li>
           ))}
         </ul>

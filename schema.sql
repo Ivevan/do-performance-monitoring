@@ -55,11 +55,26 @@ CREATE TABLE accomplishments (
 );
 
 -- Create a view to match the v_indicator_data shape used by the frontend
+-- This view uses a CROSS JOIN with years to ensure all predefined indicators 
+-- are returned as a template for any year (e.g. 2027), even if no targets yet exist.
+DROP VIEW IF EXISTS v_indicator_data;
 CREATE OR REPLACE VIEW v_indicator_data AS
+WITH years AS (
+    SELECT DISTINCT year FROM targets
+    UNION
+    SELECT DISTINCT year FROM accomplishments
+    UNION
+    SELECT 2026 AS year
+    UNION
+    SELECT 2027 AS year
+)
 SELECT 
+    i.id as indicator_id,
     i.name as indicator,
     s.name as section,
-    t.year,
+    c.name as category,
+    c.deliverable_type,
+    y.year,
     a.quarter,
     CASE WHEN a.quarter IS NOT NULL THEN 'Q' || a.quarter ELSE NULL END as label,
     i.program,
@@ -71,13 +86,14 @@ SELECT
         ELSE NULL 
     END as unit,
     i.aggregation_type,
-    t.annual_target,
-    t.q1_target,
-    t.q2_target,
-    t.q3_target,
-    t.q4_target
+    COALESCE(t.annual_target, 0::numeric(15,2)) as annual_target,
+    COALESCE(t.q1_target, 0::numeric(15,2)) as q1_target,
+    COALESCE(t.q2_target, 0::numeric(15,2)) as q2_target,
+    COALESCE(t.q3_target, 0::numeric(15,2)) as q3_target,
+    COALESCE(t.q4_target, 0::numeric(15,2)) as q4_target
 FROM indicators i
 JOIN categories c ON i.category_id = c.id
 JOIN sections s ON c.section_id = s.id
-JOIN targets t ON i.id = t.indicator_id
-LEFT JOIN accomplishments a ON a.indicator_id = i.id AND a.year = t.year;
+CROSS JOIN years y
+LEFT JOIN targets t ON i.id = t.indicator_id AND t.year = y.year
+LEFT JOIN accomplishments a ON a.indicator_id = i.id AND a.year = y.year;
