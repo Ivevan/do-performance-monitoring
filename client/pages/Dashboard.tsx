@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Calendar, ArrowLeft, Filter, Edit3 } from "lucide-react";
+import { Activity, BarChart3, Calendar, Filter, Edit3 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { IndicatorTrendsChart } from "@/features/dashboard/components/IndicatorT
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { DataEntryGrid } from "@/features/dashboard/components/DataEntryGrid";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
+import { useKpiData, KPI_INDICATORS } from "@/features/dashboard/hooks/useKpiData";
+import { useChartData } from "@/features/dashboard/hooks/useChartData";
 import {
   Select,
   SelectContent,
@@ -21,50 +23,39 @@ import {
 } from "@/components/ui/select";
 import type { Quarter } from "@/lib/ptso-types";
 
+// ── Section navigation tabs — sourced from DB section names ──────────────────
 const SECTIONS = [
-  { id: "operations",  label: "Operations",           filter: "I. Operations" },
-  { id: "enhancement", label: "Enhancement of S&T",   filter: "II. Enhancement of Science and Technology" },
-  { id: "admin",       label: "General Admin",         filter: "III. General Administrative Services" },
-  { id: "support",     label: "Support to Ops",        filter: "IV. Support to Operations" },
+  { id: "operations",  label: "Operations",         filter: "I. Operations" },
+  { id: "enhancement", label: "Enhancement of S&T", filter: "II. Enhancement of Science and Technology" },
+  { id: "admin",       label: "General Admin",       filter: "III. General Administrative Services" },
+  { id: "support",     label: "Support to Ops",      filter: "IV. Support to Operations" },
 ];
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const { year } = useParams<{ year?: string }>();
   const selectedYear = year ? Number(year) : 2026;
+  const queryClient = useQueryClient();
 
+  // ── Core data ──────────────────────────────────────────────────────────────
   const { data, isLoading } = useDashboardData({ year: selectedYear });
+
+  // ── UI state ───────────────────────────────────────────────────────────────
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("Annual");
   const [activeSection, setActiveSection] = useState("operations");
   const [showAccomplishments, setShowAccomplishments] = useState(false);
   const [isEntryMode, setIsEntryMode] = useState(false);
   const [gridIsDirty, setGridIsDirty] = useState(false);
-  const queryClient = useQueryClient();
 
-  const handleSaveGrid = async (rows: any[]) => {
-    const response = await fetch("http://localhost:8000/api/dashboard/save-grid", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        year: selectedYear,
-        rows,
-      }),
-    });
-
-    if (!response.ok) {
-      const errData = await response.json();
-      throw new Error(errData.error || "Failed to save data entry grid changes");
-    }
-
-    await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
-  };
-
-  // 1. Get current section filter (e.g. "I. Operations")
+  // ── Derived section filter ─────────────────────────────────────────────────
   const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
 
-  // 2. Get all unique categories inside the current active section (e.g. "Technology Acquisition & Upgrading")
+  // ── KPI data (extracted hook) ──────────────────────────────────────────────
+  const kpis = useKpiData(data?.rawData, activeQuarter);
+
+  // ── Category & Metric filter state ─────────────────────────────────────────
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedMetricKey, setSelectedMetricKey] = useState<string>("");
+
   const categoryOptions = useMemo(() => {
     if (!data?.rawData) return [];
     return Array.from(
@@ -76,120 +67,67 @@ const Dashboard = () => {
     );
   }, [data?.rawData, activeSectionFilter]);
 
-  // State for the selected Category dropdown
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-
-  // Sync selected category when section changes
-  useEffect(() => {
-    if (categoryOptions.length > 0) {
-      if (!categoryOptions.includes(selectedCategory)) {
-        setSelectedCategory(categoryOptions[0]);
-      }
-    } else {
-      setSelectedCategory("");
-    }
-  }, [categoryOptions, selectedCategory]);
-
-  // 3. Get all unique metrics (indicator + program) for the currently selected category
   const metricOptions = useMemo(() => {
     if (!data?.rawData || !selectedCategory) return [];
-    
     const rows = data.rawData.filter(
       d => d.section === activeSectionFilter && (d.category || "Other") === selectedCategory
     );
-    
     const map = new Map<string, { label: string; indicator: string; program: string }>();
     rows.forEach(r => {
       const prog = r.program && r.program !== "N/A" ? r.program : "";
       const key = `${r.indicator}||${prog}`;
       const label = prog ? `${r.indicator} (${prog})` : r.indicator;
-      if (!map.has(key)) {
-        map.set(key, { label, indicator: r.indicator, program: prog });
-      }
+      if (!map.has(key)) map.set(key, { label, indicator: r.indicator, program: prog });
     });
-    
     return Array.from(map.values());
   }, [data?.rawData, selectedCategory, activeSectionFilter]);
 
-  // State for the selected Metric dropdown
-  const [selectedMetricKey, setSelectedMetricKey] = useState<string>("");
+  // Sync category when section changes
+  useEffect(() => {
+    if (categoryOptions.length > 0) {
+      if (!categoryOptions.includes(selectedCategory)) setSelectedCategory(categoryOptions[0]);
+    } else {
+      setSelectedCategory("");
+    }
+  }, [categoryOptions, selectedCategory]);
 
-  // Sync selected metric when metricOptions list changes
+  // Sync metric when category changes
   useEffect(() => {
     if (metricOptions.length > 0) {
       const keys = metricOptions.map(m => `${m.indicator}||${m.program}`);
-      if (!keys.includes(selectedMetricKey)) {
-        setSelectedMetricKey(keys[0]);
-      }
+      if (!keys.includes(selectedMetricKey)) setSelectedMetricKey(keys[0]);
     } else {
       setSelectedMetricKey("");
     }
   }, [metricOptions, selectedMetricKey]);
 
-  // 4. Get dynamic chart data from selected indicator + program combination
-  const { chartPoints, chartMeta } = useMemo(() => {
-    if (!selectedMetricKey || !data?.rawData) {
-      return { 
-        chartPoints: [], 
-        chartMeta: { indicator: "", value_type: "count", unit: null } 
-      };
-    }
-    const [indName, progName] = selectedMetricKey.split("||");
-    
-    const matchedRows = data.rawData.filter(d => 
-      d.indicator === indName && 
-      (!progName ? !d.program || d.program === "N/A" : d.program === progName)
-    );
+  // ── Chart data (extracted hook) ────────────────────────────────────────────
+  const { filteredChartPoints, chartMeta } = useChartData(
+    data?.rawData,
+    selectedMetricKey,
+    activeQuarter
+  );
 
-    const grouped: Record<string, number> = {};
-    matchedRows.forEach(row => {
-      grouped[row.label] = (grouped[row.label] || 0) + row.value;
+  // ── Save handler (stable reference) ────────────────────────────────────────
+  const handleSaveGrid = useCallback(async (rows: any[]) => {
+    const response = await fetch("http://localhost:8000/api/dashboard/save-grid", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ year: selectedYear, rows }),
     });
 
-    let q1_target = 0, q2_target = 0, q3_target = 0, q4_target = 0;
-    let valType = "count";
-    let unitVal: string | null = null;
-
-    if (matchedRows.length > 0) {
-      const firstRow = matchedRows[0];
-      q1_target = firstRow.q1_target || 0;
-      q2_target = firstRow.q2_target || 0;
-      q3_target = firstRow.q3_target || 0;
-      q4_target = firstRow.q4_target || 0;
-      valType = firstRow.value_type;
-      unitVal = firstRow.unit;
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(errData.error || "Failed to save data entry grid changes");
     }
 
-    const points = [
-      { name: "Q1", value: grouped["Q1"] ?? 0, target: q1_target },
-      { name: "Q2", value: grouped["Q2"] ?? 0, target: q2_target },
-      { name: "Q3", value: grouped["Q3"] ?? 0, target: q3_target },
-      { name: "Q4", value: grouped["Q4"] ?? 0, target: q4_target },
-    ];
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-data"] });
+  }, [selectedYear, queryClient]);
 
-    const displayLabel = progName ? `${indName} (${progName})` : indName;
-
-    return {
-      chartPoints: points,
-      chartMeta: {
-        indicator: displayLabel,
-        value_type: valType,
-        unit: unitVal
-      }
-    };
-  }, [selectedMetricKey, data?.rawData]);
-
-  // 5. Filter by quarter selection
-  const filteredChartPoints = useMemo(() => {
-    if (activeQuarter === "Annual") return chartPoints;
-    return chartPoints.filter(d => d.name === activeQuarter);
-  }, [chartPoints, activeQuarter]);
-
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (isLoading || !data) {
     return (
-      <DashboardLayout 
-        title={`CY ${selectedYear} Performance Dashboard`}
-      >
+      <DashboardLayout title={`CY ${selectedYear} Performance Targets`}>
         <div className="flex h-[400px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -197,86 +135,26 @@ const Dashboard = () => {
     );
   }
 
-  // ── Target helpers ──────────────────────────────────────────────────────────
-  // Sum quarterly & annual TARGETS across all programs for a given indicator.
-  // Uses a Set to avoid double-counting duplicate rows for the same program.
-  const getTargets = (indicator: string) => {
-    const seen = new Set<string>();
-    let q1 = 0, q2 = 0, q3 = 0, q4 = 0, annual = 0;
-    data.rawData
-      .filter(d => d.indicator === indicator)
-      .forEach(row => {
-        const key = row.program ?? "N/A";
-        if (!seen.has(key)) {
-          seen.add(key);
-          q1     += row.q1_target     || 0;
-          q2     += row.q2_target     || 0;
-          q3     += row.q3_target     || 0;
-          q4     += row.q4_target     || 0;
-          annual += row.annual_target || 0;
-        }
-      });
-    return { q1, q2, q3, q4, annual };
-  };
-
-  // ── Accomplishment (Actual) helpers ──────────────────────────────────────────
-  // Sum quarterly values for a given indicator. 
-  const getActuals = (indicator: string) => {
-    const q1Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q1");
-    const q2Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q2");
-    const q3Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q3");
-    const q4Rows = data.rawData.filter(d => d.indicator === indicator && d.label === "Q4");
-
-    const q1 = q1Rows.length > 0 ? q1Rows.reduce((s, d) => s + d.value, 0) : null;
-    const q2 = q2Rows.length > 0 ? q2Rows.reduce((s, d) => s + d.value, 0) : null;
-    const q3 = q3Rows.length > 0 ? q3Rows.reduce((s, d) => s + d.value, 0) : null;
-    const q4 = q4Rows.length > 0 ? q4Rows.reduce((s, d) => s + d.value, 0) : null;
-    
-    // Check aggregation type (from first row) to decide how to calculate annual actual
-    const firstRow = data.rawData.find(d => d.indicator === indicator);
-    const isCumulative = firstRow?.aggregation_type !== 'LATEST';
-    const annual = isCumulative 
-      ? ((q1 || 0) + (q2 || 0) + (q3 || 0) + (q4 || 0)) 
-      : (q4 ?? q3 ?? q2 ?? q1 ?? 0);
-
-    return { q1, q2, q3, q4, annual };
-  };
-
-  // Build KpiCard props from targets & actuals
-  const buildKpi = (indicator: string) => {
-    const t = getTargets(indicator);
-    const a = getActuals(indicator);
-    
-    const tMap: Record<string, number> = { Q1: t.q1, Q2: t.q2, Q3: t.q3, Q4: t.q4 };
-    const aMap: Record<string, number | null> = { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 };
-    
-    const displayTarget = activeQuarter === "Annual" ? t.annual : (tMap[activeQuarter] ?? 0);
-    const displayActual = activeQuarter === "Annual" ? a.annual : (aMap[activeQuarter] ?? 0);
-
-    return {
-      actual:    displayActual,
-      target:    displayTarget,
-      annual:    t.annual,
-      breakdown: { Q1: a.q1, Q2: a.q2, Q3: a.q3, Q4: a.q4 },
-    };
-  };
-
-  // ── KPI values (Actual vs Target) ───────────────────────────────────────────
-  const funding      = buildKpi("Amount Funded");
-  const trainings    = buildKpi("No. Technology Trainings conducted");
-  const firms        = buildKpi("No. of firms assisted (Trainings)");
-  const participants = buildKpi("No. of training participants");
-  const sales        = buildKpi("Gross Sales (P000)");
-  const jobs         = buildKpi("Employment Generated (in Person-Months)");
-
-  // ── Drill-down DataTable ────────────────────────────────────────────────────
+  // ── Drill-down data ────────────────────────────────────────────────────────
   const drillDownData = data.getDrillDown(activeSectionFilter);
+
+  // ── Toggle handler ─────────────────────────────────────────────────────────
+  const handleToggleMode = () => {
+    if (isEntryMode && gridIsDirty) {
+      const confirmLeave = window.confirm(
+        "You have unsaved changes. Are you sure you want to go back and discard them?"
+      );
+      if (!confirmLeave) return;
+    }
+    setIsEntryMode(!isEntryMode);
+  };
 
   return (
     <DashboardLayout
       title={`CY ${selectedYear} Performance Targets`}
       headerActions={
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mode Badge */}
           <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border transition-all ${
             isEntryMode
               ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/50"
@@ -284,16 +162,12 @@ const Dashboard = () => {
           }`}>
             {isEntryMode ? "Edit Mode" : "Read-Only"}
           </span>
+
+          {/* Toggle Button */}
           <Button
             variant={isEntryMode ? "default" : "outline"}
             size="sm"
-            onClick={() => {
-              if (isEntryMode && gridIsDirty) {
-                const confirmLeave = window.confirm("You have unsaved changes. Are you sure you want to go back and discard them?");
-                if (!confirmLeave) return;
-              }
-              setIsEntryMode(!isEntryMode);
-            }}
+            onClick={handleToggleMode}
             title={isEntryMode ? "Return to dashboard charts" : "Open performance data sheet"}
             className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
               isEntryMode
@@ -313,6 +187,8 @@ const Dashboard = () => {
               </>
             )}
           </Button>
+
+          {/* Visualization-only controls */}
           {!isEntryMode && (
             <>
               <Button
@@ -320,8 +196,8 @@ const Dashboard = () => {
                 size="sm"
                 onClick={() => setShowAccomplishments(!showAccomplishments)}
                 className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
-                  showAccomplishments 
-                    ? "bg-primary text-primary-foreground shadow-glow border-transparent" 
+                  showAccomplishments
+                    ? "bg-primary text-primary-foreground shadow-glow border-transparent"
                     : "text-muted-foreground hover:text-foreground border-border/50"
                 }`}
               >
@@ -334,6 +210,9 @@ const Dashboard = () => {
         </div>
       }
     >
+      {/* ════════════════════════════════════════════════════════════════════ */}
+      {/* Mode 1: Data Entry Grid                                           */}
+      {/* ════════════════════════════════════════════════════════════════════ */}
       {isEntryMode ? (
         <DataEntryGrid
           year={selectedYear}
@@ -343,6 +222,9 @@ const Dashboard = () => {
           onChangeDirty={setGridIsDirty}
         />
       ) : (
+      /* ════════════════════════════════════════════════════════════════════ */
+      /* Mode 2: Visualization Dashboard                                    */
+      /* ════════════════════════════════════════════════════════════════════ */
       <div className="flex flex-col gap-8 w-full pb-12">
 
         {/* ── 1. KPI Cards ── */}
@@ -352,12 +234,22 @@ const Dashboard = () => {
             Key Performance Indicators — {activeQuarter} {showAccomplishments ? "Accomplishments" : "Targets"}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-            <KpiCard label="Total Funding"            actual={funding.actual}      target={funding.target}      unit="PHP"      breakdown={funding.breakdown}      selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
-            <KpiCard label="Trainings Conducted"      actual={trainings.actual}    target={trainings.target}                    breakdown={trainings.breakdown}    selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
-            <KpiCard label="Firms Assisted"           actual={firms.actual}        target={firms.target}                        breakdown={firms.breakdown}        selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
-            <KpiCard label="Participants Trained"     actual={participants.actual}  target={participants.target}                  breakdown={participants.breakdown}  selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
-            <KpiCard label="Gross Sales (₱'000)"      actual={sales.actual}        target={sales.target}        unit="PHP '000" breakdown={sales.breakdown}        selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
-            <KpiCard label="Employment (Person-Mo.)"  actual={jobs.actual}         target={jobs.target}                         breakdown={jobs.breakdown}         selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+            {KPI_INDICATORS.map((cfg) => {
+              const kpi = kpis[cfg.key];
+              if (!kpi) return null;
+              return (
+                <KpiCard
+                  key={cfg.key}
+                  label={cfg.label}
+                  actual={kpi.actual}
+                  target={kpi.target}
+                  unit={cfg.unit}
+                  breakdown={kpi.breakdown}
+                  selectedQuarter={activeQuarter}
+                  showAccomplishments={showAccomplishments}
+                />
+              );
+            })}
           </div>
         </section>
 
@@ -425,7 +317,7 @@ const Dashboard = () => {
 
           {/* Dynamic Unified Trend Chart */}
           {selectedMetricKey && filteredChartPoints.length > 0 && (
-            <IndicatorTrendsChart 
+            <IndicatorTrendsChart
               indicatorName={chartMeta.indicator}
               data={filteredChartPoints}
               valueType={chartMeta.value_type}
