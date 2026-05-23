@@ -21,6 +21,9 @@ export interface VIndicatorData {
   q2_target?: number;
   q3_target?: number;
   q4_target?: number;
+  section_order?: number;
+  category_order?: number;
+  indicator_order?: number;
 }
 
 export interface DashboardFilters {

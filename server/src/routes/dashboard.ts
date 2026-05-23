@@ -16,6 +16,11 @@ router.get("/data", async (req, res) => {
     if (indicator) query = query.eq("indicator", String(indicator));
     if (program) query = query.eq("program", String(program));
 
+    query = query
+      .order("section_order", { ascending: true })
+      .order("category_order", { ascending: true })
+      .order("indicator_order", { ascending: true });
+
     const { data, error } = await query;
 
     if (error) {

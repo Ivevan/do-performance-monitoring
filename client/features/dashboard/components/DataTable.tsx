@@ -42,7 +42,7 @@ function PerformanceCell({ target, actual, unit, showAccomplishments }: { target
         {formatValue(target, unit)}
       </span>
       {hasActual && (
-        <span className="text-[11px] font-black text-red-500 mt-0.5">
+        <span className="text-[11px] font-black text-dost-red mt-0.5">
           {formatValue(displayActual, unit)}
         </span>
       )}
@@ -66,7 +66,7 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
               {/* Accordion Header */}
               <Button
                 variant="ghost"
-                className="w-full justify-between px-4 py-3 h-auto hover:bg-secondary/50 rounded-none"
+                className="w-full justify-between px-4 py-3 h-auto hover:bg-muted/50 rounded-none"
                 onClick={() => toggle(sub.name)}
               >
                 <div className="flex items-center gap-2">
@@ -92,14 +92,14 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.3, ease: "easeInOut" }}
-                    className="overflow-hidden bg-secondary/20 divide-y divide-border/50"
+                    className="overflow-hidden bg-muted/20 divide-y divide-border/50"
                   >
                     {selectedQuarter === "Annual" ? (
                       /* Annual — full Q1/Q2/Q3/Q4/Annual table */
                       <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-muted-foreground text-[10px] uppercase tracking-wider border-b border-border/50 bg-secondary/30">
+                          <tr className="text-muted-foreground text-[10px] uppercase tracking-wider border-b border-border/50 bg-muted/30">
                             <th className="text-left py-2 px-4 font-bold">Indicator Metric</th>
                             <th className="text-right py-2 px-4 font-bold">Q1</th>
                             <th className="text-right py-2 px-4 font-bold">Q2</th>
@@ -110,7 +110,7 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                         </thead>
                         <tbody>
                           {sub.metrics.map((metric) => (
-                            <tr key={metric.name} className="hover:bg-secondary/40 transition-colors border-b border-border/10 last:border-0">
+                            <tr key={metric.name} className="hover:bg-muted/40 transition-colors border-b border-border/10 last:border-0">
                               <td className="py-3 px-4 text-foreground text-xs font-medium max-w-[300px]">{metric.name}</td>
                               <td className="py-3 px-4 text-right"><PerformanceCell target={metric.Q1} actual={metric.Q1_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
                               <td className="py-3 px-4 text-right"><PerformanceCell target={metric.Q2} actual={metric.Q2_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
@@ -151,10 +151,10 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                               {/* Accomplishment Column */}
                               {showAccomplishments && (
                                 <div className="flex flex-col items-end min-w-[70px] border-l border-border/10 pl-4">
-                                  <span className="text-[8px] text-red-500 uppercase font-bold tracking-tighter leading-tight mb-0.5">
+                                  <span className="text-[8px] text-dost-red uppercase font-bold tracking-tighter leading-tight mb-0.5">
                                     Accomplished
                                   </span>
-                                  <span className="text-xs font-black text-red-500 italic leading-none">
+                                  <span className="text-xs font-black text-dost-red italic leading-none">
                                     {formatValue(actual ?? 0, metric.unit)}
                                   </span>
                                 </div>

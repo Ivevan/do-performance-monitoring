@@ -16,7 +16,8 @@ import {
   Check,
   Building2,
   AlertCircle,
-  FileText
+  FileText,
+  X
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -231,18 +232,18 @@ export default function Workspaces() {
     navigate(`/dashboard/cy/${year}`);
   };
 
-  // Search & Filter computation
+  // Search & Filter computation (by year only)
   const filteredWorkspaces = workspaces.filter((ws) => {
-    return (
-      ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      ws.year.toString().includes(searchQuery) ||
-      (ws.description && ws.description.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    return ws.year.toString().includes(searchQuery);
   });
+
+  const isDuplicateYear = formData.year.trim() !== "" && workspaces.some(
+    (ws) => ws.year.toString() === formData.year.trim()
+  );
 
   return (
     <DashboardLayout
-      title="PTSO Workspaces"
+      title="PTSO Performance Sheets"
       headerActions={
         <Button 
           onClick={handleOpenAdd}
@@ -268,10 +269,10 @@ export default function Workspaces() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                      Database Migration Required
+                      Database Table Required
                     </CardTitle>
                     <CardDescription className="text-muted-foreground mt-1">
-                      The performance monitoring workspaces table (`performance_folders`) has not been initialized yet.
+                      The performance monitoring sheets table (`performance_folders`) has not been initialized yet.
                     </CardDescription>
                   </div>
                 </div>
@@ -319,11 +320,21 @@ export default function Workspaces() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search sheets..."
+                placeholder="Search sheets by year (e.g., 2026)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
+                className="pl-10 pr-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground cursor-pointer flex items-center justify-center rounded-full hover:bg-muted/50 transition-colors"
+                  title="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Loading Spinner */}
@@ -386,17 +397,17 @@ export default function Workspaces() {
                           {ws.name}
                         </CardTitle>
                         <p className="text-xs text-muted-foreground leading-relaxed mt-2.5 flex-1 line-clamp-3">
-                          {ws.description || "No description provided. Click View Charts to set operational deliverable targets and accomplishments."}
+                          {ws.description || `No description added yet. Click Open Sheet to configure operational deliverables and view progress charts for CY ${ws.year}.`}
                         </p>
                       </CardContent>
 
                       <CardFooter className="px-6 py-4 border-t border-border/50 bg-muted/20 flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-2">
                           <Button 
                             variant="ghost" 
                             size="icon" 
                             onClick={() => handleOpenEdit(ws)}
-                            className="h-8 w-8 hover:bg-card hover:text-foreground text-muted-foreground cursor-pointer"
+                            className="h-8 w-8 rounded-md border border-border/60 bg-background/50 hover:bg-dost-blue/5 hover:border-dost-blue/30 hover:text-dost-blue text-muted-foreground cursor-pointer transition-all duration-200"
                             title="Edit sheet details"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
@@ -405,7 +416,7 @@ export default function Workspaces() {
                             variant="ghost" 
                             size="icon" 
                             onClick={() => handleOpenDelete(ws)}
-                            className="h-8 w-8 hover:bg-red-500/10 hover:text-red-500 text-muted-foreground cursor-pointer"
+                            className="h-8 w-8 rounded-md border border-border/60 bg-background/50 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 text-muted-foreground cursor-pointer transition-all duration-200"
                             title="Delete sheet"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -413,12 +424,11 @@ export default function Workspaces() {
                         </div>
                         
                         <Button
-                          variant="ghost"
                           onClick={() => handleOpenFolder(ws.year)}
-                          className="text-xs text-dost-blue hover:text-dost-blue-hover hover:bg-dost-blue/5 font-extrabold tracking-wide h-8 px-3 gap-1.5 transition-colors cursor-pointer group/btn"
+                          className="text-xs text-white bg-dost-blue hover:bg-dost-blue/90 hover:scale-[1.02] active:scale-[0.98] font-bold tracking-wide h-8 px-4 gap-1.5 transition-all shadow-sm rounded-md cursor-pointer group/btn"
                         >
-                          View Charts
-                          <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                          Open Sheet
+                          <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-0.5 transition-transform duration-200" />
                         </Button>
                       </CardFooter>
                     </Card>
@@ -441,8 +451,8 @@ export default function Workspaces() {
                 <FileText className="h-5 w-5 text-dost-blue" />
                 Initialize Performance Year
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Initialize a new target tracking cycle. The database will automatically bootstrap indicator targets and accomplishments.
+              <DialogDescription className="text-xs text-muted-foreground leading-normal">
+                Set up a new performance sheet for a calendar year. This will create target and accomplishment entry templates for all monitoring indicators.
               </DialogDescription>
             </DialogHeader>
 
@@ -469,7 +479,7 @@ export default function Workspaces() {
                       });
                     }}
                     required
-                    className="h-10 text-sm"
+                    className={`h-10 text-sm ${isDuplicateYear ? "border-red-500/50 focus-visible:ring-red-500/20 focus-visible:border-red-500" : ""}`}
                   />
                 </div>
                 <div className="col-span-2 space-y-1.5">
@@ -495,6 +505,13 @@ export default function Workspaces() {
                   className="min-h-[80px] text-xs resize-none"
                 />
               </div>
+
+              {isDuplicateYear && (
+                <div className="flex items-center gap-2 text-xs text-red-500 bg-red-500/5 border border-red-500/10 rounded-md p-2.5 animate-in fade-in duration-200">
+                  <AlertCircle className="h-4.5 w-4.5 shrink-0" />
+                  <span>A performance sheet for CY {formData.year} already exists. Please select a different year.</span>
+                </div>
+              )}
             </div>
 
 
@@ -502,8 +519,12 @@ export default function Workspaces() {
               <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
                 Cancel
               </Button>
-              <Button type="submit" className="bg-gradient-to-r from-dost-blue to-dost-blue-hover text-white px-5">
-                Bootstrap Year
+              <Button 
+                type="submit" 
+                disabled={isDuplicateYear}
+                className="bg-gradient-to-r from-dost-blue to-dost-blue/90 hover:from-dost-blue/95 hover:to-dost-blue/85 text-white font-semibold shadow-md px-5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Initialize Performance Sheet
               </Button>
             </DialogFooter>
           </form>

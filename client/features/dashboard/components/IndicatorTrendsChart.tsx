@@ -126,7 +126,7 @@ const CustomBulletBar = React.memo((props: any) => {
         strokeLinecap="round" 
       />
 
-      {/* "No data" label when accomplishment is zero */}
+      {/* "No Accomplishment" label when accomplishment is zero */}
       {showAccomplishments && actualHeight === 0 && (
         <text
           x={x + width / 2}
@@ -135,7 +135,7 @@ const CustomBulletBar = React.memo((props: any) => {
           fontSize={9}
           fill="hsl(var(--muted-foreground))"
         >
-          No data
+          No Accomplishment
         </text>
       )}
     </g>
@@ -243,11 +243,26 @@ export const IndicatorTrendsChart = React.memo(({
             <TrendingUp className="h-4 w-4 text-dost-blue" />
             <h3 className="text-sm font-bold text-foreground tracking-tight line-clamp-1">{indicatorName}</h3>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {showAccomplishments 
-              ? "Yellow Line: Target Goal | Crimson: Actual Accomplishment" 
-              : `Targets breakdown (Unit: ${unit || "Count"})`}
-          </p>
+          {!showAccomplishments ? (
+            <p className="text-xs text-muted-foreground">
+              Targets breakdown (Unit: {unit || "Count"})
+            </p>
+          ) : (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-1">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: colors.blue || "hsl(var(--dost-blue))" }} />
+                Target Goal
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: colors.red || "hsl(var(--dost-red))" }} />
+                Actual Accomplishment
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-0.5 w-3 rounded-full" style={{ backgroundColor: colors.yellow || "hsl(var(--dost-yellow))" }} />
+                Target Marker
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="shrink-0">
