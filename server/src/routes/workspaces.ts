@@ -54,8 +54,7 @@ router.get("/", async (req, res) => {
         .insert([{
           name: "CY 2026 PTSO Performance Monitoring",
           year: 2026,
-          description: "Official performance indicators, administrative deliverables, and support-to-operations target matrices for Davao Oriental for CY 2026.",
-          status: "Active"
+          description: "Official performance indicators, administrative deliverables, and support-to-operations target matrices for Davao Oriental for CY 2026."
         }])
         .select();
 
@@ -77,7 +76,7 @@ router.get("/", async (req, res) => {
 // Adds a new workspace folder and bootstraps indicator targets for that year
 router.post("/", async (req, res) => {
   try {
-    const { name, year, description, status } = req.body;
+    const { name, year, description } = req.body;
 
     if (!name || !year) {
       return res.status(400).json({ error: "Name and Year are required fields." });
@@ -86,7 +85,7 @@ router.post("/", async (req, res) => {
     // 1. Create the performance folder metadata
     const { data: folder, error: folderError } = await supabase
       .from("performance_folders")
-      .insert([{ name, year: Number(year), description, status: status || "Active" }])
+      .insert([{ name, year: Number(year), description }])
       .select()
       .single();
 
@@ -158,11 +157,11 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, year, description, status } = req.body;
+    const { name, year, description } = req.body;
 
     const { data, error } = await supabase
       .from("performance_folders")
-      .update({ name, year: Number(year), description, status })
+      .update({ name, year: Number(year), description })
       .eq("id", id)
       .select()
       .single();

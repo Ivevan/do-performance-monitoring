@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CategoryData, MetricData } from "@/lib/ptso-types";
+import { API_URL } from "@/lib/config";
 
 export interface VIndicatorData {
   indicator: string;
@@ -270,7 +271,7 @@ export function useDashboardData(filters: DashboardFilters = { year: 2026, secti
       if (filters.indicator) params.append("indicator", filters.indicator);
       if (filters.program) params.append("program", filters.program);
 
-      const url = `http://localhost:8000/api/dashboard/data?${params.toString()}`;
+      const url = `${API_URL}/api/dashboard/data?${params.toString()}`;
       
       const response = await fetch(url);
       if (!response.ok) {

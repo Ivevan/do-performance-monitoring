@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
+import { API_URL } from "@/lib/config";
 import { 
   Folder, 
   FolderOpen, 
@@ -31,13 +32,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
 import sealUrl from "/DOST_seal.ico.png";
 
@@ -62,12 +56,12 @@ export default function Workspaces() {
   
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // CRUD Modals State
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
   
   // Form State
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
@@ -75,14 +69,13 @@ export default function Workspaces() {
     name: "",
     year: "",
     description: "",
-    status: "Active" as "Active" | "Draft" | "Archived",
   });
 
   // Fetch all workspaces from API
   const fetchWorkspaces = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:8000/api/workspaces");
+      const response = await fetch(`${API_URL}/api/workspaces`);
       if (!response.ok) {
         throw new Error(`Failed to fetch workspaces: ${response.statusText}`);
       }
@@ -97,7 +90,7 @@ export default function Workspaces() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to load performance folders. Is backend API running?");
+      toast.error("Failed to load performance sheets. Is backend API running?");
     } finally {
       setLoading(false);
     }
@@ -115,13 +108,13 @@ export default function Workspaces() {
     setTimeout(() => setCopiedSql(false), 2000);
   };
 
-  // Open Create dialog
+  // Open Create dialog and prefill name based on current year
   const handleOpenAdd = () => {
+    const defaultYear = new Date().getFullYear().toString();
     setFormData({
-      name: "",
-      year: new Date().getFullYear().toString(),
+      name: `CY ${defaultYear} PTSO Performance Monitoring`,
+      year: defaultYear,
       description: "",
-      status: "Active",
     });
     setIsAddOpen(true);
   };
@@ -135,40 +128,37 @@ export default function Workspaces() {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/api/workspaces", {
+      const response = await fetch(`${API_URL}/api/workspaces`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           year: Number(formData.year),
           description: formData.description,
-          status: formData.status,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create folder");
+        throw new Error(errorData.error || "Failed to create sheet");
       }
 
-      toast.success(`CY ${formData.year} performance folder successfully created & target templates initialized!`);
+      toast.success(`CY ${formData.year} performance sheet successfully created & target templates initialized!`);
       setIsAddOpen(false);
       fetchWorkspaces();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to create workspace.");
+      toast.error(err.message || "Failed to create workspace sheet.");
     }
   };
 
   // Open Edit dialog
-  const handleOpenEdit = (ws: Workspace, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card card-click
+  const handleOpenEdit = (ws: Workspace) => {
     setSelectedWorkspace(ws);
     setFormData({
       name: ws.name,
       year: ws.year.toString(),
       description: ws.description || "",
-      status: ws.status,
     });
     setIsEditOpen(true);
   };
@@ -179,57 +169,60 @@ export default function Workspaces() {
     if (!selectedWorkspace) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/workspaces/${selectedWorkspace.id}`, {
+      const response = await fetch(`${API_URL}/api/workspaces/${selectedWorkspace.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           year: Number(formData.year),
           description: formData.description,
-          status: formData.status,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update folder");
+        throw new Error(errorData.error || "Failed to update sheet");
       }
 
-      toast.success("Performance folder updated successfully!");
+      toast.success("Performance sheet updated successfully!");
       setIsEditOpen(false);
       fetchWorkspaces();
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to update workspace.");
+      toast.error(err.message || "Failed to update workspace sheet.");
     }
   };
 
   // Open Delete confirmation dialog
-  const handleOpenDelete = (ws: Workspace, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent card-click
+  const handleOpenDelete = (ws: Workspace) => {
     setSelectedWorkspace(ws);
+    setDeleteConfirmText("");
     setIsDeleteOpen(true);
   };
 
   // Delete Workspace Folder
   const handleDelete = async () => {
     if (!selectedWorkspace) return;
+    if (deleteConfirmText !== selectedWorkspace.name) {
+      toast.error("Please type the correct sheet name to confirm deletion.");
+      return;
+    }
 
     try {
-      const response = await fetch(`http://localhost:8000/api/workspaces/${selectedWorkspace.id}`, {
+      const response = await fetch(`${API_URL}/api/workspaces/${selectedWorkspace.id}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete folder");
+        throw new Error("Failed to delete sheet");
       }
 
-      toast.success("Performance folder deleted successfully.");
+      toast.success("Performance sheet deleted successfully.");
       setIsDeleteOpen(false);
       fetchWorkspaces();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete workspace folder.");
+      toast.error("Failed to delete workspace sheet.");
     }
   };
 
@@ -240,14 +233,11 @@ export default function Workspaces() {
 
   // Search & Filter computation
   const filteredWorkspaces = workspaces.filter((ws) => {
-    const matchesSearch = 
+    return (
       ws.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       ws.year.toString().includes(searchQuery) ||
-      (ws.description && ws.description.toLowerCase().includes(searchQuery.toLowerCase()));
-      
-    const matchesStatus = statusFilter === "all" || ws.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
+      (ws.description && ws.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
   });
 
   return (
@@ -259,8 +249,8 @@ export default function Workspaces() {
           className="bg-gradient-to-r from-dost-blue to-dost-blue/80 hover:from-dost-blue/90 hover:to-dost-blue/70 text-white font-semibold shadow-md shadow-dost-blue/10 shrink-0 px-4 h-9 gap-1.5 transition-all text-xs"
         >
           <Plus className="h-4 w-4" />
-          <span className="hidden xs:inline">Add Calendar Year</span>
-          <span className="xs:hidden">Add</span>
+          <span className="hidden xs:inline">Initialize Performance Year</span>
+          <span className="xs:hidden">Initialize</span>
         </Button>
       }
     >
@@ -329,7 +319,7 @@ export default function Workspaces() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search folders..."
+                placeholder="Search sheets..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 h-10 border-border/80 bg-card/30 focus-visible:ring-dost-blue/30 focus-visible:border-dost-blue/40"
@@ -340,24 +330,24 @@ export default function Workspaces() {
             {loading ? (
               <div className="flex flex-col items-center justify-center py-20 min-h-[300px]">
                 <div className="h-9 w-9 animate-spin rounded-full border-2 border-dost-blue border-t-transparent mb-4" />
-                <p className="text-sm text-muted-foreground animate-pulse font-medium">Aggregating local workspaces folders...</p>
+                <p className="text-sm text-muted-foreground animate-pulse font-medium">Aggregating local tracking sheets...</p>
               </div>
             ) : filteredWorkspaces.length === 0 ? (
               /* Empty Grid Panel */
               <div className="rounded-xl border border-dashed border-border bg-card/10 p-12 text-center flex flex-col items-center justify-center min-h-[320px]">
                 <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center text-muted-foreground mb-4">
-                  <Folder className="h-6 w-6 opacity-60" />
+                  <FileText className="h-6 w-6 opacity-60" />
                 </div>
-                <h3 className="font-bold text-lg text-foreground">No Performance Folders Found</h3>
+                <h3 className="font-bold text-lg text-foreground">No Performance Sheets Found</h3>
                 <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-                  {searchQuery || statusFilter !== "all" 
-                    ? "Adjust your filters or search text to locate specific folders."
-                    : "No calendar year performance monitors exist. Let's create your first folder to get started!"}
+                  {searchQuery
+                    ? "Adjust your filters or search text to locate specific sheets."
+                    : "No performance tracking sheets exist. Let's initialize your first sheet to get started!"}
                 </p>
-                {(searchQuery || statusFilter !== "all") && (
+                {searchQuery && (
                   <Button 
                     variant="outline" 
-                    onClick={() => { setSearchQuery(""); setStatusFilter("all"); }}
+                    onClick={() => { setSearchQuery(""); }}
                     className="mt-4"
                   >
                     Reset Filters
@@ -368,26 +358,19 @@ export default function Workspaces() {
               /* Grid Selector cards */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredWorkspaces.map((ws) => {
-                  const statusColors = {
-                    Active: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5",
-                    Draft: "border-amber-500/30 text-amber-500 bg-amber-500/5",
-                    Archived: "border-slate-500/30 text-slate-500 bg-slate-500/5"
-                  }[ws.status];
-
                   return (
                     <Card 
                       key={ws.id} 
-                      onClick={() => handleOpenFolder(ws.year)}
-                      className="border border-border/80 bg-card/30 backdrop-blur-sm hover:bg-card/50 hover:border-dost-blue/40 shadow-sm hover:shadow-lg hover:shadow-dost-blue/5 transition-all duration-300 cursor-pointer flex flex-col group relative overflow-hidden"
+                      className="border border-border/80 bg-card/30 backdrop-blur-sm hover:bg-card/40 hover:border-dost-blue/40 shadow-sm hover:shadow-lg hover:shadow-dost-blue/5 transition-all duration-300 flex flex-col group relative overflow-hidden"
                     >
                       {/* Top accent line */}
                       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-dost-blue/20 to-dost-red/0 group-hover:to-dost-red/20 transition-all duration-500" />
                       
                       <CardHeader className="pb-3 pt-6 px-6">
                         <div className="flex items-start justify-between gap-4">
-                          {/* Premium Glowing Folder Icon */}
+                          {/* Premium Glowing File Icon */}
                           <div className="h-11 w-11 rounded-lg bg-dost-blue/5 border border-dost-blue/15 group-hover:border-dost-blue/30 group-hover:bg-dost-blue/10 flex items-center justify-center shrink-0 transition-colors duration-300">
-                            <FolderOpen className="h-5 w-5 text-dost-blue" />
+                            <FileText className="h-5 w-5 text-dost-blue" />
                           </div>
 
                           <div className="flex flex-col items-end gap-1.5">
@@ -403,7 +386,7 @@ export default function Workspaces() {
                           {ws.name}
                         </CardTitle>
                         <p className="text-xs text-muted-foreground leading-relaxed mt-2.5 flex-1 line-clamp-3">
-                          {ws.description || "No description provided. Click Open Folder to set operational deliverable targets and accomplishments."}
+                          {ws.description || "No description provided. Click View Charts to set operational deliverable targets and accomplishments."}
                         </p>
                       </CardContent>
 
@@ -412,27 +395,31 @@ export default function Workspaces() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={(e) => handleOpenEdit(ws, e)}
-                            className="h-8 w-8 hover:bg-card hover:text-foreground text-muted-foreground"
-                            title="Edit folder details"
+                            onClick={() => handleOpenEdit(ws)}
+                            className="h-8 w-8 hover:bg-card hover:text-foreground text-muted-foreground cursor-pointer"
+                            title="Edit sheet details"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            onClick={(e) => handleOpenDelete(ws, e)}
-                            className="h-8 w-8 hover:bg-red-500/10 hover:text-red-500 text-muted-foreground"
-                            title="Delete workspace"
+                            onClick={() => handleOpenDelete(ws)}
+                            className="h-8 w-8 hover:bg-red-500/10 hover:text-red-500 text-muted-foreground cursor-pointer"
+                            title="Delete sheet"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                         
-                        <div className="flex items-center gap-1.5 text-xs text-dost-blue font-bold tracking-wide group-hover:translate-x-1 transition-transform duration-300">
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleOpenFolder(ws.year)}
+                          className="text-xs text-dost-blue hover:text-dost-blue-hover hover:bg-dost-blue/5 font-extrabold tracking-wide h-8 px-3 gap-1.5 transition-colors cursor-pointer group/btn"
+                        >
                           View Charts
-                          <ArrowRight className="h-3.5 w-3.5" />
-                        </div>
+                          <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform duration-300" />
+                        </Button>
                       </CardFooter>
                     </Card>
                   );
@@ -451,11 +438,11 @@ export default function Workspaces() {
           <form onSubmit={handleCreate}>
             <DialogHeader className="pb-3 border-b border-border">
               <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-                <Folder className="h-5 w-5 text-dost-blue" />
-                Add Calendar Year (CY) Folder
+                <FileText className="h-5 w-5 text-dost-blue" />
+                Initialize Performance Year
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Set up a new performance year. The system automatically initializes target indicator slots.
+                Initialize a new target tracking cycle. The database will automatically bootstrap indicator targets and accomplishments.
               </DialogDescription>
             </DialogHeader>
 
@@ -469,16 +456,27 @@ export default function Workspaces() {
                     min="2020"
                     max="2035"
                     value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                    onChange={(e) => {
+                      const newYear = e.target.value;
+                      setFormData((prev) => {
+                        const oldYearPattern = `CY ${prev.year} PTSO Performance Monitoring`;
+                        const shouldUpdateName = !prev.name || prev.name === oldYearPattern || prev.name.startsWith(`CY ${prev.year}`);
+                        return {
+                          ...prev,
+                          year: newYear,
+                          name: shouldUpdateName ? `CY ${newYear} PTSO Performance Monitoring` : prev.name
+                        };
+                      });
+                    }}
                     required
                     className="h-10 text-sm"
                   />
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor="name" className="text-xs font-bold text-muted-foreground">Folder Name *</Label>
+                  <Label htmlFor="name" className="text-xs font-bold text-muted-foreground">Sheet Name *</Label>
                   <Input
                     id="name"
-                    placeholder="e.g. CY 2027 Performance targets"
+                    placeholder="e.g. CY 2027 Performance Sheet"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
@@ -521,10 +519,10 @@ export default function Workspaces() {
             <DialogHeader className="pb-3 border-b border-border">
               <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
                 <Edit3 className="h-5 w-5 text-dost-blue" />
-                Edit Folder Settings
+                Edit Sheet Settings
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                Update details for this performance year tracking workspace.
+                Update details for this performance tracking sheet.
               </DialogDescription>
             </DialogHeader>
 
@@ -545,7 +543,7 @@ export default function Workspaces() {
                   />
                 </div>
                 <div className="col-span-2 space-y-1.5">
-                  <Label htmlFor="edit-name" className="text-xs font-bold text-muted-foreground">Folder Name *</Label>
+                  <Label htmlFor="edit-name" className="text-xs font-bold text-muted-foreground">Sheet Name *</Label>
                   <Input
                     id="edit-name"
                     value={formData.name}
@@ -564,23 +562,6 @@ export default function Workspaces() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="min-h-[80px] text-xs resize-none"
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="edit-status" className="text-xs font-bold text-muted-foreground">Workspace Status</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(val: any) => setFormData({ ...formData, status: val })}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active (Visible)</SelectItem>
-                    <SelectItem value="Draft">Draft (Editable)</SelectItem>
-                    <SelectItem value="Archived">Archived (Read-Only)</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
 
@@ -604,20 +585,37 @@ export default function Workspaces() {
           <DialogHeader className="pb-2">
             <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2">
               <Trash2 className="h-4 w-4 text-red-500" />
-              Delete Performance Folder?
+              Delete Performance Sheet?
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground leading-normal pt-2">
-              You are about to delete **{selectedWorkspace?.name}**. 
+              You are about to delete the sheet **{selectedWorkspace?.name}**. 
               <br /><br />
               This will permanently delete this workspace and all associated target and accomplishment records for CY {selectedWorkspace?.year} from the database. This action is destructive and cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
+          <div className="space-y-3 py-3">
+            <p className="text-[11px] text-muted-foreground font-medium">
+              Please type <strong className="text-foreground select-all">{selectedWorkspace?.name}</strong> to confirm.
+            </p>
+            <Input
+              placeholder="Type sheet name to confirm"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="h-9 text-xs"
+            />
+          </div>
+
           <DialogFooter className="pt-4 flex items-center justify-end gap-2 border-t border-border">
             <Button type="button" variant="outline" onClick={() => setIsDeleteOpen(false)}>
               Cancel
             </Button>
-            <Button type="button" onClick={handleDelete} className="bg-red-600 hover:bg-red-700 text-white px-5">
+            <Button 
+              type="button" 
+              onClick={handleDelete} 
+              disabled={deleteConfirmText !== selectedWorkspace?.name}
+              className="bg-red-600 hover:bg-red-700 text-white px-5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
               Confirm Delete
             </Button>
           </DialogFooter>
