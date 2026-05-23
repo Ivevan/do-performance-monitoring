@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Calendar, Filter, Edit3 } from "lucide-react";
+import { Activity, BarChart3, Calendar, Filter, Edit3, Save, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { QuarterFilter } from "@/features/dashboard/components/QuarterFilter";
 import { CategoryTabs } from "@/features/dashboard/components/CategoryTabs";
 import { IndicatorTrendsChart } from "@/features/dashboard/components/IndicatorTrendsChart";
 import { DataTable } from "@/features/dashboard/components/DataTable";
-import { DataEntryGrid } from "@/features/dashboard/components/DataEntryGrid";
+import { DataEntryGrid, DataEntryGridRef } from "@/features/dashboard/components/DataEntryGrid";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import { useKpiData, KPI_INDICATORS } from "@/features/dashboard/hooks/useKpiData";
 import { useChartData } from "@/features/dashboard/hooks/useChartData";
@@ -25,10 +25,10 @@ import type { Quarter } from "@/lib/ptso-types";
 
 // ── Section navigation tabs — sourced from DB section names ──────────────────
 const SECTIONS = [
-  { id: "operations",  label: "Operations",         filter: "I. Operations" },
+  { id: "operations", label: "Operations", filter: "I. Operations" },
   { id: "enhancement", label: "Enhancement of S&T", filter: "II. Enhancement of Science and Technology" },
-  { id: "admin",       label: "General Admin",       filter: "III. General Administrative Services" },
-  { id: "support",     label: "Support to Ops",      filter: "IV. Support to Operations" },
+  { id: "admin", label: "General Admin", filter: "III. General Administrative Services" },
+  { id: "support", label: "Support to Ops", filter: "IV. Support to Operations" },
 ];
 
 const Dashboard = () => {
@@ -45,6 +45,9 @@ const Dashboard = () => {
   const [showAccomplishments, setShowAccomplishments] = useState(false);
   const [isEntryMode, setIsEntryMode] = useState(false);
   const [gridIsDirty, setGridIsDirty] = useState(false);
+  const [activeQuarterTab, setActiveQuarterTab] = useState<"ALL" | "Q1" | "Q2" | "Q3" | "Q4">("ALL");
+  const [isSaving, setIsSaving] = useState(false);
+  const gridRef = useRef<DataEntryGridRef>(null);
 
   // ── Derived section filter ─────────────────────────────────────────────────
   const activeSectionFilter = SECTIONS.find(s => s.id === activeSection)?.filter;
@@ -151,29 +154,19 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout
-      title={`CY ${selectedYear} Performance Targets`}
+      title={isEntryMode ? `CY ${selectedYear} Performance Data Sheet` : `CY ${selectedYear} Performance Dashboard`}
       headerActions={
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* Mode Badge */}
-          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border transition-all ${
-            isEntryMode
-              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/50"
-              : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50"
-          }`}>
-            {isEntryMode ? "Edit Mode" : "Read-Only"}
-          </span>
-
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Toggle Button */}
           <Button
             variant={isEntryMode ? "default" : "outline"}
             size="sm"
             onClick={handleToggleMode}
             title={isEntryMode ? "Return to dashboard charts" : "Open performance data sheet"}
-            className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
-              isEntryMode
-                ? "bg-dost-blue text-white shadow-glow border-transparent"
-                : "text-muted-foreground hover:text-foreground border-border/50"
-            }`}
+            className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${isEntryMode
+              ? "bg-dost-blue text-white shadow-glow border-transparent"
+              : "text-muted-foreground hover:text-foreground border-border/50"
+              }`}
           >
             {isEntryMode ? (
               <>
@@ -188,6 +181,42 @@ const Dashboard = () => {
             )}
           </Button>
 
+          {/* Entry-mode-only controls */}
+          {isEntryMode && (
+            <>
+              {/* Integrated Quarter Switcher inside main header */}
+              <QuarterFilter<"ALL" | "Q1" | "Q2" | "Q3" | "Q4">
+                selected={activeQuarterTab}
+                onChange={setActiveQuarterTab}
+                options={["ALL", "Q1", "Q2", "Q3", "Q4"] as const}
+                labelMap={{
+                  ALL: "Annual",
+                  Q1: "Q1",
+                  Q2: "Q2",
+                  Q3: "Q3",
+                  Q4: "Q4",
+                }}
+              />
+
+              {/* Integrated Save Sheet Button in header */}
+              <Button
+                onClick={() => gridRef.current?.save()}
+                disabled={isSaving}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 h-8 text-[10px] sm:text-xs px-3 shadow-glow"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3.5 w-3.5" /> Save Sheet
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+
           {/* Visualization-only controls */}
           {!isEntryMode && (
             <>
@@ -195,16 +224,15 @@ const Dashboard = () => {
                 variant={showAccomplishments ? "default" : "outline"}
                 size="sm"
                 onClick={() => setShowAccomplishments(!showAccomplishments)}
-                className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
-                  showAccomplishments
-                    ? "bg-primary text-primary-foreground shadow-glow border-transparent"
-                    : "text-muted-foreground hover:text-foreground border-border/50"
-                }`}
+                className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${showAccomplishments
+                  ? "bg-primary text-primary-foreground shadow-glow border-transparent"
+                  : "text-muted-foreground hover:text-foreground border-border/50"
+                  }`}
               >
                 <Activity className="h-3.5 w-3.5" />
                 <span className="hidden xs:inline">With Accomplishment</span>
               </Button>
-              <QuarterFilter selected={activeQuarter} onChange={setActiveQuarter} />
+              <QuarterFilter<Quarter> selected={activeQuarter} onChange={setActiveQuarter} />
             </>
           )}
         </div>
@@ -215,137 +243,141 @@ const Dashboard = () => {
       {/* ════════════════════════════════════════════════════════════════════ */}
       {isEntryMode ? (
         <DataEntryGrid
+          ref={gridRef}
           year={selectedYear}
           rawData={data.rawData}
           onBack={() => setIsEntryMode(false)}
           onSave={handleSaveGrid}
           onChangeDirty={setGridIsDirty}
+          activeQuarterTab={activeQuarterTab}
+          setActiveQuarterTab={setActiveQuarterTab}
+          onSavingChange={setIsSaving}
         />
       ) : (
-      /* ════════════════════════════════════════════════════════════════════ */
-      /* Mode 2: Visualization Dashboard                                    */
-      /* ════════════════════════════════════════════════════════════════════ */
-      <div className="flex flex-col gap-8 w-full pb-12">
+        /* ════════════════════════════════════════════════════════════════════ */
+        /* Mode 2: Visualization Dashboard                                    */
+        /* ════════════════════════════════════════════════════════════════════ */
+        <div className="flex flex-col gap-8 w-full pb-12">
 
-        {/* ── 1. KPI Cards ── */}
-        <section>
-          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            Key Performance Indicators — {activeQuarter} {showAccomplishments ? "Accomplishments" : "Targets"}
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-            {KPI_INDICATORS.map((cfg) => {
-              const kpi = kpis[cfg.key];
-              if (!kpi) return null;
-              return (
-                <KpiCard
-                  key={cfg.key}
-                  label={cfg.label}
-                  actual={kpi.actual}
-                  target={kpi.target}
-                  unit={cfg.unit}
-                  breakdown={kpi.breakdown}
-                  selectedQuarter={activeQuarter}
-                  showAccomplishments={showAccomplishments}
-                />
-              );
-            })}
-          </div>
-        </section>
-
-        {/* ── 2. Quarterly Trends & Detailed Breakdown ── */}
-        <section className="border-t border-border/50 pt-8 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Quarterly Trends & Detailed Breakdown
+          {/* ── 1. KPI Cards ── */}
+          <section>
+            <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Key Performance Indicators — {activeQuarter} {showAccomplishments ? "Accomplishments" : "Targets"}
             </h2>
-            <CategoryTabs
-              categories={SECTIONS.map(s => ({ id: s.id, label: s.label }))}
-              selected={activeSection}
-              onChange={setActiveSection}
-            />
-          </div>
-
-          {/* Indicator & Metric Double Dropdown Filters */}
-          {categoryOptions.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-card/25 border border-border/40 rounded-xl p-4 backdrop-blur-md">
-              {/* Dropdown 1: Category */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Filter className="h-3 w-3 text-dost-blue" />
-                  Category Group
-                </label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger className="h-9 text-xs border-border bg-card/30">
-                    <SelectValue placeholder="Select Category..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categoryOptions.map((cat) => (
-                      <SelectItem key={cat} value={cat} className="text-xs cursor-pointer">
-                        {cat}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Dropdown 2: Specific Metric */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                  <Activity className="h-3 w-3 text-dost-red" />
-                  Specific Metric / Program
-                </label>
-                <Select value={selectedMetricKey} onValueChange={setSelectedMetricKey}>
-                  <SelectTrigger className="h-9 text-xs border-border bg-card/30">
-                    <SelectValue placeholder="Select Metric..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {metricOptions.map((m) => {
-                      const key = `${m.indicator}||${m.program}`;
-                      return (
-                        <SelectItem key={key} value={key} className="text-xs cursor-pointer">
-                          {m.label}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
+              {KPI_INDICATORS.map((cfg) => {
+                const kpi = kpis[cfg.key];
+                if (!kpi) return null;
+                return (
+                  <KpiCard
+                    key={cfg.key}
+                    label={cfg.label}
+                    actual={kpi.actual}
+                    target={kpi.target}
+                    unit={cfg.unit}
+                    breakdown={kpi.breakdown}
+                    selectedQuarter={activeQuarter}
+                    showAccomplishments={showAccomplishments}
+                  />
+                );
+              })}
             </div>
-          )}
+          </section>
 
-          {/* Dynamic Unified Trend Chart */}
-          {selectedMetricKey && filteredChartPoints.length > 0 && (
-            <IndicatorTrendsChart
-              indicatorName={chartMeta.indicator}
-              data={filteredChartPoints}
-              valueType={chartMeta.value_type}
-              unit={chartMeta.unit}
-              showAccomplishments={showAccomplishments}
-            />
-          )}
+          {/* ── 2. Quarterly Trends & Detailed Breakdown ── */}
+          <section className="border-t border-border/50 pt-8 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h2 className="text-sm font-semibold text-primary flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Quarterly Trends & Detailed Breakdown
+              </h2>
+              <CategoryTabs
+                categories={SECTIONS.map(s => ({ id: s.id, label: s.label }))}
+                selected={activeSection}
+                onChange={setActiveSection}
+              />
+            </div>
 
-          <motion.div
-            key={activeSection}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className="pt-2"
-          >
-            <DataTable category={drillDownData} selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
-          </motion.div>
-        </section>
+            {/* Indicator & Metric Double Dropdown Filters */}
+            {categoryOptions.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-card/25 border border-border/40 rounded-xl p-4 backdrop-blur-md">
+                {/* Dropdown 1: Category */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Filter className="h-3 w-3 text-dost-blue" />
+                    Category Group
+                  </label>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="h-9 text-xs border-border bg-card/30">
+                      <SelectValue placeholder="Select Category..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoryOptions.map((cat) => (
+                        <SelectItem key={cat} value={cat} className="text-xs cursor-pointer">
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-        {/* ── Footer ── */}
-        <footer className="pt-4 border-t border-border/30">
-          <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
-            <Activity className="h-3 w-3" />
-            CY {selectedYear} Annual Performance Targets &bull; Last updated: {new Date().toLocaleDateString()}
-          </p>
-        </footer>
+                {/* Dropdown 2: Specific Metric */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                    <Activity className="h-3 w-3 text-dost-red" />
+                    Specific Metric / Program
+                  </label>
+                  <Select value={selectedMetricKey} onValueChange={setSelectedMetricKey}>
+                    <SelectTrigger className="h-9 text-xs border-border bg-card/30">
+                      <SelectValue placeholder="Select Metric..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {metricOptions.map((m) => {
+                        const key = `${m.indicator}||${m.program}`;
+                        return (
+                          <SelectItem key={key} value={key} className="text-xs cursor-pointer">
+                            {m.label}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
 
-      </div>
+            {/* Dynamic Unified Trend Chart */}
+            {selectedMetricKey && filteredChartPoints.length > 0 && (
+              <IndicatorTrendsChart
+                indicatorName={chartMeta.indicator}
+                data={filteredChartPoints}
+                valueType={chartMeta.value_type}
+                unit={chartMeta.unit}
+                showAccomplishments={showAccomplishments}
+              />
+            )}
+
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="pt-2"
+            >
+              <DataTable category={drillDownData} selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+            </motion.div>
+          </section>
+
+          {/* ── Footer ── */}
+          <footer className="pt-4 border-t border-border/30">
+            <p className="text-xs text-muted-foreground text-center flex items-center justify-center gap-2">
+              <Activity className="h-3 w-3" />
+              CY {selectedYear} Annual Performance Targets &bull; Last updated: {new Date().toLocaleDateString()}
+            </p>
+          </footer>
+
+        </div>
       )}
     </DashboardLayout>
   );

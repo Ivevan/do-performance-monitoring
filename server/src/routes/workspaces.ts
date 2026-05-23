@@ -122,6 +122,28 @@ router.post("/", async (req, res) => {
       if (targetsError) {
         console.error("Warning: Failed to bootstrap targets for new year:", targetsError.message);
       }
+
+      // 5. Prepare accomplishment rows initialized to 0 for Q1-Q4
+      const accomplishmentRows: any[] = [];
+      indicators.forEach(ind => {
+        for (let q = 1; q <= 4; q++) {
+          accomplishmentRows.push({
+            indicator_id: ind.id,
+            year: Number(year),
+            quarter: q,
+            value: 0
+          });
+        }
+      });
+
+      // 6. Bulk insert accomplishments templates for this year
+      const { error: accomplishmentsError } = await supabase
+        .from("accomplishments")
+        .insert(accomplishmentRows);
+
+      if (accomplishmentsError) {
+        console.error("Warning: Failed to bootstrap accomplishments for new year:", accomplishmentsError.message);
+      }
     }
 
     return res.status(201).json({ data: folder });
@@ -158,11 +180,48 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/workspaces/:id
-// Deletes a folder
+// Deletes a folder and all associated target and accomplishment data
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
+    // 1. Fetch the folder metadata to determine its year
+    const { data: folder, error: fetchError } = await supabase
+      .from("performance_folders")
+      .select("year")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching workspace folder for deletion:", fetchError);
+      return res.status(500).json({ error: fetchError.message });
+    }
+
+    if (folder) {
+      const year = folder.year;
+
+      // 2. Delete all targets associated with this calendar year
+      const { error: targetDeleteError } = await supabase
+        .from("targets")
+        .delete()
+        .eq("year", year);
+
+      if (targetDeleteError) {
+        console.error(`Warning: Failed to delete targets for year ${year}:`, targetDeleteError.message);
+      }
+
+      // 3. Delete all accomplishments associated with this calendar year
+      const { error: accomplishmentsDeleteError } = await supabase
+        .from("accomplishments")
+        .delete()
+        .eq("year", year);
+
+      if (accomplishmentsDeleteError) {
+        console.error(`Warning: Failed to delete accomplishments for year ${year}:`, accomplishmentsDeleteError.message);
+      }
+    }
+
+    // 4. Delete the workspace folder metadata itself
     const { error } = await supabase
       .from("performance_folders")
       .delete()
@@ -173,7 +232,7 @@ router.delete("/:id", async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
-    return res.json({ message: "Workspace deleted successfully" });
+    return res.json({ message: "Workspace and associated targets/accomplishments deleted successfully" });
   } catch (err) {
     console.error("Server error in workspaces deletion:", err);
     return res.status(500).json({ error: "Internal server error" });

@@ -609,7 +609,7 @@ export default function Workspaces() {
             <DialogDescription className="text-xs text-muted-foreground leading-normal pt-2">
               You are about to delete **{selectedWorkspace?.name}**. 
               <br /><br />
-              This will remove this workspace card from your overview. Targets and accomplishments already seeded or synchronized for CY {selectedWorkspace?.year} inside indicators table are preserved but this folder overview grouping will be permanently removed.
+              This will permanently delete this workspace and all associated target and accomplishment records for CY {selectedWorkspace?.year} from the database. This action is destructive and cannot be undone.
             </DialogDescription>
           </DialogHeader>
 

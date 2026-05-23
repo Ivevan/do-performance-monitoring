@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useImperativeHandle } from "react";
 import { ArrowLeft, Save, HelpCircle, Loader2, Trash2, Plus, ChevronDown, ChevronRight, RotateCcw, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,31 @@ interface GridRow {
   annual_actual: number;
 }
 
+export interface DataEntryGridRef {
+  save: () => Promise<void>;
+}
+
 interface DataEntryGridProps {
   year: number;
   rawData: any[];
   onBack: () => void;
   onSave?: (updatedRows: any[]) => Promise<void>;
   onChangeDirty?: (isDirty: boolean) => void;
+  activeQuarterTab: "ALL" | "Q1" | "Q2" | "Q3" | "Q4";
+  setActiveQuarterTab: (tab: "ALL" | "Q1" | "Q2" | "Q3" | "Q4") => void;
+  onSavingChange?: (saving: boolean) => void;
 }
 
-export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: DataEntryGridProps) {
+// Quarter column configuration — single source of truth for all Q1–Q4 rendering
+const QUARTERS = [
+  { key: "Q1" as const, targetField: "q1_target" as const, actualField: "q1_actual" as const },
+  { key: "Q2" as const, targetField: "q2_target" as const, actualField: "q2_actual" as const },
+  { key: "Q3" as const, targetField: "q3_target" as const, actualField: "q3_actual" as const },
+  { key: "Q4" as const, targetField: "q4_target" as const, actualField: "q4_actual" as const },
+] as const;
+
+export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridProps>(
+  ({ year, rawData, onBack, onSave, onChangeDirty, activeQuarterTab, setActiveQuarterTab, onSavingChange }, ref) => {
   const [rows, setRows] = useState<GridRow[]>([]);
   const [initialRows, setInitialRows] = useState<GridRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,7 +64,17 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
 
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
-  const [activeQuarterTab, setActiveQuarterTab] = useState<"ALL" | "Q1" | "Q2" | "Q3" | "Q4">("ALL");
+
+  useImperativeHandle(ref, () => ({
+    save: handleSave
+  }));
+
+  // Sync saving state back to parent
+  useEffect(() => {
+    if (onSavingChange) {
+      onSavingChange(saving);
+    }
+  }, [saving, onSavingChange]);
 
   // Sync dirty status back to parent component
   useEffect(() => {
@@ -416,71 +442,7 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
   };
 
   return (
-    <div className="space-y-5 pb-36">
-      {/* Header Panel */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card/45 border border-border/60 p-4 rounded-xl shadow-sm">
-        <div>
-          <h2 className="text-base font-extrabold text-foreground uppercase tracking-wide">CY {year} Performance Targets</h2>
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
-            Functional and Strategic Contributions
-          </p>
-          <p className="text-[11px] text-muted-foreground/70 mt-1">
-            Directly input targets and accomplishments. Formulas recalculate automatically.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Integrated Quarter Switcher inside header to eliminate double row tab stack */}
-          <div className="flex items-center gap-1 bg-muted/65 p-1 rounded-lg border border-border/40">
-            {(["ALL", "Q1", "Q2", "Q3", "Q4"] as const).map((tab) => {
-              const labelMap = {
-                ALL: "All Quarters",
-                Q1: "Q1",
-                Q2: "Q2",
-                Q3: "Q3",
-                Q4: "Q4",
-              };
-              const isActive = activeQuarterTab === tab;
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setActiveQuarterTab(tab)}
-                  className={`px-3 py-1.5 text-[11px] font-bold uppercase rounded-md transition-all ${
-                    isActive
-                      ? "bg-background text-foreground shadow-sm border border-border/10 font-black"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {labelMap[tab]}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 border border-border/40 px-2.5 py-1.5 rounded-lg">
-            <HelpCircle className="h-3.5 w-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Use Arrow keys / Enter to navigate cells</span>
-            <span className="sm:hidden">Keyboard Nav Ready</span>
-          </div>
-
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 h-9"
-          >
-            {saving ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" /> Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4" /> Save Sheet
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
+    <div className="space-y-6 pb-36">
       {/* Section Navigation Tabs & Search Input */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/40 pb-3">
         {sectionNames.length > 1 && (
@@ -528,12 +490,16 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
       {/* Status Helper Description & Help Legend */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Helper Banner */}
-        <div className="md:col-span-2 text-[11px] font-bold text-muted-foreground/80 bg-muted/20 border border-border/30 rounded-xl p-3 flex items-center gap-2">
-          <span>
+        <div className="md:col-span-2 text-[11px] font-bold text-muted-foreground/80 bg-muted/20 border border-border/30 rounded-xl p-3 flex flex-col gap-1 justify-center">
+          <div>
             {activeQuarterTab === "ALL"
               ? "All Quarters Planning Mode: Edit target values across the entire year. Select Q1-Q4 to report accomplishments."
               : `${activeQuarterTab} Accomplishment Mode: Input accomplishments achieved. Target fields remain editable.`}
-          </span>
+          </div>
+          <div className="text-[10px] text-muted-foreground/60 flex items-center gap-1">
+            <HelpCircle className="h-3 w-3 text-amber-500/70" />
+            <span>Directly input targets and accomplishments. Formulas recalculate automatically. Use Arrow keys / Enter to navigate cells.</span>
+          </div>
         </div>
 
         {/* Legend Panel */}
@@ -688,41 +654,16 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
                                     <th className={`p-3 font-extrabold text-foreground border-r border-border/40 ${activeQuarterTab === "ALL" ? "w-[26%]" : "w-[36%]"}`}>Performance Indicator</th>
                                     <th className="p-3 w-[6%] font-extrabold text-foreground border-r border-border/40 text-center">Prog.</th>
                                     
-                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q1") && (
-                                      <>
-                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q1 Target</th>
-                                        {activeQuarterTab === "Q1" && (
-                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q1 Accomplishment</th>
-                                        )}
-                                      </>
-                                    )}
-                                    
-                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q2") && (
-                                      <>
-                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q2 Target</th>
-                                        {activeQuarterTab === "Q2" && (
-                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q2 Accomplishment</th>
-                                        )}
-                                      </>
-                                    )}
-                                    
-                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q3") && (
-                                      <>
-                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q3 Target</th>
-                                        {activeQuarterTab === "Q3" && (
-                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q3 Accomplishment</th>
-                                        )}
-                                      </>
-                                    )}
-                                    
-                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q4") && (
-                                      <>
-                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q4 Target</th>
-                                        {activeQuarterTab === "Q4" && (
-                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q4 Accomplishment</th>
-                                        )}
-                                      </>
-                                    )}
+                                    {QUARTERS.map(({ key }) => (
+                                      (activeQuarterTab === "ALL" || activeQuarterTab === key) && (
+                                        <React.Fragment key={key}>
+                                          <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>{key} Target</th>
+                                          {activeQuarterTab === key && (
+                                            <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">{key} Accomplishment</th>
+                                          )}
+                                        </React.Fragment>
+                                      )
+                                    ))}
                                     
                                     <th className="p-2 w-[14%] font-black text-center border-r border-border/40 bg-muted/40 text-foreground">Annual Target</th>
                                     <th className="p-2 w-[4%] font-extrabold text-center bg-muted/40"></th>
@@ -780,149 +721,43 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
                                           )}
                                         </td>
 
-                                        {/* Q1 Target & Actual */}
-                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q1") && (
-                                          <>
-                                            {activeQuarterTab === "ALL" ? (
-                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q1_target`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q1_target)}
-                                                  value={row.q1_target || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q1_target", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q1_target"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            ) : (
-                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
-                                                {row.q1_target.toLocaleString()}
-                                              </td>
-                                            )}
-                                            {activeQuarterTab === "Q1" && (
-                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q1_actual`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q1_actual)}
-                                                  value={row.q1_actual || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q1_actual", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q1_actual"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            )}
-                                          </>
-                                        )}
-
-                                        {/* Q2 Target & Actual */}
-                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q2") && (
-                                          <>
-                                            {activeQuarterTab === "ALL" ? (
-                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q2_target`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q2_target)}
-                                                  value={row.q2_target || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q2_target", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q2_target"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            ) : (
-                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
-                                                {row.q2_target.toLocaleString()}
-                                              </td>
-                                            )}
-                                            {activeQuarterTab === "Q2" && (
-                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q2_actual`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q2_actual)}
-                                                  value={row.q2_actual || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q2_actual", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q2_actual"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            )}
-                                          </>
-                                        )}
-
-                                        {/* Q3 Target & Actual */}
-                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q3") && (
-                                          <>
-                                            {activeQuarterTab === "ALL" ? (
-                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q3_target`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q3_target)}
-                                                  value={row.q3_target || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q3_target", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q3_target"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            ) : (
-                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
-                                                {row.q3_target.toLocaleString()}
-                                              </td>
-                                            )}
-                                            {activeQuarterTab === "Q3" && (
-                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q3_actual`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q3_actual)}
-                                                  value={row.q3_actual || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q3_actual", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q3_actual"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            )}
-                                          </>
-                                        )}
-
-                                        {/* Q4 Target & Actual */}
-                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q4") && (
-                                          <>
-                                            {activeQuarterTab === "ALL" ? (
-                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q4_target`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q4_target)}
-                                                  value={row.q4_target || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q4_target", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q4_target"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            ) : (
-                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
-                                                {row.q4_target.toLocaleString()}
-                                              </td>
-                                            )}
-                                            {activeQuarterTab === "Q4" && (
-                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                                <input
-                                                  ref={(el) => (inputRefs.current[`${row.id}-q4_actual`] = el)}
-                                                  type="number"
-                                                  className={getInputClass(row.q4_actual)}
-                                                  value={row.q4_actual || ""}
-                                                  onChange={(e) => handleCellChange(row.id, "q4_actual", e.target.value)}
-                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q4_actual"), categoryRows)}
-                                                  placeholder="0"
-                                                />
-                                              </td>
-                                            )}
-                                          </>
-                                        )}
+                                        {/* Quarterly Target & Actual Columns */}
+                                        {QUARTERS.map(({ key, targetField, actualField }) => (
+                                          (activeQuarterTab === "ALL" || activeQuarterTab === key) && (
+                                            <React.Fragment key={key}>
+                                              {activeQuarterTab === "ALL" ? (
+                                                <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
+                                                  <input
+                                                    ref={(el) => (inputRefs.current[`${row.id}-${targetField}`] = el)}
+                                                    type="number"
+                                                    className={getInputClass(row[targetField])}
+                                                    value={row[targetField] || ""}
+                                                    onChange={(e) => handleCellChange(row.id, targetField, e.target.value)}
+                                                    onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(targetField), categoryRows)}
+                                                    placeholder="0"
+                                                  />
+                                                </td>
+                                              ) : (
+                                                <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
+                                                  {row[targetField].toLocaleString()}
+                                                </td>
+                                              )}
+                                              {activeQuarterTab === key && (
+                                                <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
+                                                  <input
+                                                    ref={(el) => (inputRefs.current[`${row.id}-${actualField}`] = el)}
+                                                    type="number"
+                                                    className={getInputClass(row[actualField])}
+                                                    value={row[actualField] || ""}
+                                                    onChange={(e) => handleCellChange(row.id, actualField, e.target.value)}
+                                                    onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(actualField), categoryRows)}
+                                                    placeholder="0"
+                                                  />
+                                                </td>
+                                              )}
+                                            </React.Fragment>
+                                          )
+                                        ))}
 
                                         {/* Annual Target Formula with Muted Zeros logic */}
                                         <td className={`p-3 text-right border-r border-border/40 bg-muted/30 select-none ${
@@ -990,4 +825,6 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
       )}
     </div>
   );
-}
+});
+
+DataEntryGrid.displayName = "DataEntryGrid";
