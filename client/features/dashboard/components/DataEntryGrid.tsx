@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { ArrowLeft, Save, HelpCircle, Loader2, Trash2, Plus, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
+import { ArrowLeft, Save, HelpCircle, Loader2, Trash2, Plus, ChevronDown, ChevronRight, RotateCcw, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ interface GridRow {
   indicator: string;
   program: string | null;
   section: string;
+  section_full_name: string | null;
   category: string;
   aggregation_type: string;
   unit: string | null;
@@ -38,6 +39,8 @@ interface DataEntryGridProps {
 
 export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: DataEntryGridProps) {
   const [rows, setRows] = useState<GridRow[]>([]);
+  const [initialRows, setInitialRows] = useState<GridRow[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
@@ -94,6 +97,7 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
           indicator: item.indicator,
           program: prog,
           section: item.section,
+          section_full_name: item.section_full_name || null,
           category: item.category || "Other",
           aggregation_type: item.aggregation_type || "SUM",
           unit: item.unit,
@@ -139,16 +143,34 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
   useEffect(() => {
     const parsed = parseRawData(rawData);
     setRows(parsed);
+    setInitialRows(JSON.parse(JSON.stringify(parsed)));
   }, [rawData]);
 
   const handleRevert = () => {
     const confirmRevert = window.confirm("Are you sure you want to revert all unsaved changes on this sheet?");
     if (confirmRevert) {
-      const parsed = parseRawData(rawData);
-      setRows(parsed);
+      setRows(JSON.parse(JSON.stringify(initialRows)));
       setIsDirty(false);
       toast.info("All changes reverted back to saved state.");
     }
+  };
+
+  const isRowModified = (currentRow: GridRow) => {
+    if (currentRow.id.startsWith("temp-")) return true;
+    const original = initialRows.find((r) => r.id === currentRow.id);
+    if (!original) return false;
+    return (
+      currentRow.indicator !== original.indicator ||
+      currentRow.program !== original.program ||
+      currentRow.q1_target !== original.q1_target ||
+      currentRow.q1_actual !== original.q1_actual ||
+      currentRow.q2_target !== original.q2_target ||
+      currentRow.q2_actual !== original.q2_actual ||
+      currentRow.q3_target !== original.q3_target ||
+      currentRow.q3_actual !== original.q3_actual ||
+      currentRow.q4_target !== original.q4_target ||
+      currentRow.q4_actual !== original.q4_actual
+    );
   };
 
   // Handle cell input change (both numeric targets/actuals and text indicator/program names)
@@ -197,11 +219,13 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
 
   const handleAddRow = (sectionName: string, categoryName: string) => {
     const newRowId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const existingRow = rows.find((r) => r.section === sectionName);
     const newRow: GridRow = {
       id: newRowId,
       indicator: "New Strategic Indicator",
       program: "",
       section: sectionName,
+      section_full_name: existingRow ? existingRow.section_full_name : null,
       category: categoryName,
       aggregation_type: "SUM",
       unit: null,
@@ -233,13 +257,23 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
     const sections: Record<string, Record<string, GridRow[]>> = {};
 
     rows.forEach((row) => {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesIndicator = row.indicator.toLowerCase().includes(query);
+        const matchesProgram = (row.program || "").toLowerCase().includes(query);
+        const matchesCategory = (row.category || "").toLowerCase().includes(query);
+        if (!matchesIndicator && !matchesProgram && !matchesCategory) {
+          return;
+        }
+      }
+
       if (!sections[row.section]) sections[row.section] = {};
       if (!sections[row.section][row.category]) sections[row.section][row.category] = [];
       sections[row.section][row.category].push(row);
     });
 
     return sections;
-  }, [rows]);
+  }, [rows, searchQuery]);
 
   const sectionNames = useMemo(() => {
     return Object.keys(sectionsData).sort();
@@ -342,6 +376,18 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
   };
 
   const handleSave = async () => {
+    const hasNegative = rows.some((row) => 
+      row.q1_target < 0 || row.q1_actual < 0 ||
+      row.q2_target < 0 || row.q2_actual < 0 ||
+      row.q3_target < 0 || row.q3_actual < 0 ||
+      row.q4_target < 0 || row.q4_actual < 0
+    );
+
+    if (hasNegative) {
+      toast.error("Cannot save: Negative values are not allowed in targets or accomplishments.");
+      return;
+    }
+
     if (!onSave) {
       toast.success("UI Demo Mode: Simulated save changes successfully!");
       setIsDirty(false);
@@ -374,8 +420,11 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
       {/* Header Panel */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card/45 border border-border/60 p-4 rounded-xl shadow-sm">
         <div>
-          <h2 className="text-base font-extrabold text-foreground">CY {year} Data Entry Matrix</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <h2 className="text-base font-extrabold text-foreground uppercase tracking-wide">CY {year} Performance Targets</h2>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
+            Functional and Strategic Contributions
+          </p>
+          <p className="text-[11px] text-muted-foreground/70 mt-1">
             Directly input targets and accomplishments. Formulas recalculate automatically.
           </p>
         </div>
@@ -432,27 +481,49 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
         </div>
       </div>
 
-      {/* Section Navigation Tabs */}
-      {sectionNames.length > 1 && (
-        <div className="flex flex-wrap gap-2 border-b border-border/40 pb-3">
-          {sectionNames.map((secName) => {
-            const isActive = activeSection === secName;
-            return (
-              <button
-                key={secName}
-                onClick={() => setActiveSection(secName)}
-                className={`px-4 py-2 text-xs font-bold uppercase rounded-lg border transition-all duration-200 ${
-                  isActive
-                    ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20"
-                    : "bg-card border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-                }`}
-              >
-                {secName}
-              </button>
-            );
-          })}
+      {/* Section Navigation Tabs & Search Input */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/40 pb-3">
+        {sectionNames.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            {sectionNames.map((secName) => {
+              const isActive = activeSection === secName;
+              return (
+                <button
+                  key={secName}
+                  onClick={() => setActiveSection(secName)}
+                  className={`px-4 py-2 text-xs font-bold uppercase rounded-lg border transition-all duration-200 ${
+                    isActive
+                      ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20"
+                      : "bg-card border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`}
+                >
+                  {secName}
+                </button>
+              );
+            })}
+          </div>
+        )}
+        
+        {/* Indicators Search Input */}
+        <div className="relative w-full md:w-72 shrink-0 md:ml-auto flex items-center">
+          <Search className="absolute left-3 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search indicators or categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full h-9 pl-9 pr-10 text-xs bg-card border border-border/60 rounded-lg placeholder-muted-foreground/60 focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-3 hover:text-foreground text-[10px] text-muted-foreground font-semibold"
+            >
+              Clear
+            </button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Status Helper Description & Help Legend */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -484,24 +555,9 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
             const categoriesList = Object.entries(categories);
             const firstStrategicIdx = categoriesList.findIndex(([_, rows]) => rows[0]?.deliverable_type === "Strategic");
             
-            const getSubHeader = (secName: string) => {
-              const name = secName.toUpperCase();
-              if (name.includes("I. OPERATIONS")) {
-                return "I. DIFFUSION AND TRANSFER OF KNOWLEDGE AND TECHNOLOGIES; AND OTHER RELATED PROJECTS AND ACTIVITIES";
-              }
-              if (name.includes("II. ENHANCEMENT")) {
-                return "II. ENHANCEMENT OF SCIENCE AND TECHNOLOGY PROJECTS/ACTIVITIES";
-              }
-              if (name.includes("III. GENERAL ADMINISTRATIVE")) {
-                return "III. GENERAL ADMINISTRATIVE SERVICES";
-              }
-              if (name.includes("IV. SUPPORT TO OPERATIONS")) {
-                return "IV. SUPPORT TO OPERATIONS";
-              }
-              return null;
-            };
-
-            const subHeader = getSubHeader(sectionName);
+            // Resolve the section's full name from database row data dynamically
+            const firstCategoryRows = categoriesList[0]?.[1] || [];
+            const subHeader = firstCategoryRows[0]?.section_full_name || sectionName;
 
             return (
               <div key={sectionName} className="space-y-4">
@@ -546,117 +602,137 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
                     const isStrategicCategory = categoryRows[0]?.deliverable_type === "Strategic";
                     const isFirstFunctional = index === 0 && !isStrategicCategory;
                     const isFirstStrategic = index === firstStrategicIdx;
+                    const delType = categoryRows[0]?.deliverable_type || "";
+                    const isDirectRender = categoryName.toLowerCase() === `${delType.toLowerCase()} deliverables`;
                     const isCollapsed = collapsedCategories[`${sectionName}||${categoryName}`];
 
                     return (
                       <div key={categoryName} className="space-y-2">
                         {/* Redesigned Deliverable Category Separators with indicators */}
                         {isFirstFunctional && (
-                          <div className="flex items-center gap-2 mt-4 mb-1.5 pl-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60"></span>
-                            <span className="text-[10px] font-black text-muted-foreground/90 tracking-widest uppercase">
-                              Functional Deliverables
-                            </span>
+                          <div className="flex items-center justify-between mt-4 mb-1.5 pl-1 pr-1">
+                            <div className="flex items-center gap-2">
+                              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60"></span>
+                              <span className="text-[10px] font-black text-muted-foreground/90 tracking-widest uppercase">
+                                Functional Deliverables
+                              </span>
+                            </div>
                           </div>
                         )}
                         {isFirstStrategic && (
-                          <div className="flex items-center gap-2 mt-6 mb-1.5 pl-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
-                            <span className="text-[10px] font-black text-indigo-400 tracking-widest uppercase">
-                              Strategic Deliverables
-                            </span>
+                          <div className="flex items-center justify-between mt-6 mb-1.5 pl-1 pr-1">
+                            <div className="flex items-center gap-2">
+                              <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                              <span className="text-[10px] font-black text-indigo-400 tracking-widest uppercase">
+                                Strategic Deliverables
+                              </span>
+                            </div>
+                            {isStrategicCategory && isDirectRender && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddRow(sectionName, categoryName);
+                                }}
+                                className="h-6 px-2.5 text-[9px] gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-md font-bold"
+                              >
+                                <Plus className="h-2.5 w-2.5" /> Add Indicator
+                              </Button>
+                            )}
                           </div>
                         )}
 
                         <Card className="bg-card border-border overflow-hidden shadow-sm">
-                          <div 
-                            className="bg-muted/30 border-b border-border/60 px-4 py-2.5 flex items-center justify-between cursor-pointer select-none hover:bg-muted/50 transition-colors"
-                            onClick={() => toggleCategory(sectionName, categoryName)}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground transition-transform duration-200">
-                                {isCollapsed ? (
-                                  <ChevronRight className="h-4 w-4" />
-                                ) : (
-                                  <ChevronDown className="h-4 w-4" />
-                                )}
-                              </span>
-                              <h4 className="text-sm font-extrabold text-foreground uppercase tracking-wide">{categoryName}</h4>
-                            </div>
-                            
-                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                              {isStrategicCategory && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleAddRow(sectionName, categoryName)}
-                                  className="h-7 px-2 text-[10px] gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
-                                >
-                                  <Plus className="h-3 w-3" /> Add Indicator
-                                </Button>
-                              )}
-                              {isStrategicCategory && (
-                                <span className="text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                  Strategic (Editable)
+                          {!isDirectRender && (
+                            <div 
+                              className="bg-muted/30 border-b border-border/60 px-4 py-2.5 flex items-center justify-between cursor-pointer select-none hover:bg-muted/50 transition-colors"
+                              onClick={() => toggleCategory(sectionName, categoryName)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground transition-transform duration-200">
+                                  {isCollapsed ? (
+                                    <ChevronRight className="h-4 w-4" />
+                                  ) : (
+                                    <ChevronDown className="h-4 w-4" />
+                                  )}
                                 </span>
-                              )}
+                                <h4 className="text-sm font-extrabold text-foreground uppercase tracking-wide">{categoryName}</h4>
+                              </div>
+                              
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                {isStrategicCategory && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleAddRow(sectionName, categoryName)}
+                                    className="h-7 px-2 text-[10px] gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+                                  >
+                                    <Plus className="h-3 w-3" /> Add Indicator
+                                  </Button>
+                                )}
+                                {isStrategicCategory && (
+                                  <span className="text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                    Strategic (Editable)
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
+                          )}
 
-                          {!isCollapsed && (
+                          {(!isCollapsed || isDirectRender) && (
                             <div className="overflow-x-auto">
-                              <table className="w-full text-xs border-collapse">
+                              <table className="w-full text-xs border-collapse table-fixed">
                                 <thead>
                                   <tr className="bg-muted/10 border-b border-border/60 text-foreground/90 text-left">
-                                    <th className="p-3 w-[24%] font-extrabold text-foreground border-r border-border/40">Performance Indicator</th>
+                                    <th className={`p-3 font-extrabold text-foreground border-r border-border/40 ${activeQuarterTab === "ALL" ? "w-[26%]" : "w-[36%]"}`}>Performance Indicator</th>
                                     <th className="p-3 w-[6%] font-extrabold text-foreground border-r border-border/40 text-center">Prog.</th>
                                     
                                     {(activeQuarterTab === "ALL" || activeQuarterTab === "Q1") && (
                                       <>
-                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q1 Target</th>
+                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q1 Target</th>
                                         {activeQuarterTab === "Q1" && (
-                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q1 Accomplishment</th>
+                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q1 Accomplishment</th>
                                         )}
                                       </>
                                     )}
                                     
                                     {(activeQuarterTab === "ALL" || activeQuarterTab === "Q2") && (
                                       <>
-                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q2 Target</th>
+                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q2 Target</th>
                                         {activeQuarterTab === "Q2" && (
-                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q2 Accomplishment</th>
+                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q2 Accomplishment</th>
                                         )}
                                       </>
                                     )}
                                     
                                     {(activeQuarterTab === "ALL" || activeQuarterTab === "Q3") && (
                                       <>
-                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q3 Target</th>
+                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q3 Target</th>
                                         {activeQuarterTab === "Q3" && (
-                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q3 Accomplishment</th>
+                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q3 Accomplishment</th>
                                         )}
                                       </>
                                     )}
                                     
                                     {(activeQuarterTab === "ALL" || activeQuarterTab === "Q4") && (
                                       <>
-                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q4 Target</th>
+                                        <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>Q4 Target</th>
                                         {activeQuarterTab === "Q4" && (
-                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q4 Accomplishment</th>
+                                          <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q4 Accomplishment</th>
                                         )}
                                       </>
                                     )}
                                     
-                                    <th className="p-2 w-[10%] font-black text-center border-r border-border/40 bg-muted/40 text-foreground">Annual Target</th>
-                                    {isStrategicCategory && (
-                                      <th className="p-2 w-[4%] font-extrabold text-center bg-muted/40"></th>
-                                    )}
+                                    <th className="p-2 w-[14%] font-black text-center border-r border-border/40 bg-muted/40 text-foreground">Annual Target</th>
+                                    <th className="p-2 w-[4%] font-extrabold text-center bg-muted/40"></th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/50">
                                   {categoryRows.map((row, idx) => {
                                     const isEditable = row.deliverable_type === "Strategic";
                                     const isFocused = focusedRowId === row.id;
+                                    const isModified = isRowModified(row);
                                     return (
                                       <tr
                                         key={row.id}
@@ -669,7 +745,10 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
                                         }`}
                                       >
                                         {/* Performance Indicator */}
-                                        <td className="p-1 font-medium text-foreground border-r border-border/40 max-w-[200px]">
+                                        <td className={`p-1 font-medium text-foreground border-r border-border/40 max-w-[200px] relative ${isModified ? "pl-3" : ""}`}>
+                                          {isModified && (
+                                            <span className="absolute left-0 top-0 bottom-0 w-1 bg-dost-blue" title="Unsaved Changes" />
+                                          )}
                                           {isEditable ? (
                                             <input
                                               type="text"
@@ -852,19 +931,17 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
                                           {row.annual_target.toLocaleString()}
                                         </td>
                                         {/* Actions Column (Delete button for Strategic rows) */}
-                                        {isStrategicCategory && (
-                                          <td className="p-1 text-center bg-muted/10">
-                                            {isEditable && (
-                                              <button
-                                                onClick={() => handleDeleteRow(row.id)}
-                                                className="p-1.5 text-muted-foreground hover:text-dost-red hover:bg-dost-red/10 rounded transition-colors"
-                                                title="Delete Strategic Indicator"
-                                              >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                              </button>
-                                            )}
-                                          </td>
-                                        )}
+                                        <td className="p-1 text-center bg-muted/10">
+                                          {isEditable && (
+                                            <button
+                                              onClick={() => handleDeleteRow(row.id)}
+                                              className="p-1.5 text-muted-foreground hover:text-dost-red hover:bg-dost-red/10 rounded transition-colors"
+                                              title="Delete Strategic Indicator"
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                          )}
+                                        </td>
                                       </tr>
                                     );
                                   })}

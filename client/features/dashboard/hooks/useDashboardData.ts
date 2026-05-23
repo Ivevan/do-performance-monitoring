@@ -4,6 +4,7 @@ import type { CategoryData, MetricData } from "@/lib/ptso-types";
 export interface VIndicatorData {
   indicator: string;
   section: string;
+  section_full_name?: string | null;
   category: string;          // DB categories.name (e.g. "Technology Acquisition & Upgrading")
   deliverable_type: string;  // "Functional" | "Strategic"
   year: number;

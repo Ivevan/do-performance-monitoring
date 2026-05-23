@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const mainItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Workspaces", url: "/dashboard", icon: LayoutDashboard },
 ];
 
 const supportItems = [

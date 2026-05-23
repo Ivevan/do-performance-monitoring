@@ -6,6 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE sections (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(255) NOT NULL,
+    full_name VARCHAR(500),
     order_index INT NOT NULL
 );
 
@@ -72,6 +73,7 @@ SELECT
     i.id as indicator_id,
     i.name as indicator,
     s.name as section,
+    s.full_name as section_full_name,
     c.name as category,
     c.deliverable_type,
     y.year,

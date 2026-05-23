@@ -189,17 +189,6 @@ const Dashboard = () => {
     return (
       <DashboardLayout 
         title={`CY ${selectedYear} Performance Dashboard`}
-        headerActions={
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate("/dashboard")}
-            className="border-border hover:bg-sidebar-accent text-xs font-semibold gap-1.5 h-9"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to Workspaces
-          </Button>
-        }
       >
         <div className="flex h-[400px] items-center justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
@@ -285,19 +274,16 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout
-      title={`CY ${selectedYear} Performance Dashboard`}
+      title={isEntryMode ? `CY ${selectedYear} Data Entry Sheet` : `CY ${selectedYear} Performance Dashboard`}
       headerActions={
         <div className="flex items-center gap-2 sm:gap-3">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate("/dashboard")}
-            className="border-border hover:bg-sidebar-accent text-[10px] sm:text-xs font-semibold gap-1.5 h-8 px-2.5 shrink-0"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">Back to Workspaces</span>
-            <span className="xs:hidden">Back</span>
-          </Button>
+          <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md border transition-all ${
+            isEntryMode
+              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800/50"
+              : "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/50"
+          }`}>
+            {isEntryMode ? "Edit Mode" : "Read-Only"}
+          </span>
           <Button
             variant={isEntryMode ? "default" : "outline"}
             size="sm"
@@ -308,14 +294,24 @@ const Dashboard = () => {
               }
               setIsEntryMode(!isEntryMode);
             }}
+            title={isEntryMode ? "Return to dashboard charts" : "Open performance data sheet"}
             className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${
               isEntryMode
                 ? "bg-dost-blue text-white shadow-glow border-transparent"
                 : "text-muted-foreground hover:text-foreground border-border/50"
             }`}
           >
-            <Edit3 className="h-3.5 w-3.5" />
-            <span className="hidden xs:inline">Data Sheet</span>
+            {isEntryMode ? (
+              <>
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">Dashboard</span>
+              </>
+            ) : (
+              <>
+                <Edit3 className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">Data Sheet</span>
+              </>
+            )}
           </Button>
           {!isEntryMode && (
             <>
