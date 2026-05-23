@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { ArrowLeft, Save, HelpCircle, Loader2, Trash2, Plus } from "lucide-react";
+import { ArrowLeft, Save, HelpCircle, Loader2, Trash2, Plus, ChevronDown, ChevronRight, RotateCcw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -43,6 +43,10 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [collapsedCategories, setCollapsedCategories] = useState<Record<string, boolean>>({});
+  const [activeQuarterTab, setActiveQuarterTab] = useState<"ALL" | "Q1" | "Q2" | "Q3" | "Q4">("ALL");
+
   // Sync dirty status back to parent component
   useEffect(() => {
     if (onChangeDirty) {
@@ -73,14 +77,13 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
     onBack();
   };
 
-  // Parse raw data into spreadsheet rows
-  useEffect(() => {
-    if (!rawData || rawData.length === 0) return;
+  // Shared parsing function to build rows
+  const parseRawData = (data: any[]) => {
+    if (!data || data.length === 0) return [];
 
-    // Group by unique indicator and program
     const groupedMap = new Map<string, GridRow>();
 
-    rawData.forEach((item) => {
+    data.forEach((item) => {
       const prog = item.program && item.program !== "N/A" ? item.program : null;
       const key = `${item.indicator}||${prog || "N/A"}`;
 
@@ -115,21 +118,38 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
       if (item.label === "Q4") row.q4_actual = item.value ?? 0;
     });
 
-    // Calculate initial annual values
-    const parsedRows = Array.from(groupedMap.values()).map((row) => {
+    return Array.from(groupedMap.values()).map((row) => {
       const isLatest = row.aggregation_type === "LATEST";
+      const isAverage = row.aggregation_type === "AVERAGE";
       if (isLatest) {
         row.annual_target = row.q4_target || row.q3_target || row.q2_target || row.q1_target || 0;
         row.annual_actual = row.q4_actual || row.q3_actual || row.q2_actual || row.q1_actual || 0;
+      } else if (isAverage) {
+        row.annual_target = (row.q1_target + row.q2_target + row.q3_target + row.q4_target) / 4;
+        row.annual_actual = (row.q1_actual + row.q2_actual + row.q3_actual + row.q4_actual) / 4;
       } else {
         row.annual_target = row.q1_target + row.q2_target + row.q3_target + row.q4_target;
         row.annual_actual = row.q1_actual + row.q2_actual + row.q3_actual + row.q4_actual;
       }
       return row;
     });
+  };
 
-    setRows(parsedRows);
+  // Parse raw data on mount or data changes
+  useEffect(() => {
+    const parsed = parseRawData(rawData);
+    setRows(parsed);
   }, [rawData]);
+
+  const handleRevert = () => {
+    const confirmRevert = window.confirm("Are you sure you want to revert all unsaved changes on this sheet?");
+    if (confirmRevert) {
+      const parsed = parseRawData(rawData);
+      setRows(parsed);
+      setIsDirty(false);
+      toast.info("All changes reverted back to saved state.");
+    }
+  };
 
   // Handle cell input change (both numeric targets/actuals and text indicator/program names)
   const handleCellChange = (
@@ -151,11 +171,17 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
           updated[field] = val;
 
           const isLatest = updated.aggregation_type === "LATEST";
+          const isAverage = updated.aggregation_type === "AVERAGE";
           if (isLatest) {
             updated.annual_target =
               updated.q4_target || updated.q3_target || updated.q2_target || updated.q1_target || 0;
             updated.annual_actual =
               updated.q4_actual || updated.q3_actual || updated.q2_actual || updated.q1_actual || 0;
+          } else if (isAverage) {
+            updated.annual_target =
+              (updated.q1_target + updated.q2_target + updated.q3_target + updated.q4_target) / 4;
+            updated.annual_actual =
+              (updated.q1_actual + updated.q2_actual + updated.q3_actual + updated.q4_actual) / 4;
           } else {
             updated.annual_target =
               updated.q1_target + updated.q2_target + updated.q3_target + updated.q4_target;
@@ -215,18 +241,57 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
     return sections;
   }, [rows]);
 
+  const sectionNames = useMemo(() => {
+    return Object.keys(sectionsData).sort();
+  }, [sectionsData]);
+
+  useEffect(() => {
+    if (sectionNames.length > 0 && !activeSection) {
+      setActiveSection(sectionNames[0]);
+    }
+  }, [sectionNames, activeSection]);
+
+  const toggleCategory = (section: string, category: string) => {
+    const key = `${section}||${category}`;
+    setCollapsedCategories((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const handleCollapseAll = () => {
+    if (!activeSection) return;
+    const categories = Object.keys(sectionsData[activeSection] || {});
+    const newCollapsed = { ...collapsedCategories };
+    categories.forEach((catName) => {
+      newCollapsed[`${activeSection}||${catName}`] = true;
+    });
+    setCollapsedCategories(newCollapsed);
+  };
+
+  const handleExpandAll = () => {
+    if (!activeSection) return;
+    const categories = Object.keys(sectionsData[activeSection] || {});
+    const newCollapsed = { ...collapsedCategories };
+    categories.forEach((catName) => {
+      newCollapsed[`${activeSection}||${catName}`] = false;
+    });
+    setCollapsedCategories(newCollapsed);
+  };
+
   // Order columns list for arrow navigation:
-  // 0: q1_target, 1: q1_actual, 2: q2_target, 3: q2_actual, 4: q3_target, 5: q3_actual, 6: q4_target, 7: q4_actual
-  const COL_FIELDS = [
-    "q1_target",
-    "q1_actual",
-    "q2_target",
-    "q2_actual",
-    "q3_target",
-    "q3_actual",
-    "q4_target",
-    "q4_actual",
-  ] as const;
+  const COL_FIELDS = useMemo(() => {
+    if (activeQuarterTab === "Q1") return ["q1_actual"];
+    if (activeQuarterTab === "Q2") return ["q2_actual"];
+    if (activeQuarterTab === "Q3") return ["q3_actual"];
+    if (activeQuarterTab === "Q4") return ["q4_actual"];
+    return [
+      "q1_target",
+      "q2_target",
+      "q3_target",
+      "q4_target",
+    ];
+  }, [activeQuarterTab]);
 
   // Handle cell navigation (Arrow Keys & Enter)
   const handleKeyDown = (
@@ -296,21 +361,57 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
     }
   };
 
+  // Helper function to resolve visual class name of input fields including validation states
+  const getInputClass = (val: number) => {
+    if (val < 0) {
+      return "w-full h-10 px-2 text-right bg-destructive/15 text-destructive border-2 border-destructive focus:ring-destructive focus:outline-none font-extrabold text-xs transition-colors";
+    }
+    return "w-full h-10 px-2 text-right bg-transparent hover:bg-muted/15 focus:bg-background border-0 focus:ring-2 focus:ring-inset focus:ring-primary focus:outline-none transition-all duration-150 font-semibold text-foreground text-xs";
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 pb-36">
       {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card/40 border border-border/60 p-4 rounded-xl mb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-card/45 border border-border/60 p-4 rounded-xl shadow-sm">
         <div>
-          <h2 className="text-base font-bold text-foreground">CY {year} Data Entry Matrix</h2>
-          <p className="text-xs text-muted-foreground">
-            Directly input targets and accomplishments in real-time. Formulas recalculate automatically.
+          <h2 className="text-base font-extrabold text-foreground">CY {year} Data Entry Matrix</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Directly input targets and accomplishments. Formulas recalculate automatically.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Integrated Quarter Switcher inside header to eliminate double row tab stack */}
+          <div className="flex items-center gap-1 bg-muted/65 p-1 rounded-lg border border-border/40">
+            {(["ALL", "Q1", "Q2", "Q3", "Q4"] as const).map((tab) => {
+              const labelMap = {
+                ALL: "All Quarters",
+                Q1: "Q1",
+                Q2: "Q2",
+                Q3: "Q3",
+                Q4: "Q4",
+              };
+              const isActive = activeQuarterTab === tab;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveQuarterTab(tab)}
+                  className={`px-3 py-1.5 text-[11px] font-bold uppercase rounded-md transition-all ${
+                    isActive
+                      ? "bg-background text-foreground shadow-sm border border-border/10 font-black"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {labelMap[tab]}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted/50 border border-border/40 px-2.5 py-1.5 rounded-lg">
             <HelpCircle className="h-3.5 w-3.5 text-amber-500" />
-            <span>Use Arrow keys / Enter to navigate cells</span>
+            <span className="hidden sm:inline">Use Arrow keys / Enter to navigate cells</span>
+            <span className="sm:hidden">Keyboard Nav Ready</span>
           </div>
 
           <Button
@@ -331,288 +432,485 @@ export function DataEntryGrid({ year, rawData, onBack, onSave, onChangeDirty }: 
         </div>
       </div>
 
+      {/* Section Navigation Tabs */}
+      {sectionNames.length > 1 && (
+        <div className="flex flex-wrap gap-2 border-b border-border/40 pb-3">
+          {sectionNames.map((secName) => {
+            const isActive = activeSection === secName;
+            return (
+              <button
+                key={secName}
+                onClick={() => setActiveSection(secName)}
+                className={`px-4 py-2 text-xs font-bold uppercase rounded-lg border transition-all duration-200 ${
+                  isActive
+                    ? "bg-primary border-primary text-primary-foreground shadow-sm shadow-primary/20"
+                    : "bg-card border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                }`}
+              >
+                {secName}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Status Helper Description & Help Legend */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {/* Helper Banner */}
+        <div className="md:col-span-2 text-[11px] font-bold text-muted-foreground/80 bg-muted/20 border border-border/30 rounded-xl p-3 flex items-center gap-2">
+          <span>
+            {activeQuarterTab === "ALL"
+              ? "All Quarters Planning Mode: Edit target values across the entire year. Select Q1-Q4 to report accomplishments."
+              : `${activeQuarterTab} Accomplishment Mode: Input accomplishments achieved. Target fields remain editable.`}
+          </span>
+        </div>
+
+        {/* Legend Panel */}
+        <div className="text-[10px] font-semibold text-muted-foreground bg-muted/25 border border-border/35 rounded-xl p-3 flex items-center justify-around gap-2">
+          <div className="flex items-center gap-1.5">
+            <span><strong>Functional:</strong> Standard Metrics (Locked)</span>
+          </div>
+          <div className="flex items-center gap-1.5 border-l border-border/40 pl-3">
+            <span><strong>Strategic:</strong> Custom Metrics (Editable)</span>
+          </div>
+        </div>
+      </div>
+
       {/* Spreadsheet Tables */}
       <div className="space-y-8">
-        {Object.entries(sectionsData).map(([sectionName, categories]) => {
-          const categoriesList = Object.entries(categories);
-          const firstStrategicIdx = categoriesList.findIndex(([_, rows]) => rows[0]?.deliverable_type === "Strategic");
-          
-          const getSubHeader = (secName: string) => {
-            const name = secName.toUpperCase();
-            if (name.includes("I. OPERATIONS")) {
-              return "I. DIFFUSION AND TRANSFER OF KNOWLEDGE AND TECHNOLOGIES; AND OTHER RELATED PROJECTS AND ACTIVITIES";
-            }
-            if (name.includes("II. ENHANCEMENT")) {
-              return "II. ENHANCEMENT OF SCIENCE AND TECHNOLOGY PROJECTS/ACTIVITIES";
-            }
-            if (name.includes("III. GENERAL ADMINISTRATIVE")) {
-              return "III. GENERAL ADMINISTRATIVE SERVICES";
-            }
-            if (name.includes("IV. SUPPORT TO OPERATIONS")) {
-              return "IV. SUPPORT TO OPERATIONS";
-            }
-            return null;
-          };
+        {Object.entries(sectionsData)
+          .filter(([sectionName]) => !activeSection || sectionName === activeSection)
+          .map(([sectionName, categories]) => {
+            const categoriesList = Object.entries(categories);
+            const firstStrategicIdx = categoriesList.findIndex(([_, rows]) => rows[0]?.deliverable_type === "Strategic");
+            
+            const getSubHeader = (secName: string) => {
+              const name = secName.toUpperCase();
+              if (name.includes("I. OPERATIONS")) {
+                return "I. DIFFUSION AND TRANSFER OF KNOWLEDGE AND TECHNOLOGIES; AND OTHER RELATED PROJECTS AND ACTIVITIES";
+              }
+              if (name.includes("II. ENHANCEMENT")) {
+                return "II. ENHANCEMENT OF SCIENCE AND TECHNOLOGY PROJECTS/ACTIVITIES";
+              }
+              if (name.includes("III. GENERAL ADMINISTRATIVE")) {
+                return "III. GENERAL ADMINISTRATIVE SERVICES";
+              }
+              if (name.includes("IV. SUPPORT TO OPERATIONS")) {
+                return "IV. SUPPORT TO OPERATIONS";
+              }
+              return null;
+            };
 
-          const subHeader = getSubHeader(sectionName);
+            const subHeader = getSubHeader(sectionName);
 
-          return (
-            <div key={sectionName} className="space-y-4">
-              <div className="border-l-4 border-dost-blue pl-2.5 space-y-1">
-                <h3 className="text-sm font-extrabold text-dost-blue tracking-wide uppercase">
-                  {sectionName}
-                </h3>
-                {subHeader && (
-                  <div className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase leading-relaxed max-w-4xl">
-                    {subHeader}
+            return (
+              <div key={sectionName} className="space-y-4">
+                {/* Redesigned Section Subheader Banner - Removes redundant Section title label */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-secondary/15 p-3 rounded-lg border border-border/40">
+                  <div className="space-y-0.5">
+                    {subHeader ? (
+                      <div className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wide leading-relaxed max-w-4xl">
+                        {subHeader}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wide">
+                        {sectionName}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                  
+                  {/* Global Expand/Collapse for active section */}
+                  <div className="flex items-center gap-2 self-start sm:self-center">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      onClick={handleExpandAll}
+                    >
+                      Expand All
+                    </Button>
+                    <span className="text-muted-foreground/30 text-xs">|</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[10px] uppercase font-bold text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      onClick={handleCollapseAll}
+                    >
+                      Collapse All
+                    </Button>
+                  </div>
+                </div>
 
-              <div className="space-y-6">
-                {categoriesList.map(([categoryName, categoryRows], index) => {
-                  const isStrategicCategory = categoryRows[0]?.deliverable_type === "Strategic";
-                  const isFirstFunctional = index === 0 && !isStrategicCategory;
-                  const isFirstStrategic = index === firstStrategicIdx;
+                <div className="space-y-6">
+                  {categoriesList.map(([categoryName, categoryRows], index) => {
+                    const isStrategicCategory = categoryRows[0]?.deliverable_type === "Strategic";
+                    const isFirstFunctional = index === 0 && !isStrategicCategory;
+                    const isFirstStrategic = index === firstStrategicIdx;
+                    const isCollapsed = collapsedCategories[`${sectionName}||${categoryName}`];
 
-                  return (
-                    <div key={categoryName} className="space-y-2">
-                      {isFirstFunctional && (
-                        <h4 className="text-[10px] font-extrabold text-muted-foreground/95 tracking-wider uppercase mt-4 mb-1 pl-1">
-                          FUNCTIONAL DELIVERABLES
-                        </h4>
-                      )}
-                      {isFirstStrategic && (
-                        <h4 className="text-[10px] font-extrabold text-indigo-400 tracking-wider uppercase mt-6 mb-1 pl-1">
-                          STRATEGIC DELIVERABLES
-                        </h4>
-                      )}
-
-                      <Card className="bg-card border-border overflow-hidden shadow-sm">
-                        <div className="bg-muted/30 border-b border-border/60 px-4 py-2.5 flex items-center justify-between">
-                          <h4 className="text-xs font-bold text-foreground/80">{categoryName}</h4>
-                          <div className="flex items-center gap-2">
-                            {isStrategicCategory && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleAddRow(sectionName, categoryName)}
-                                className="h-7 px-2 text-[10px] gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
-                              >
-                                <Plus className="h-3 w-3" /> Add Indicator
-                              </Button>
-                            )}
-                            {isStrategicCategory ? (
-                              <span className="text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                Strategic (Editable)
-                              </span>
-                            ) : (
-                              <span className="text-[10px] font-bold bg-muted text-muted-foreground border border-border px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                Functional
-                              </span>
-                            )}
+                    return (
+                      <div key={categoryName} className="space-y-2">
+                        {/* Redesigned Deliverable Category Separators with indicators */}
+                        {isFirstFunctional && (
+                          <div className="flex items-center gap-2 mt-4 mb-1.5 pl-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60"></span>
+                            <span className="text-[10px] font-black text-muted-foreground/90 tracking-widest uppercase">
+                              Functional Deliverables
+                            </span>
                           </div>
-                        </div>
+                        )}
+                        {isFirstStrategic && (
+                          <div className="flex items-center gap-2 mt-6 mb-1.5 pl-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
+                            <span className="text-[10px] font-black text-indigo-400 tracking-widest uppercase">
+                              Strategic Deliverables
+                            </span>
+                          </div>
+                        )}
 
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs border-collapse">
-                            <thead>
-                              <tr className="bg-muted/10 border-b border-border/60 text-muted-foreground font-medium text-left">
-                                <th className="p-3 w-[28%] font-semibold border-r border-border/40">Performance Indicator</th>
-                                <th className="p-3 w-[8%] font-semibold border-r border-border/40 text-center">Prog.</th>
-                                
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-blue/5">Q1 Target</th>
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-red/5">Q1 Actual</th>
-                                
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-blue/5">Q2 Target</th>
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-red/5">Q2 Actual</th>
-                                
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-blue/5">Q3 Target</th>
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-red/5">Q3 Actual</th>
-                                
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-blue/5">Q4 Target</th>
-                                <th className="p-2 w-[8%] font-semibold text-center border-r border-border/40 bg-dost-red/5">Q4 Actual</th>
-                                
-                                <th className="p-2 w-[8%] font-bold text-center border-r border-border/40 bg-muted/40">Annual Tgt</th>
-                                <th className="p-2 w-[8%] font-bold text-center border-r border-border/40 bg-muted/40">Annual Act</th>
-                                <th className="p-2 w-[4%] font-semibold text-center bg-muted/40"></th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border/50">
-                              {categoryRows.map((row, idx) => {
-                                const isEditable = row.deliverable_type === "Strategic";
-                                const isFocused = focusedRowId === row.id;
-                                return (
-                                  <tr
-                                    key={row.id}
-                                    onFocus={() => setFocusedRowId(row.id)}
-                                    onBlur={() => setFocusedRowId(null)}
-                                    className={`transition-colors duration-150 ${
-                                      isFocused
-                                        ? "bg-primary/[0.06] dark:bg-primary/[0.08]"
-                                        : "hover:bg-accent/15"
-                                    }`}
-                                  >
-                                    {/* Indicator Name */}
-                                    <td className="p-1 font-medium text-foreground border-r border-border/40 max-w-[200px]">
-                                      {isEditable ? (
-                                        <input
-                                          type="text"
-                                          className="w-full h-8 px-2 text-left bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-medium text-foreground text-xs"
-                                          value={row.indicator}
-                                          onChange={(e) => handleCellChange(row.id, "indicator", e.target.value)}
-                                          placeholder="Enter indicator name..."
-                                        />
-                                      ) : (
-                                        <div className="px-2 py-1.5 truncate font-medium text-foreground text-xs" title={row.indicator}>
-                                          {row.indicator}
-                                        </div>
-                                      )}
-                                    </td>
-                                    {/* Program */}
-                                    <td className="p-1 text-center border-r border-border/40">
-                                      {isEditable ? (
-                                        <input
-                                          type="text"
-                                          className="w-full h-8 px-2 text-center bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-bold text-muted-foreground text-xs"
-                                          value={row.program || ""}
-                                          onChange={(e) => handleCellChange(row.id, "program", e.target.value)}
-                                          placeholder="N/A"
-                                        />
-                                      ) : (
-                                        <div className="px-2 py-1.5 font-bold text-muted-foreground text-xs">
-                                          {row.program || "-"}
-                                        </div>
-                                      )}
-                                    </td>
+                        <Card className="bg-card border-border overflow-hidden shadow-sm">
+                          <div 
+                            className="bg-muted/30 border-b border-border/60 px-4 py-2.5 flex items-center justify-between cursor-pointer select-none hover:bg-muted/50 transition-colors"
+                            onClick={() => toggleCategory(sectionName, categoryName)}
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-muted-foreground transition-transform duration-200">
+                                {isCollapsed ? (
+                                  <ChevronRight className="h-4 w-4" />
+                                ) : (
+                                  <ChevronDown className="h-4 w-4" />
+                                )}
+                              </span>
+                              <h4 className="text-sm font-extrabold text-foreground uppercase tracking-wide">{categoryName}</h4>
+                            </div>
+                            
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              {isStrategicCategory && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleAddRow(sectionName, categoryName)}
+                                  className="h-7 px-2 text-[10px] gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
+                                >
+                                  <Plus className="h-3 w-3" /> Add Indicator
+                                </Button>
+                              )}
+                              {isStrategicCategory && (
+                                <span className="text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                  Strategic (Editable)
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                                    {/* Q1 Target */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q1_target`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q1_target || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q1_target", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 0, categoryRows)}
-                                      />
-                                    </td>
-                                    {/* Q1 Actual */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q1_actual`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q1_actual || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q1_actual", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 1, categoryRows)}
-                                      />
-                                    </td>
-
-                                    {/* Q2 Target */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q2_target`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q2_target || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q2_target", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 2, categoryRows)}
-                                      />
-                                    </td>
-                                    {/* Q2 Actual */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q2_actual`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q2_actual || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q2_actual", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 3, categoryRows)}
-                                      />
-                                    </td>
-
-                                    {/* Q3 Target */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q3_target`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q3_target || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q3_target", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 4, categoryRows)}
-                                      />
-                                    </td>
-                                    {/* Q3 Actual */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q3_actual`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q3_actual || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q3_actual", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 5, categoryRows)}
-                                      />
-                                    </td>
-
-                                    {/* Q4 Target */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q4_target`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q4_target || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q4_target", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 6, categoryRows)}
-                                      />
-                                    </td>
-                                    {/* Q4 Actual */}
-                                    <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                      <input
-                                        ref={(el) => (inputRefs.current[`${row.id}-q4_actual`] = el)}
-                                        type="number"
-                                        className="w-full h-10 px-2 text-right bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none transition-colors"
-                                        value={row.q4_actual || ""}
-                                        onChange={(e) => handleCellChange(row.id, "q4_actual", e.target.value)}
-                                        onKeyDown={(e) => handleKeyDown(e, idx, 7, categoryRows)}
-                                      />
-                                    </td>
-
-                                    {/* Annual Target Formula */}
-                                    <td className="p-3 text-right font-bold text-foreground/75 border-r border-border/40 bg-muted/30 select-none">
-                                      {row.annual_target.toLocaleString()}
-                                    </td>
-                                    {/* Annual Actual Formula */}
-                                    <td className="p-3 text-right font-bold text-foreground/75 border-r border-border/40 bg-muted/30 select-none">
-                                      {row.annual_actual.toLocaleString()}
-                                    </td>
-                                    {/* Actions Column (Delete button for Strategic rows) */}
-                                    <td className="p-1 text-center bg-muted/10">
-                                      {isEditable && (
-                                        <button
-                                          onClick={() => handleDeleteRow(row.id)}
-                                          className="p-1.5 text-muted-foreground hover:text-dost-red hover:bg-dost-red/10 rounded transition-colors"
-                                          title="Delete Strategic Indicator"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
-                                      )}
-                                    </td>
+                          {!isCollapsed && (
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-xs border-collapse">
+                                <thead>
+                                  <tr className="bg-muted/10 border-b border-border/60 text-foreground/90 text-left">
+                                    <th className="p-3 w-[24%] font-extrabold text-foreground border-r border-border/40">Performance Indicator</th>
+                                    <th className="p-3 w-[6%] font-extrabold text-foreground border-r border-border/40 text-center">Prog.</th>
+                                    
+                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q1") && (
+                                      <>
+                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q1 Target</th>
+                                        {activeQuarterTab === "Q1" && (
+                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q1 Accomplishment</th>
+                                        )}
+                                      </>
+                                    )}
+                                    
+                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q2") && (
+                                      <>
+                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q2 Target</th>
+                                        {activeQuarterTab === "Q2" && (
+                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q2 Accomplishment</th>
+                                        )}
+                                      </>
+                                    )}
+                                    
+                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q3") && (
+                                      <>
+                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q3 Target</th>
+                                        {activeQuarterTab === "Q3" && (
+                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q3 Accomplishment</th>
+                                        )}
+                                      </>
+                                    )}
+                                    
+                                    {(activeQuarterTab === "ALL" || activeQuarterTab === "Q4") && (
+                                      <>
+                                        <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground">Q4 Target</th>
+                                        {activeQuarterTab === "Q4" && (
+                                          <th className="p-2 w-[10%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">Q4 Accomplishment</th>
+                                        )}
+                                      </>
+                                    )}
+                                    
+                                    <th className="p-2 w-[10%] font-black text-center border-r border-border/40 bg-muted/40 text-foreground">Annual Target</th>
+                                    {isStrategicCategory && (
+                                      <th className="p-2 w-[4%] font-extrabold text-center bg-muted/40"></th>
+                                    )}
                                   </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      </Card>
-                    </div>
-                  );
-                })}
+                                </thead>
+                                <tbody className="divide-y divide-border/50">
+                                  {categoryRows.map((row, idx) => {
+                                    const isEditable = row.deliverable_type === "Strategic";
+                                    const isFocused = focusedRowId === row.id;
+                                    return (
+                                      <tr
+                                        key={row.id}
+                                        onFocus={() => setFocusedRowId(row.id)}
+                                        onBlur={() => setFocusedRowId(null)}
+                                        className={`transition-colors duration-150 ${
+                                          isFocused
+                                            ? "bg-primary/[0.06] dark:bg-primary/[0.08]"
+                                            : "hover:bg-accent/15"
+                                        }`}
+                                      >
+                                        {/* Performance Indicator */}
+                                        <td className="p-1 font-medium text-foreground border-r border-border/40 max-w-[200px]">
+                                          {isEditable ? (
+                                            <input
+                                              type="text"
+                                              className="w-full h-8 px-2 text-left bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-medium text-foreground text-xs"
+                                              value={row.indicator}
+                                              onChange={(e) => handleCellChange(row.id, "indicator", e.target.value)}
+                                              placeholder="Enter indicator name..."
+                                            />
+                                          ) : (
+                                            <div className="px-2 py-1.5 truncate font-medium text-foreground text-xs" title={row.indicator}>
+                                              {row.indicator}
+                                            </div>
+                                          )}
+                                        </td>
+                                        {/* Program */}
+                                        <td className="p-1 text-center border-r border-border/40">
+                                          {isEditable ? (
+                                            <input
+                                              type="text"
+                                              className="w-full h-8 px-2 text-center bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-bold text-muted-foreground text-xs"
+                                              value={row.program || ""}
+                                              onChange={(e) => handleCellChange(row.id, "program", e.target.value)}
+                                              placeholder="N/A"
+                                            />
+                                          ) : (
+                                            <div className="px-2 py-1.5 font-bold text-muted-foreground text-xs">
+                                              {row.program || "-"}
+                                            </div>
+                                          )}
+                                        </td>
+
+                                        {/* Q1 Target & Actual */}
+                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q1") && (
+                                          <>
+                                            {activeQuarterTab === "ALL" ? (
+                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q1_target`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q1_target)}
+                                                  value={row.q1_target || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q1_target", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q1_target"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            ) : (
+                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
+                                                {row.q1_target.toLocaleString()}
+                                              </td>
+                                            )}
+                                            {activeQuarterTab === "Q1" && (
+                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q1_actual`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q1_actual)}
+                                                  value={row.q1_actual || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q1_actual", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q1_actual"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            )}
+                                          </>
+                                        )}
+
+                                        {/* Q2 Target & Actual */}
+                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q2") && (
+                                          <>
+                                            {activeQuarterTab === "ALL" ? (
+                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q2_target`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q2_target)}
+                                                  value={row.q2_target || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q2_target", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q2_target"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            ) : (
+                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
+                                                {row.q2_target.toLocaleString()}
+                                              </td>
+                                            )}
+                                            {activeQuarterTab === "Q2" && (
+                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q2_actual`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q2_actual)}
+                                                  value={row.q2_actual || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q2_actual", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q2_actual"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            )}
+                                          </>
+                                        )}
+
+                                        {/* Q3 Target & Actual */}
+                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q3") && (
+                                          <>
+                                            {activeQuarterTab === "ALL" ? (
+                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q3_target`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q3_target)}
+                                                  value={row.q3_target || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q3_target", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q3_target"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            ) : (
+                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
+                                                {row.q3_target.toLocaleString()}
+                                              </td>
+                                            )}
+                                            {activeQuarterTab === "Q3" && (
+                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q3_actual`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q3_actual)}
+                                                  value={row.q3_actual || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q3_actual", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q3_actual"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            )}
+                                          </>
+                                        )}
+
+                                        {/* Q4 Target & Actual */}
+                                        {(activeQuarterTab === "ALL" || activeQuarterTab === "Q4") && (
+                                          <>
+                                            {activeQuarterTab === "ALL" ? (
+                                              <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q4_target`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q4_target)}
+                                                  value={row.q4_target || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q4_target", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q4_target"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            ) : (
+                                              <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
+                                                {row.q4_target.toLocaleString()}
+                                              </td>
+                                            )}
+                                            {activeQuarterTab === "Q4" && (
+                                              <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
+                                                <input
+                                                  ref={(el) => (inputRefs.current[`${row.id}-q4_actual`] = el)}
+                                                  type="number"
+                                                  className={getInputClass(row.q4_actual)}
+                                                  value={row.q4_actual || ""}
+                                                  onChange={(e) => handleCellChange(row.id, "q4_actual", e.target.value)}
+                                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf("q4_actual"), categoryRows)}
+                                                  placeholder="0"
+                                                />
+                                              </td>
+                                            )}
+                                          </>
+                                        )}
+
+                                        {/* Annual Target Formula with Muted Zeros logic */}
+                                        <td className={`p-3 text-right border-r border-border/40 bg-muted/30 select-none ${
+                                          row.annual_target === 0 ? "text-muted-foreground/35 font-medium" : "text-foreground font-extrabold"
+                                        }`}>
+                                          {row.annual_target.toLocaleString()}
+                                        </td>
+                                        {/* Actions Column (Delete button for Strategic rows) */}
+                                        {isStrategicCategory && (
+                                          <td className="p-1 text-center bg-muted/10">
+                                            {isEditable && (
+                                              <button
+                                                onClick={() => handleDeleteRow(row.id)}
+                                                className="p-1.5 text-muted-foreground hover:text-dost-red hover:bg-dost-red/10 rounded transition-colors"
+                                                title="Delete Strategic Indicator"
+                                              >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                              </button>
+                                            )}
+                                          </td>
+                                        )}
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </Card>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
+
+      {/* Floating Save Banner */}
+      {isDirty && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-lg bg-background/95 dark:bg-card/95 backdrop-blur-md border border-border shadow-2xl rounded-xl p-4 flex items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center gap-2">
+            <div className="text-xs font-semibold text-foreground">
+              You have unsaved changes on this sheet.
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs font-bold border-border/60 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 gap-1"
+              onClick={handleRevert}
+            >
+              <RotateCcw className="h-3 w-3" /> Revert
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 text-xs font-bold bg-primary hover:bg-primary/90 text-primary-foreground gap-1"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+              Save Changes
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
