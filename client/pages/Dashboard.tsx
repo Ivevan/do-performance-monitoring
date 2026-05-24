@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Activity, BarChart3, Calendar, Filter, Edit3, Save, Loader2 } from "lucide-react";
+import { Activity, BarChart3, Calendar, Filter, Edit3, Save, Loader2, FileSpreadsheet } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { CategoryTabs } from "@/features/dashboard/components/CategoryTabs";
 import { IndicatorTrendsChart } from "@/features/dashboard/components/IndicatorTrendsChart";
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { DataEntryGrid, DataEntryGridRef } from "@/features/dashboard/components/DataEntryGrid";
+import { ExportDialog } from "@/features/dashboard/components/ExportDialog";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import { useKpiData, KPI_INDICATORS } from "@/features/dashboard/hooks/useKpiData";
 import { useChartData } from "@/features/dashboard/hooks/useChartData";
@@ -48,6 +49,7 @@ const Dashboard = () => {
   const [gridIsDirty, setGridIsDirty] = useState(false);
   const [activeQuarterTab, setActiveQuarterTab] = useState<"ALL" | "Q1" | "Q2" | "Q3" | "Q4">("ALL");
   const [isSaving, setIsSaving] = useState(false);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const gridRef = useRef<DataEntryGridRef>(null);
 
   // ── Derived section filter ─────────────────────────────────────────────────
@@ -154,6 +156,7 @@ const Dashboard = () => {
   };
 
   return (
+    <>
     <DashboardLayout
       title={isEntryMode ? `CY ${selectedYear} Performance Data Sheet` : `CY ${selectedYear} Performance Dashboard`}
       headerActions={
@@ -233,6 +236,16 @@ const Dashboard = () => {
                 <Activity className="h-3.5 w-3.5" />
                 <span className="hidden xs:inline">With Accomplishment</span>
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowExportDialog(true)}
+                title="Export as DOST Excel template"
+                className="text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all text-muted-foreground hover:text-foreground border-border/50"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" />
+                <span className="hidden xs:inline">Export</span>
+              </Button>
               <QuarterFilter<Quarter> selected={activeQuarter} onChange={setActiveQuarter} />
             </>
           )}
@@ -258,7 +271,7 @@ const Dashboard = () => {
         /* ════════════════════════════════════════════════════════════════════ */
         /* Mode 2: Visualization Dashboard                                    */
         /* ════════════════════════════════════════════════════════════════════ */
-        <div className="flex flex-col gap-8 w-full pb-12">
+        <div className="flex flex-col gap-8 w-full pb-2">
 
           {/* ── 1. KPI Cards ── */}
           <section>
@@ -381,6 +394,17 @@ const Dashboard = () => {
         </div>
       )}
     </DashboardLayout>
+
+    {/* Export Dialog (rendered outside layout to avoid z-index issues) */}
+    {data && (
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        rawData={data.rawData}
+        year={selectedYear}
+      />
+    )}
+  </>
   );
 };
 

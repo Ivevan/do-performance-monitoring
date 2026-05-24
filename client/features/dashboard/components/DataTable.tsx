@@ -32,21 +32,26 @@ function formatValue(value: number | string | null | undefined, unit?: string): 
 }
 
 function PerformanceCell({ target, actual, unit, showAccomplishments }: { target: number | string, actual?: number, unit?: string, showAccomplishments: boolean }) {
-  // Always show accomplishment label if toggle is ON, defaulting to 0 if data is missing
-  const hasActual = showAccomplishments;
   const displayActual = actual ?? 0;
   
-  return (
-    <div className="flex flex-col items-right text-right">
-      <span className={hasActual ? "text-[10px] text-muted-foreground/60 line-through decoration-muted-foreground/30" : "text-xs text-muted-foreground"}>
-        {formatValue(target, unit)}
-      </span>
-      {hasActual && (
-        <span className="text-[11px] font-black text-dost-red mt-0.5">
+  if (showAccomplishments) {
+    return (
+      <div className="flex items-center justify-end gap-1 text-xs">
+        <span className="text-foreground/90 font-medium">
+          {formatValue(target, unit)}
+        </span>
+        <span className="text-muted-foreground/30 font-normal">/</span>
+        <span className="text-dost-red font-bold">
           {formatValue(displayActual, unit)}
         </span>
-      )}
-    </div>
+      </div>
+    );
+  }
+  
+  return (
+    <span className="text-xs text-foreground/90 font-medium">
+      {formatValue(target, unit)}
+    </span>
   );
 }
 
@@ -97,17 +102,24 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                     {selectedQuarter === "Annual" ? (
                       /* Annual — full Q1/Q2/Q3/Q4/Annual table */
                       <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-muted-foreground text-[10px] uppercase tracking-wider border-b border-border/50 bg-muted/30">
-                            <th className="text-left py-2 px-4 font-bold">Indicator Metric</th>
-                            <th className="text-right py-2 px-4 font-bold">Q1</th>
-                            <th className="text-right py-2 px-4 font-bold">Q2</th>
-                            <th className="text-right py-2 px-4 font-bold">Q3</th>
-                            <th className="text-right py-2 px-4 font-bold">Q4</th>
-                            <th className="text-right py-2 px-4 font-bold text-primary">Annual</th>
-                          </tr>
-                        </thead>
+                        {showAccomplishments && (
+                          <div className="bg-muted/10 border-b border-border/30 px-4 py-1.5 flex items-center justify-end gap-1.5 text-[9px] text-muted-foreground">
+                            <span className="font-semibold text-foreground/80">Target</span>
+                            <span>/</span>
+                            <span className="font-bold text-dost-red">Accomplishment</span>
+                          </div>
+                        )}
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-muted-foreground text-[10px] uppercase tracking-wider border-b border-border/50 bg-muted/30">
+                              <th className="text-left py-2 px-4 font-bold">Indicator Metric</th>
+                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q1 (T/A)" : "Q1"}</th>
+                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q2 (T/A)" : "Q2"}</th>
+                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q3 (T/A)" : "Q3"}</th>
+                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q4 (T/A)" : "Q4"}</th>
+                              <th className="text-right py-2 px-4 font-bold text-primary">{showAccomplishments ? "Annual (T/A)" : "Annual"}</th>
+                            </tr>
+                          </thead>
                         <tbody>
                           {sub.metrics.map((metric) => (
                             <tr key={metric.name} className="hover:bg-muted/40 transition-colors border-b border-border/10 last:border-0">
@@ -140,7 +152,7 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                             <div className="flex items-center gap-6 shrink-0">
                               {/* Target Column */}
                               <div className="flex flex-col items-end min-w-[70px]">
-                                <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter leading-tight mb-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter leading-tight mb-0.5">
                                   Target
                                 </span>
                                 <span className="text-xs font-bold text-foreground/80 leading-none">
@@ -154,7 +166,7 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                                   <span className="text-[8px] text-dost-red uppercase font-bold tracking-tighter leading-tight mb-0.5">
                                     Accomplished
                                   </span>
-                                  <span className="text-xs font-black text-dost-red italic leading-none">
+                                  <span className="text-xs font-bold text-dost-red leading-none">
                                     {formatValue(actual ?? 0, metric.unit)}
                                   </span>
                                 </div>
