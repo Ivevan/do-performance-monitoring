@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 
 const taglines = [
   "Science • Technology • Innovation",
-  "Empowering Region XI through S&T",
+  "Empowering Davao Oriental through S&T",
   "Performance you can measure",
 ];
 
@@ -61,13 +61,13 @@ export function BrandingPanel({ variant = "desktop" }: Props) {
 
           <div className="space-y-0.5">
             <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight leading-none">
-              <span className="text-shimmer-brand">DOST Region XI</span>
+              <span className="text-shimmer-brand">DOST Davao Oriental</span>
             </h1>
             <p className="text-xs font-medium text-white/80 tracking-wide">
-              Do Performance Monitoring
+              Performance Monitoring
             </p>
             <p className="text-[10px] text-amber-300/80 tracking-wider uppercase font-semibold">
-              Empowering Region XI through S&T
+              Empowering Davao Oriental through S&T
             </p>
           </div>
         </motion.div>
@@ -142,7 +142,7 @@ export function BrandingPanel({ variant = "desktop" }: Props) {
               <span className="text-shimmer-brand">DOST</span>
             </h1>
             <p className="text-3xl xl:text-4xl font-bold tracking-[0.15em] text-white/90">
-              REGION XI
+              DAVAO ORIENTAL
             </p>
           </div>
 
@@ -156,7 +156,7 @@ export function BrandingPanel({ variant = "desktop" }: Props) {
           {/* Sub-title */}
           <div className="space-y-2">
             <p className="text-lg xl:text-xl font-semibold tracking-wide text-white">
-              Do Performance Monitoring
+              Performance Monitoring
             </p>
             {/* Rotating tagline */}
             <motion.p
