@@ -121,12 +121,10 @@ export function BrandingPanel({ variant = "desktop" }: Props) {
             animate={{
               scale: 1,
               opacity: 1,
-              y: [0, -10, 0],
             }}
             transition={{
               scale: { duration: 0.6, delay: 0.15, ease: "easeOut" },
               opacity: { duration: 0.6, delay: 0.15 },
-              y: { duration: 4.5, ease: "easeInOut", repeat: Infinity, delay: 0.8 },
             }}
           />
         </div>
