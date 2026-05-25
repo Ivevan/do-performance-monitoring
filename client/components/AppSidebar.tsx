@@ -108,7 +108,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {mainItems.map(renderItem)}
-                {role === "Editor" &&
+                {(role === "Editor" || role === "PD") &&
                   renderItem({
                     title: "Manage Roles",
                     url: "/dashboard/roles",

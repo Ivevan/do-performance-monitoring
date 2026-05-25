@@ -3,9 +3,15 @@ import { requireAuth, requireRole, getRequestScopedSupabase } from "../middlewar
 
 const router = Router();
 
+const ROLE_LEVELS: Record<string, number> = {
+  PD: 3,
+  Editor: 2,
+  Staff: 1
+};
+
 // GET /api/users/roles
-// Retrieve all registered users and their roles (Editor only)
-router.get("/roles", requireAuth, requireRole(["Editor"]), async (req, res) => {
+// Retrieve all registered users and their roles (Editor/PD only)
+router.get("/roles", requireAuth, requireRole(["Editor", "PD"]), async (req, res) => {
   try {
     const userClient = getRequestScopedSupabase(req);
     const { data, error } = await userClient
@@ -26,10 +32,11 @@ router.get("/roles", requireAuth, requireRole(["Editor"]), async (req, res) => {
 });
 
 // POST /api/users/roles
-// Register a new user role mapping (Editor only)
-router.post("/roles", requireAuth, requireRole(["Editor"]), async (req, res) => {
+// Register a new user role mapping (Editor/PD only)
+router.post("/roles", requireAuth, requireRole(["Editor", "PD"]), async (req, res) => {
   try {
     const { email, role } = req.body;
+    const currentUser = (req as any).user;
 
     if (!email || !role) {
       return res.status(400).json({ error: "Email and role are required." });
@@ -37,6 +44,16 @@ router.post("/roles", requireAuth, requireRole(["Editor"]), async (req, res) => 
 
     if (!["PD", "Editor", "Staff"].includes(role)) {
       return res.status(400).json({ error: "Invalid role value. Must be 'PD', 'Editor', or 'Staff'." });
+    }
+
+    const currentUserLevel = ROLE_LEVELS[currentUser.role] || 0;
+    const targetRoleLevel = ROLE_LEVELS[role] || 0;
+
+    // Enforce role hierarchy: Creator role must be strictly higher than the assigned role
+    if (currentUserLevel <= targetRoleLevel) {
+      return res.status(403).json({
+        error: `Access denied. You cannot assign the '${role}' role. You can only assign roles strictly lower than your own.`
+      });
     }
 
     const userClient = getRequestScopedSupabase(req);
@@ -79,8 +96,8 @@ router.post("/roles", requireAuth, requireRole(["Editor"]), async (req, res) => 
 });
 
 // PUT /api/users/roles/:id
-// Update the role of a specific user (Editor only)
-router.put("/roles/:id", requireAuth, requireRole(["Editor"]), async (req, res) => {
+// Update the role of a specific user (Editor/PD only)
+router.put("/roles/:id", requireAuth, requireRole(["Editor", "PD"]), async (req, res) => {
   try {
     const { id } = req.params;
     const { role } = req.body;
@@ -108,6 +125,24 @@ router.put("/roles/:id", requireAuth, requireRole(["Editor"]), async (req, res) 
       return res.status(400).json({ error: "You cannot change your own role to prevent administrative lockouts." });
     }
 
+    const currentUserLevel = ROLE_LEVELS[currentUser.role] || 0;
+    const targetUserLevel = ROLE_LEVELS[targetUser.role] || 0;
+    const newRoleLevel = ROLE_LEVELS[role] || 0;
+
+    // Enforce role hierarchy: Cannot modify users with equal/higher role level
+    if (currentUserLevel <= targetUserLevel) {
+      return res.status(403).json({
+        error: `Access denied. You cannot modify the role of a user with a '${targetUser.role}' role because their role level is equal to or higher than yours.`
+      });
+    }
+
+    // Enforce role hierarchy: Cannot assign a role equal to/higher than your own level
+    if (currentUserLevel <= newRoleLevel) {
+      return res.status(403).json({
+        error: `Access denied. You cannot assign the '${role}' role. You can only assign roles strictly lower than your own.`
+      });
+    }
+
     // 3. Update the role
     const { data: updated, error: updateError } = await userClient
       .from("user_roles")
@@ -129,8 +164,8 @@ router.put("/roles/:id", requireAuth, requireRole(["Editor"]), async (req, res) 
 });
 
 // DELETE /api/users/roles/:id
-// Remove a user role mapping (Editor only)
-router.delete("/roles/:id", requireAuth, requireRole(["Editor"]), async (req, res) => {
+// Remove a user role mapping (Editor/PD only)
+router.delete("/roles/:id", requireAuth, requireRole(["Editor", "PD"]), async (req, res) => {
   try {
     const { id } = req.params;
     const currentUser = (req as any).user;
@@ -150,6 +185,16 @@ router.delete("/roles/:id", requireAuth, requireRole(["Editor"]), async (req, re
 
     if (targetUser.email === currentUser.email) {
       return res.status(400).json({ error: "You cannot delete your own user role record." });
+    }
+
+    const currentUserLevel = ROLE_LEVELS[currentUser.role] || 0;
+    const targetUserLevel = ROLE_LEVELS[targetUser.role] || 0;
+
+    // Enforce role hierarchy: Cannot delete users with equal/higher role level
+    if (currentUserLevel <= targetUserLevel) {
+      return res.status(403).json({
+        error: `Access denied. You cannot delete the role mapping of a user with a '${targetUser.role}' role because their role level is equal to or higher than yours.`
+      });
     }
 
     const { error: deleteError } = await userClient

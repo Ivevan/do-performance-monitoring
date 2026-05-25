@@ -48,8 +48,14 @@ interface UserRoleRecord {
   updated_at: string | null;
 }
 
+const ROLE_LEVELS = {
+  PD: 3,
+  Editor: 2,
+  Staff: 1
+};
+
 export default function ManageRoles() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, role: currentUserRole } = useAuth();
   const [users, setUsers] = useState<UserRoleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -275,6 +281,7 @@ export default function ManageRoles() {
                     <tbody className="divide-y divide-border/40">
                       {filteredUsers.map((record) => {
                         const isSelf = record.email.toLowerCase() === currentUser?.email?.toLowerCase();
+                        const isLocked = isSelf || (ROLE_LEVELS[record.role] || 0) >= (ROLE_LEVELS[currentUserRole as keyof typeof ROLE_LEVELS] || 0);
                         return (
                           <tr key={record.id} className="hover:bg-muted/5 transition-colors">
                             <td className="p-3 font-medium text-foreground">
@@ -288,10 +295,14 @@ export default function ManageRoles() {
                               </div>
                             </td>
                             <td className="p-3">
-                              {isSelf ? (
+                              {isLocked ? (
                                 <div className="flex items-center gap-2">
                                   {getRoleBadge(record.role)}
-                                  <span className="text-[10px] text-muted-foreground/60 italic">(Locked)</span>
+                                  {isSelf ? (
+                                    <span className="text-[10px] text-muted-foreground/60 italic">(Locked)</span>
+                                  ) : (
+                                    <span className="text-[10px] text-muted-foreground/60 italic">(Locked - Insufficient Permission)</span>
+                                  )}
                                 </div>
                               ) : (
                                 <Select
@@ -303,8 +314,9 @@ export default function ManageRoles() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="Staff">Staff (Read-Only)</SelectItem>
-                                    <SelectItem value="PD">PD (Read/Approvals)</SelectItem>
-                                    <SelectItem value="Editor">Editor (CRUD)</SelectItem>
+                                    {currentUserRole === "PD" && (
+                                      <SelectItem value="Editor">Editor (CRUD)</SelectItem>
+                                    )}
                                   </SelectContent>
                                 </Select>
                               )}
@@ -324,13 +336,19 @@ export default function ManageRoles() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                disabled={isSelf}
+                                disabled={isLocked}
                                 onClick={() => {
                                   setSelectedUser(record);
                                   setIsDeleteOpen(true);
                                 }}
                                 className="h-8 w-8 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
-                                title={isSelf ? "You cannot delete your own account" : "Delete user role mapping"}
+                                title={
+                                  isSelf 
+                                    ? "You cannot delete your own account" 
+                                    : isLocked 
+                                      ? "Insufficient permissions to delete this user" 
+                                      : "Delete user role mapping"
+                                }
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -383,8 +401,9 @@ export default function ManageRoles() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Staff">Staff (Read-Only View)</SelectItem>
-                    <SelectItem value="PD">PD (Read & Approvals)</SelectItem>
-                    <SelectItem value="Editor">Editor (Complete CRUD Access)</SelectItem>
+                    {currentUserRole === "PD" && (
+                      <SelectItem value="Editor">Editor (Complete CRUD Access)</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
