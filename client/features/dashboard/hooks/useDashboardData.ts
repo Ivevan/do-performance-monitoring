@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { CategoryData, MetricData } from "@/lib/ptso-types";
 import { API_URL } from "@/lib/config";
+import { apiFetch } from "@/lib/api";
 
 export interface VIndicatorData {
   indicator: string;
@@ -276,7 +277,7 @@ export function useDashboardData(filters: DashboardFilters = { year: 2026, secti
 
       const url = `${API_URL}/api/dashboard/data?${params.toString()}`;
       
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       if (!response.ok) {
         throw new Error(`Error fetching data: ${response.statusText}`);
       }

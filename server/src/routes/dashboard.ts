@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { supabase } from "../config/supabase";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
 // GET /api/dashboard/data
 // Fetches performance indicator data based on query parameters
-router.get("/data", async (req, res) => {
+router.get("/data", requireAuth, async (req, res) => {
   try {
     const { year, section, indicator, program } = req.query;
 
@@ -37,7 +38,7 @@ router.get("/data", async (req, res) => {
 
 // POST /api/dashboard/save-grid
 // Saves target and accomplishment changes from the spreadsheet matrix
-router.post("/save-grid", async (req, res) => {
+router.post("/save-grid", requireAuth, async (req, res) => {
   try {
     const { year, rows } = req.body;
     if (!year || !Array.isArray(rows)) {

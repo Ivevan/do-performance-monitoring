@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { API_URL } from "@/lib/config";
+import { apiFetch } from "@/lib/api";
 import { 
   Folder, 
   FolderOpen, 
@@ -76,7 +77,7 @@ export default function Workspaces() {
   const fetchWorkspaces = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_URL}/api/workspaces`);
+      const response = await apiFetch(`${API_URL}/api/workspaces`);
       if (!response.ok) {
         throw new Error(`Failed to fetch workspaces: ${response.statusText}`);
       }
@@ -129,7 +130,7 @@ export default function Workspaces() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/workspaces`, {
+      const response = await apiFetch(`${API_URL}/api/workspaces`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -170,7 +171,7 @@ export default function Workspaces() {
     if (!selectedWorkspace) return;
 
     try {
-      const response = await fetch(`${API_URL}/api/workspaces/${selectedWorkspace.id}`, {
+      const response = await apiFetch(`${API_URL}/api/workspaces/${selectedWorkspace.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -210,7 +211,7 @@ export default function Workspaces() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/workspaces/${selectedWorkspace.id}`, {
+      const response = await apiFetch(`${API_URL}/api/workspaces/${selectedWorkspace.id}`, {
         method: "DELETE",
       });
 

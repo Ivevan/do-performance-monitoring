@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { NavLink } from "@/components/NavLink";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -39,10 +40,20 @@ const supportItems = [
 type SidebarPref = "expanded" | "collapsed" | "hover";
 
 export function AppSidebar() {
+  const { user, signOut } = useAuth();
   const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+
+  const fullName = user?.user_metadata?.full_name || user?.user_metadata?.name || "DOST User";
+  const email = user?.email || "user@dostxi.gmail.com";
+  const initials = fullName
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .substring(0, 2)
+    .toUpperCase() || "DU";
 
   const [preference, setPreference] = useState<SidebarPref>(() => {
     return (localStorage.getItem("sidebar-preference") as SidebarPref) || "hover";
@@ -110,11 +121,11 @@ export function AppSidebar() {
           {/* Profile Section */}
           <div className="flex items-center gap-2 px-2 overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center group-data-[expand-on-hover=true]:group-hover:justify-start group-data-[expand-on-hover=true]:group-hover:px-2 mt-1">
             <Avatar className="h-6 w-6 shrink-0">
-              <AvatarFallback className="bg-dost-blue text-white text-[10px] font-semibold">DA</AvatarFallback>
+              <AvatarFallback className="bg-dost-blue text-white text-[10px] font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden leading-tight transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[expand-on-hover=true]:group-hover:w-[150px] group-data-[expand-on-hover=true]:group-hover:opacity-100">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">DOST Admin</p>
-              <p className="text-[9px] text-sidebar-foreground/60 truncate">admin@dost.gov.ph</p>
+              <p className="text-xs font-medium text-sidebar-foreground truncate">{fullName}</p>
+              <p className="text-[9px] text-sidebar-foreground/60 truncate">{email}</p>
             </div>
           </div>
 
@@ -141,7 +152,7 @@ export function AppSidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => navigate("/")}
+                    onClick={signOut}
                     className="rounded-md p-1.5 text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-dost-red transition-colors shrink-0"
                     aria-label="Sign out"
                   >

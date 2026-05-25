@@ -23,21 +23,11 @@ const LandingPage = () => {
             className="w-full max-w-md space-y-6 lg:space-y-8"
           >
             <div className="space-y-2 hidden lg:block">
-              <h2 className="text-4xl font-bold tracking-tight text-foreground">Welcome back</h2>
-              <p className="text-muted-foreground">Sign in to your account to continue.</p>
+              <h2 className="text-4xl font-bold tracking-tight text-foreground">DOST XI Workspace</h2>
+              <p className="text-muted-foreground">Sign in with your Google account to continue.</p>
             </div>
 
             <LoginForm />
-
-            <p className="text-sm text-center text-muted-foreground">
-              Don't have an account?{" "}
-              <Link
-                to="/signup"
-                className="font-semibold text-dost-red hover:underline underline-offset-4"
-              >
-                Create one
-              </Link>
-            </p>
           </motion.div>
         </section>
       </main>

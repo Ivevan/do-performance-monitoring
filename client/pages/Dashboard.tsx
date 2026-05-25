@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import type { Quarter } from "@/lib/ptso-types";
 import { API_URL } from "@/lib/config";
+import { apiFetch } from "@/lib/api";
 
 // ── Section navigation tabs — sourced from DB section names ──────────────────
 const SECTIONS = [
@@ -116,7 +117,7 @@ const Dashboard = () => {
 
   // ── Save handler (stable reference) ────────────────────────────────────────
   const handleSaveGrid = useCallback(async (rows: any[]) => {
-    const response = await fetch(`${API_URL}/api/dashboard/save-grid`, {
+    const response = await apiFetch(`${API_URL}/api/dashboard/save-grid`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ year: selectedYear, rows }),

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { supabase } from "../config/supabase";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -26,7 +27,7 @@ ON CONFLICT (year) DO NOTHING;`;
 
 // GET /api/workspaces
 // Retrieves all workspace folders
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from("performance_folders")
@@ -74,7 +75,7 @@ router.get("/", async (req, res) => {
 
 // POST /api/workspaces
 // Adds a new workspace folder and bootstraps indicator targets for that year
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { name, year, description } = req.body;
 
@@ -154,7 +155,7 @@ router.post("/", async (req, res) => {
 
 // PUT /api/workspaces/:id
 // Updates folder details
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
     const { name, year, description } = req.body;
@@ -180,7 +181,7 @@ router.put("/:id", async (req, res) => {
 
 // DELETE /api/workspaces/:id
 // Deletes a folder and all associated target and accomplishment data
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
