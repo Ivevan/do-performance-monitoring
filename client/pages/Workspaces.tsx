@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/api";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import { 
   Folder, 
   FolderOpen, 
@@ -48,6 +49,8 @@ interface Workspace {
 
 export default function Workspaces() {
   const navigate = useNavigate();
+  const { role } = useAuth();
+  const isEditor = role === "Editor";
   
   // State variables
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -246,14 +249,16 @@ export default function Workspaces() {
     <DashboardLayout
       title="PTSO Performance Sheets"
       headerActions={
-        <Button 
-          onClick={handleOpenAdd}
-          className="bg-gradient-to-r from-dost-blue to-dost-blue/80 hover:from-dost-blue/90 hover:to-dost-blue/70 text-white font-semibold shadow-md shadow-dost-blue/10 shrink-0 px-4 h-9 gap-1.5 transition-all text-xs"
-        >
-          <Plus className="h-4 w-4" />
-          <span className="hidden xs:inline">Initialize Performance Year</span>
-          <span className="xs:hidden">Initialize</span>
-        </Button>
+        isEditor && (
+          <Button 
+            onClick={handleOpenAdd}
+            className="bg-gradient-to-r from-dost-blue to-dost-blue/80 hover:from-dost-blue/90 hover:to-dost-blue/70 text-white font-semibold shadow-md shadow-dost-blue/10 shrink-0 px-4 h-9 gap-1.5 transition-all text-xs"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden xs:inline">Initialize Performance Year</span>
+            <span className="xs:hidden">Initialize</span>
+          </Button>
+        )
       }
     >
       <div className="flex flex-col gap-8 w-full pb-12">
@@ -404,24 +409,28 @@ export default function Workspaces() {
 
                       <CardFooter className="px-6 py-4 border-t border-border/50 bg-muted/20 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleOpenEdit(ws)}
-                            className="h-8 w-8 rounded-md border border-border/60 bg-background/50 hover:bg-dost-blue/5 hover:border-dost-blue/30 hover:text-dost-blue text-muted-foreground cursor-pointer transition-all duration-200"
-                            title="Edit sheet details"
-                          >
-                            <Edit3 className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => handleOpenDelete(ws)}
-                            className="h-8 w-8 rounded-md border border-border/60 bg-background/50 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 text-muted-foreground cursor-pointer transition-all duration-200"
-                            title="Delete sheet"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+                          {isEditor && (
+                            <>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleOpenEdit(ws)}
+                                className="h-8 w-8 rounded-md border border-border/60 bg-background/50 hover:bg-dost-blue/5 hover:border-dost-blue/30 hover:text-dost-blue text-muted-foreground cursor-pointer transition-all duration-200"
+                                title="Edit sheet details"
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => handleOpenDelete(ws)}
+                                className="h-8 w-8 rounded-md border border-border/60 bg-background/50 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500 text-muted-foreground cursor-pointer transition-all duration-200"
+                                title="Delete sheet"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </>
+                          )}
                         </div>
                         
                         <Button

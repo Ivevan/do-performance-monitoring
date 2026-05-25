@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, LogOut, PanelLeft } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, PanelLeft, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { NavLink } from "@/components/NavLink";
@@ -40,7 +40,7 @@ const supportItems = [
 type SidebarPref = "expanded" | "collapsed" | "hover";
 
 export function AppSidebar() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, role } = useAuth();
   const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
@@ -106,7 +106,15 @@ export function AppSidebar() {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu>{mainItems.map(renderItem)}</SidebarMenu>
+              <SidebarMenu>
+                {mainItems.map(renderItem)}
+                {role === "Editor" &&
+                  renderItem({
+                    title: "Manage Roles",
+                    url: "/dashboard/roles",
+                    icon: Users,
+                  })}
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
 

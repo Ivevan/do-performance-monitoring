@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound.tsx";
 import Dashboard from "./pages/Dashboard.tsx";
 import Workspaces from "./pages/Workspaces.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
+import ManageRoles from "./pages/ManageRoles.tsx";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><Workspaces /></ProtectedRoute>} />
+              <Route path="/dashboard/roles" element={<ProtectedRoute allowedRoles={["Editor"]}><ManageRoles /></ProtectedRoute>} />
               <Route path="/dashboard/cy/:year" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

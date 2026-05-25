@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import dashboardRoutes from "./routes/dashboard";
 import workspaceRoutes from "./routes/workspaces";
+import userRoutes from "./routes/users";
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.get("/health", (req, res) => {
 // Routes
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/workspaces", workspaceRoutes);
+app.use("/api/users", userRoutes);
 
 // Start server
 app.listen(PORT, () => {

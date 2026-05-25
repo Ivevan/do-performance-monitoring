@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
-import { validateEmail, ALLOWED_EMAIL_SUFFIXES } from "@/lib/auth-config";
+import { validateEmail } from "@/lib/auth-config";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
+  role: "PD" | "Editor" | "Staff" | null;
   loading: boolean;
   error: string | null;
   signInWithGoogle: () => Promise<void>;
@@ -18,69 +19,95 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [role, setRole] = useState<"PD" | "Editor" | "Staff" | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // 1. Check active session on mount
-    const initSession = async () => {
-      try {
-        const { data: { session: activeSession } } = await supabase.auth.getSession();
-        
-        if (activeSession) {
-          const email = activeSession.user?.email;
-          if (validateEmail(email)) {
-            setSession(activeSession);
-            setUser(activeSession.user);
-          } else {
-            // Immediately sign out unauthorized email format on initial load
-            await supabase.auth.signOut();
-            setError("Access denied. Your account is not authorized to access this system. Please contact the administrator.");
-          }
-        }
-      } catch (err) {
-        console.error("Error checking active session:", err);
-      } finally {
-        setLoading(false);
+  const fetchUserRole = async (email: string): Promise<"PD" | "Editor" | "Staff"> => {
+    console.log("[AuthContext] fetchUserRole started for:", email);
+    const normalizedEmail = email.trim().toLowerCase();
+    try {
+      const { data, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("email", normalizedEmail)
+        .single();
+      
+      console.log("[AuthContext] fetchUserRole query result for", normalizedEmail, ":", data, "error:", roleError);
+      if (data) {
+        return data.role as "PD" | "Editor" | "Staff";
       }
-    };
+    } catch (err) {
+      console.error("[AuthContext] Error fetching user role:", err);
+    }
+    return "Staff"; // fallback default
+  };
 
-    initSession();
-
-    // 2. Listen for auth changes
+  // 1. Listen for auth state changes. This callback is completely synchronous
+  // and does not make any Supabase API calls. This prevents GoTrueClient deadlocks.
+  useEffect(() => {
+    console.log("[AuthContext] Registering onAuthStateChange listener");
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        setLoading(true);
-        if (currentSession) {
-          const email = currentSession.user?.email;
-          if (validateEmail(email)) {
-            setSession(currentSession);
-            setUser(currentSession.user);
-            setError(null);
-          } else {
-            // Sign out unauthorized email format
-            await supabase.auth.signOut();
-            setSession(null);
-            setUser(null);
-            setError("Access denied. Your account is not authorized to access this system. Please contact the administrator.");
-          }
-        } else {
-          // Triggered on logout
-          setSession(null);
-          setUser(null);
-          if (event === "SIGNED_OUT") {
-            // Keep existing domain error if we forced sign out, otherwise clear
-            setError((prev) => (prev?.startsWith("Access denied") ? prev : null));
-          }
+      (event, currentSession) => {
+        console.log("[AuthContext] onAuthStateChange event:", event, "email:", currentSession?.user?.email);
+        
+        // Sync states synchronously
+        setSession(currentSession);
+        setUser(currentSession ? currentSession.user : null);
+
+        // If there's no session, we are logged out
+        if (!currentSession) {
+          setRole(null);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
     return () => {
+      console.log("[AuthContext] Unsubscribing onAuthStateChange");
       subscription.unsubscribe();
     };
   }, []);
+
+  // 2. React to session changes outside of the auth state listener callback.
+  // This allows database queries and signOut calls to proceed without deadlock.
+  useEffect(() => {
+    const handleSession = async () => {
+      if (!session) return;
+      
+      const email = session.user?.email;
+      console.log("[AuthContext] Handling session for email:", email);
+
+      if (validateEmail(email)) {
+        const shouldShowLoading = !role;
+        if (shouldShowLoading) {
+          setLoading(true);
+        }
+        const userRole = await fetchUserRole(email!);
+        console.log("[AuthContext] Role resolved:", userRole);
+        setRole(userRole);
+        setError(null);
+        if (shouldShowLoading) {
+          setLoading(false);
+        }
+      } else {
+        setLoading(true);
+        console.warn("[AuthContext] Invalid email, signing out:", email);
+        try {
+          await supabase.auth.signOut();
+        } catch (err) {
+          console.error("[AuthContext] Error signing out unauthorized email:", err);
+        }
+        setSession(null);
+        setUser(null);
+        setRole(null);
+        setError("Access denied. Your account is not authorized to access this system. Please contact the administrator.");
+        setLoading(false);
+      }
+    };
+
+    handleSession();
+  }, [session]);
 
   const signInWithGoogle = async () => {
     try {
@@ -101,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw authError;
       }
     } catch (err: any) {
-      console.error("Google login failed:", err);
+      console.error("[AuthContext] Google login failed:", err);
       setError(err.message || "Failed to initialize Google login.");
       setLoading(false);
     }
@@ -113,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
       await supabase.auth.signOut();
     } catch (err: any) {
-      console.error("Log out failed:", err);
+      console.error("[AuthContext] Log out failed:", err);
     } finally {
       setLoading(false);
     }
@@ -126,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         session,
+        role,
         loading,
         error,
         signInWithGoogle,

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { supabase } from "../config/supabase";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireRole } from "../middleware/auth";
 
 const router = Router();
 
@@ -75,7 +75,7 @@ router.get("/", requireAuth, async (req, res) => {
 
 // POST /api/workspaces
 // Adds a new workspace folder and bootstraps indicator targets for that year
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, requireRole(["Editor"]), async (req, res) => {
   try {
     const { name, year, description } = req.body;
 
@@ -155,7 +155,7 @@ router.post("/", requireAuth, async (req, res) => {
 
 // PUT /api/workspaces/:id
 // Updates folder details
-router.put("/:id", requireAuth, async (req, res) => {
+router.put("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, year, description } = req.body;
@@ -181,7 +181,7 @@ router.put("/:id", requireAuth, async (req, res) => {
 
 // DELETE /api/workspaces/:id
 // Deletes a folder and all associated target and accomplishment data
-router.delete("/:id", requireAuth, async (req, res) => {
+router.delete("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => {
   try {
     const { id } = req.params;
 

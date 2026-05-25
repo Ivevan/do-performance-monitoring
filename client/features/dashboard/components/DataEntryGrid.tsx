@@ -42,6 +42,7 @@ interface DataEntryGridProps {
   activeQuarterTab: "ALL" | "Q1" | "Q2" | "Q3" | "Q4";
   setActiveQuarterTab: (tab: "ALL" | "Q1" | "Q2" | "Q3" | "Q4") => void;
   onSavingChange?: (saving: boolean) => void;
+  readOnly?: boolean;
 }
 
 // Quarter column configuration — single source of truth for all Q1–Q4 rendering
@@ -53,7 +54,7 @@ const QUARTERS = [
 ] as const;
 
 export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridProps>(
-  ({ year, rawData, onBack, onSave, onChangeDirty, activeQuarterTab, setActiveQuarterTab, onSavingChange }, ref) => {
+  ({ year, rawData, onBack, onSave, onChangeDirty, activeQuarterTab, setActiveQuarterTab, onSavingChange, readOnly = false }, ref) => {
   const [rows, setRows] = useState<GridRow[]>([]);
   const [initialRows, setInitialRows] = useState<GridRow[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -593,7 +594,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                                 Strategic Deliverables
                               </span>
                             </div>
-                            {isStrategicCategory && isDirectRender && (
+                            {isStrategicCategory && isDirectRender && !readOnly && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -627,7 +628,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                               </div>
                               
                               <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                {isStrategicCategory && (
+                                {isStrategicCategory && !readOnly && (
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -693,10 +694,11 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                                           {isEditable ? (
                                             <input
                                               type="text"
-                                              className="w-full h-8 px-2 text-left bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-medium text-foreground text-xs"
+                                              className="w-full h-8 px-2 text-left bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-medium text-foreground text-xs disabled:opacity-85"
                                               value={row.indicator}
                                               onChange={(e) => handleCellChange(row.id, "indicator", e.target.value)}
                                               placeholder="Enter indicator name..."
+                                              disabled={readOnly}
                                             />
                                           ) : (
                                             <div className="px-2 py-1.5 truncate font-medium text-foreground text-xs" title={row.indicator}>
@@ -709,10 +711,11 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                                           {isEditable ? (
                                             <input
                                               type="text"
-                                              className="w-full h-8 px-2 text-center bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-bold text-muted-foreground text-xs"
+                                              className="w-full h-8 px-2 text-center bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-bold text-muted-foreground text-xs disabled:opacity-85"
                                               value={row.program || ""}
                                               onChange={(e) => handleCellChange(row.id, "program", e.target.value)}
                                               placeholder="N/A"
+                                              disabled={readOnly}
                                             />
                                           ) : (
                                             <div className="px-2 py-1.5 font-bold text-muted-foreground text-xs">
@@ -735,6 +738,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                                                     onChange={(e) => handleCellChange(row.id, targetField, e.target.value)}
                                                     onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(targetField), categoryRows)}
                                                     placeholder="0"
+                                                    disabled={readOnly}
                                                   />
                                                 </td>
                                               ) : (
@@ -752,6 +756,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                                                     onChange={(e) => handleCellChange(row.id, actualField, e.target.value)}
                                                     onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(actualField), categoryRows)}
                                                     placeholder="0"
+                                                    disabled={readOnly}
                                                   />
                                                 </td>
                                               )}
@@ -767,7 +772,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                                         </td>
                                         {/* Actions Column (Delete button for Strategic rows) */}
                                         <td className="p-1 text-center bg-muted/10">
-                                          {isEditable && (
+                                          {isEditable && !readOnly && (
                                             <button
                                               onClick={() => handleDeleteRow(row.id)}
                                               className="p-1.5 text-muted-foreground hover:text-dost-red hover:bg-dost-red/10 rounded transition-colors"

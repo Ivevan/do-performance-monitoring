@@ -15,6 +15,7 @@ import { ExportDialog } from "@/features/dashboard/components/ExportDialog";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import { useKpiData, KPI_INDICATORS } from "@/features/dashboard/hooks/useKpiData";
 import { useChartData } from "@/features/dashboard/hooks/useChartData";
+import { useAuth } from "@/features/auth/context/AuthContext";
 import {
   Select,
   SelectContent,
@@ -38,6 +39,8 @@ const Dashboard = () => {
   const { year } = useParams<{ year?: string }>();
   const selectedYear = year ? Number(year) : 2026;
   const queryClient = useQueryClient();
+  const { role } = useAuth();
+  const isEditor = role === "Editor";
 
   // ── Core data ──────────────────────────────────────────────────────────────
   const { data, isLoading } = useDashboardData({ year: selectedYear });
@@ -204,21 +207,23 @@ const Dashboard = () => {
               />
 
               {/* Integrated Save Sheet Button in header */}
-              <Button
-                onClick={() => gridRef.current?.save()}
-                disabled={isSaving}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 h-8 text-[10px] sm:text-xs px-3 shadow-glow"
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-3.5 w-3.5" /> Save Sheet
-                  </>
-                )}
-              </Button>
+              {isEditor && (
+                <Button
+                  onClick={() => gridRef.current?.save()}
+                  disabled={isSaving}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5 h-8 text-[10px] sm:text-xs px-3 shadow-glow"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-3.5 w-3.5" /> Save Sheet
+                    </>
+                  )}
+                </Button>
+              )}
             </>
           )}
 
@@ -267,6 +272,7 @@ const Dashboard = () => {
           activeQuarterTab={activeQuarterTab}
           setActiveQuarterTab={setActiveQuarterTab}
           onSavingChange={setIsSaving}
+          readOnly={!isEditor}
         />
       ) : (
         /* ════════════════════════════════════════════════════════════════════ */
