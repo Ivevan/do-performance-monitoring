@@ -4,6 +4,8 @@ import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/api";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
+import { prefetchDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import { 
   Folder, 
   FolderOpen, 
@@ -51,6 +53,7 @@ export default function Workspaces() {
   const navigate = useNavigate();
   const { role } = useAuth();
   const isEditor = role === "Editor";
+  const queryClient = useQueryClient();
   
   // State variables
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -90,8 +93,18 @@ export default function Workspaces() {
         setSetupRequired(true);
         setSetupSql(result.sql);
       } else {
-        setWorkspaces(result.data || []);
+        const workspaceList = (result.data || []) as Workspace[];
+        setWorkspaces(workspaceList);
         setSetupRequired(false);
+
+        // Preload/prefetch data for active workspaces in the background
+        workspaceList.forEach((ws) => {
+          if (ws.status === "Active") {
+            prefetchDashboardData(queryClient, ws.year).catch((err) => {
+              console.warn(`Failed to background prefetch dashboard for year ${ws.year}:`, err);
+            });
+          }
+        });
       }
     } catch (err) {
       console.error(err);

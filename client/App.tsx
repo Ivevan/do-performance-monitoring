@@ -13,7 +13,17 @@ import Workspaces from "./pages/Workspaces.tsx";
 import SettingsPage from "./pages/SettingsPage.tsx";
 import ManageRoles from "./pages/ManageRoles.tsx";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Prevents layout reloading when users Alt-Tab or switch windows
+      refetchOnReconnect: false,   // Prevents background requests when internet reconnects
+      refetchOnMount: false,       // Serves cached data instantly if it is already in memory
+      staleTime: 1000 * 60 * 10,   // Mark data as fresh for 10 minutes (prevents double fetches on navigate)
+      gcTime: 1000 * 60 * 30,      // Keep inactive queries in memory for 30 minutes
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

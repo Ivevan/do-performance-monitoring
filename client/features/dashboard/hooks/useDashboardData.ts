@@ -265,6 +265,8 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
 }
 
 export function useDashboardData(filters: DashboardFilters = { year: 2026, section: null, indicator: null, program: null }) {
+  const cacheKey = `dashboard-data-cache-${filters.year}-${filters.section || "all"}-${filters.indicator || "all"}-${filters.program || "all"}`;
+
   return useQuery({
     queryKey: ["dashboard-data", filters],
     queryFn: async () => {
@@ -287,6 +289,13 @@ export function useDashboardData(filters: DashboardFilters = { year: 2026, secti
       
       const rawData = (data || []) as VIndicatorData[];
 
+      // Persist in localStorage for instant reload preloading
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(rawData));
+      } catch (e) {
+        console.warn("Failed to persist dashboard data in localStorage cache:", e);
+      }
+
       return {
         rawData,
         getBarChart: (indicator: string) => transformBarChart(rawData, indicator),
@@ -297,6 +306,62 @@ export function useDashboardData(filters: DashboardFilters = { year: 2026, secti
         getDrillDown: (section?: string | null): CategoryData => transformDrillDown(rawData, section),
       };
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: 1000 * 60 * 10, // 10 minutes cache
+    initialData: () => {
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as VIndicatorData[];
+          return {
+            rawData: parsed,
+            getBarChart: (indicator: string) => transformBarChart(parsed, indicator),
+            getLineChart: (indicator: string) => transformLineChart(parsed, indicator),
+            getKpiTotal: (indicator: string, program?: string) => transformKpiTotal(parsed, indicator, program),
+            getKpiLatest: (indicator: string) => transformKpiLatest(parsed, indicator),
+            getProgress: () => transformProgress(parsed),
+            getDrillDown: (section?: string | null): CategoryData => transformDrillDown(parsed, section),
+          };
+        }
+      } catch (e) {
+        console.warn("Failed to read initialData from localStorage cache:", e);
+      }
+      return undefined;
+    }
+  });
+}
+
+import { QueryClient } from "@tanstack/react-query";
+
+export async function prefetchDashboardData(queryClient: QueryClient, year: number) {
+  const filters = { year, section: null, indicator: null, program: null };
+  const cacheKey = `dashboard-data-cache-${filters.year}-${filters.section || "all"}-${filters.indicator || "all"}-${filters.program || "all"}`;
+
+  return queryClient.prefetchQuery({
+    queryKey: ["dashboard-data", filters],
+    queryFn: async () => {
+      const url = `${API_URL}/api/dashboard/data?year=${year}`;
+      const response = await apiFetch(url);
+      if (!response.ok) throw new Error("Prefetch failed");
+      
+      const { data } = await response.json();
+      const rawData = data || [];
+
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(rawData));
+      } catch (e) {
+        console.warn("Failed to persist prefetched data in localStorage:", e);
+      }
+
+      return {
+        rawData,
+        getBarChart: (indicator: string) => transformBarChart(rawData, indicator),
+        getLineChart: (indicator: string) => transformLineChart(rawData, indicator),
+        getKpiTotal: (indicator: string, program?: string) => transformKpiTotal(rawData, indicator, program),
+        getKpiLatest: (indicator: string) => transformKpiLatest(rawData, indicator),
+        getProgress: () => transformProgress(rawData),
+        getDrillDown: (section?: string | null): CategoryData => transformDrillDown(rawData, section),
+      };
+    },
+    staleTime: 1000 * 60 * 10,
   });
 }
