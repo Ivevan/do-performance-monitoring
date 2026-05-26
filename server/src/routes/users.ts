@@ -252,4 +252,91 @@ router.delete("/roles/:id", requireAuth, requireRole(["Editor", "PD"]), async (r
   }
 });
 
+// GET /api/users/profile
+// Retrieve current logged-in user profile details (name, email, role, avatar)
+router.get("/profile", requireAuth, async (req, res) => {
+  try {
+    const currentUser = (req as any).user;
+    if (!currentUser || !currentUser.email) {
+      return res.status(401).json({ error: "Unauthorized. No valid session." });
+    }
+
+    const userClient = getRequestScopedSupabase(req);
+    const emailNormalized = currentUser.email.trim().toLowerCase();
+
+    // Query display name from public.users
+    const { data: profile, error: profileError } = await userClient
+      .from("users")
+      .select("first_name, email")
+      .eq("email", emailNormalized)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Error retrieving user profile record:", profileError);
+    }
+
+    // Resolve name and avatar from Supabase auth metadata as fallback
+    const oauthMetadata = currentUser.user_metadata || {};
+    const resolvedName = profile?.first_name || oauthMetadata.full_name || oauthMetadata.name || "DOST User";
+    const resolvedAvatar = oauthMetadata.avatar_url || oauthMetadata.picture || null;
+
+    return res.json({
+      email: currentUser.email,
+      name: resolvedName,
+      role: currentUser.role,
+      avatar_url: resolvedAvatar
+    });
+  } catch (err: any) {
+    console.error("Server error fetching self profile:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
+// PUT /api/users/profile
+// Update current logged-in user profile display name
+router.put("/profile", requireAuth, async (req, res) => {
+  try {
+    const currentUser = (req as any).user;
+    if (!currentUser || !currentUser.email) {
+      return res.status(401).json({ error: "Unauthorized. No valid session." });
+    }
+
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Display name cannot be empty." });
+    }
+
+    const userClient = getRequestScopedSupabase(req);
+    const emailNormalized = currentUser.email.trim().toLowerCase();
+
+    // Upsert the profile record in public.users to keep it in sync
+    const { data: updatedProfile, error: updateError } = await userClient
+      .from("users")
+      .upsert(
+        { email: emailNormalized, first_name: name.trim() },
+        { onConflict: "email" }
+      )
+      .select()
+      .maybeSingle();
+
+    if (updateError) {
+      console.error("Error updating user profile first_name:", updateError);
+      return res.status(500).json({ error: updateError.message });
+    }
+
+    return res.json({
+      success: true,
+      message: "Profile updated successfully.",
+      user: {
+        email: emailNormalized,
+        name: updatedProfile?.first_name || name.trim(),
+        role: currentUser.role
+      }
+    });
+  } catch (err: any) {
+    console.error("Server error updating user profile:", err);
+    return res.status(500).json({ error: err.message || "Internal server error" });
+  }
+});
+
 export default router;
