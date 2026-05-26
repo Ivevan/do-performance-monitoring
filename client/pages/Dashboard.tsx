@@ -118,12 +118,15 @@ const Dashboard = () => {
     activeQuarter
   );
 
-  // ── Save handler (stable reference) ────────────────────────────────────────
-  const handleSaveGrid = useCallback(async (rows: any[]) => {
+  const handleSaveGrid = useCallback(async (rows: any[], deletedIndicatorIds?: string[]) => {
     const response = await apiFetch(`${API_URL}/api/dashboard/save-grid`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ year: selectedYear, rows }),
+      body: JSON.stringify({
+        year: selectedYear,
+        rows,
+        deletedIndicatorIds: deletedIndicatorIds || []
+      }),
     });
 
     if (!response.ok) {

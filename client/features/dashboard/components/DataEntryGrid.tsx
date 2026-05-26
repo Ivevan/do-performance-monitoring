@@ -57,6 +57,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
   ({ year, rawData, onBack, onSave, onChangeDirty, activeQuarterTab, setActiveQuarterTab, onSavingChange, readOnly = false }, ref) => {
   const [rows, setRows] = useState<GridRow[]>([]);
   const [initialRows, setInitialRows] = useState<GridRow[]>([]);
+  const [deletedIndicatorIds, setDeletedIndicatorIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -177,6 +178,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
     const confirmRevert = window.confirm("Are you sure you want to revert all unsaved changes on this sheet?");
     if (confirmRevert) {
       setRows(JSON.parse(JSON.stringify(initialRows)));
+      setDeletedIndicatorIds([]);
       setIsDirty(false);
       toast.info("All changes reverted back to saved state.");
     }
@@ -274,6 +276,10 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
   };
 
   const handleDeleteRow = (id: string) => {
+    const target = rows.find((r) => r.id === id);
+    if (target && target.indicator_id && !id.startsWith("temp-")) {
+      setDeletedIndicatorIds((prev) => [...prev, target.indicator_id!]);
+    }
     setRows((prev) => prev.filter((r) => r.id !== id));
     setIsDirty(true);
     toast.info("Removed Strategic Deliverable row.");
@@ -415,6 +421,15 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
       return;
     }
 
+    const modifiedRows = rows.filter(isRowModified);
+
+    // If nothing changed and nothing was deleted, we can succeed immediately!
+    if (modifiedRows.length === 0 && deletedIndicatorIds.length === 0) {
+      toast.success("No changes detected. Everything is up to date!");
+      setIsDirty(false);
+      return;
+    }
+
     if (!onSave) {
       toast.success("UI Demo Mode: Simulated save changes successfully!");
       setIsDirty(false);
@@ -423,9 +438,10 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
 
     try {
       setSaving(true);
-      await onSave(rows);
+      await (onSave as any)(modifiedRows, deletedIndicatorIds);
       toast.success("Grid accomplishments and targets saved successfully!");
       setIsDirty(false);
+      setDeletedIndicatorIds([]);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to save data entry grid changes.");

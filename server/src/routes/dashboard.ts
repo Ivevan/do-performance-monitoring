@@ -40,46 +40,29 @@ router.get("/data", requireAuth, async (req, res) => {
 // Saves target and accomplishment changes from the spreadsheet matrix
 router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res) => {
   try {
-    const { year, rows } = req.body;
+    const { year, rows, deletedIndicatorIds } = req.body;
     if (!year || !Array.isArray(rows)) {
-      return res.status(400).json({ error: "Missing required fields: year or rows" });
+      return res.status(400).json({ error: "Missing required fields: year, rows or deletedIndicatorIds" });
     }
 
-    // 1. Fetch categories to map category/section names to IDs
-    const { data: dbCategories, error: catError } = await supabase
-      .from("categories")
-      .select("id, name, section_id, sections(name)")
-      .returns<any[]>();
+    // 1. Fetch categories only if there are new indicators to insert
+    const hasNewIndicators = rows.some((row: any) => !row.indicator_id || row.indicator_id.startsWith("temp-"));
+    let dbCategories: any[] = [];
+    if (hasNewIndicators) {
+      const { data, error: catError } = await supabase
+        .from("categories")
+        .select("id, name, section_id, sections(name)")
+        .returns<any[]>();
 
-    if (catError) {
-      console.error("Failed to fetch categories:", catError);
-      return res.status(500).json({ error: catError.message });
+      if (catError) {
+        console.error("Failed to fetch categories:", catError);
+        return res.status(500).json({ error: catError.message });
+      }
+      dbCategories = data || [];
     }
 
-    // 2. Fetch all indicators with their category deliverable type
-    const { data: dbIndicators, error: indError } = await supabase
-      .from("indicators")
-      .select("id, category_id, name, program, categories(deliverable_type, name)");
-
-    if (indError) {
-      console.error("Failed to fetch indicators for mapping:", indError);
-      return res.status(500).json({ error: indError.message });
-    }
-
-    const dbIndicatorsMapped = (dbIndicators || []).map((ind: any) => ({
-      id: ind.id,
-      category_id: ind.category_id,
-      name: ind.name,
-      program: ind.program,
-      deliverable_type: ind.categories?.deliverable_type || "Functional",
-      category_name: ind.categories?.name
-    }));
-
-    // 3. Identify and delete strategic indicators that have been deleted in the frontend
-    const strategicDbIndicators = dbIndicatorsMapped.filter(ind => ind.deliverable_type === "Strategic");
-    const idsToDelete = strategicDbIndicators
-      .filter(ind => !rows.some(r => r.indicator_id === ind.id))
-      .map(ind => ind.id);
+    // 2. Delete strategic indicators that have been deleted in the frontend explicitly
+    const idsToDelete = Array.isArray(deletedIndicatorIds) ? deletedIndicatorIds : [];
 
     if (idsToDelete.length > 0) {
       const { error: delError } = await supabase
@@ -96,66 +79,83 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
     const targetUpserts = [];
     const accomplishmentUpserts = [];
 
-    // 4. Process each row sent from the client
+    // Separate rows into existing and new
+    const newRows = rows.filter(r => !r.indicator_id || r.indicator_id.startsWith("temp-"));
+    const existingRows = rows.filter(r => r.indicator_id && !r.indicator_id.startsWith("temp-"));
+
+    // 3. Process existing strategic indicator updates concurrently
+    const updatePromises = existingRows
+      .filter(row => row.deliverable_type === "Strategic")
+      .map(async (row) => {
+        const { error: updateError } = await supabase
+          .from("indicators")
+          .update({
+            name: row.indicator,
+            program: row.program || null
+          })
+          .eq("id", row.indicator_id);
+
+        if (updateError) {
+          throw new Error(`Failed to update strategic indicator ${row.indicator_id}: ${updateError.message}`);
+        }
+      });
+
+    await Promise.all(updatePromises);
+
+    // 4. Process new indicators concurrently and map their inserted IDs
+    const insertPromises = newRows.map(async (row) => {
+      const catMatch = dbCategories.find(
+        (c: any) =>
+          c.name === row.category &&
+          c.sections?.name === row.section
+      );
+
+      if (!catMatch) {
+        console.warn(`No category match found for "${row.category}" in section "${row.section}"`);
+        return null;
+      }
+
+      const { data: newInd, error: newIndErr } = await supabase
+        .from("indicators")
+        .insert({
+          category_id: catMatch.id,
+          name: row.indicator,
+          program: row.program || null,
+          data_type: "NUMBER",
+          aggregation_type: row.aggregation_type || "SUM",
+        })
+        .select()
+        .single();
+
+      if (newIndErr) {
+        throw new Error(`Failed to insert new strategic indicator: ${newIndErr.message}`);
+      }
+
+      return {
+        rowId: row.id,
+        indicatorId: newInd.id
+      };
+    });
+
+    const insertedResults = await Promise.all(insertPromises);
+    const idMap = new Map<string, string>();
+    insertedResults.forEach(res => {
+      if (res) {
+        idMap.set(res.rowId, res.indicatorId);
+      }
+    });
+
+    // 5. Build upserts for targets and accomplishments
     for (const row of rows) {
       let indicatorId = row.indicator_id;
-
-      if (indicatorId && !indicatorId.startsWith("temp-")) {
-        // Existing indicator: update it if it's strategic (in case name or program changed)
-        if (row.deliverable_type === "Strategic") {
-          const { error: updateError } = await supabase
-            .from("indicators")
-            .update({
-              name: row.indicator,
-              program: row.program || null
-            })
-            .eq("id", indicatorId);
-
-          if (updateError) {
-            console.error(`Failed to update strategic indicator ${indicatorId}:`, updateError);
-            return res.status(500).json({ error: updateError.message });
-          }
-        }
-      } else {
-        // New indicator: insert into database
-        const catMatch = dbCategories.find(
-          (c: any) =>
-            c.name === row.category &&
-            c.sections?.name === row.section
-        );
-
-        if (!catMatch) {
-          console.warn(`No category match found for "${row.category}" in section "${row.section}"`);
-          continue;
-        }
-
-        const { data: newInd, error: newIndErr } = await supabase
-          .from("indicators")
-          .insert({
-            category_id: catMatch.id,
-            name: row.indicator,
-            program: row.program || null,
-            data_type: "NUMBER",
-            aggregation_type: row.aggregation_type || "SUM",
-          })
-          .select()
-          .single();
-
-        if (newIndErr) {
-          console.error("Failed to insert new strategic indicator:", newIndErr);
-          return res.status(500).json({ error: newIndErr.message });
-        }
-
-        if (newInd) {
-          indicatorId = newInd.id;
-        }
+      if (!indicatorId || indicatorId.startsWith("temp-")) {
+        indicatorId = idMap.get(row.id);
       }
 
       if (!indicatorId) {
         continue;
       }
 
-      // Prepare target upsert
       targetUpserts.push({
         indicator_id: indicatorId,
         year: Number(year),
@@ -166,7 +166,6 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
         annual_target: Number(row.annual_target || 0),
       });
 
-      // Prepare accomplishment upserts for quarters 1 to 4
       const quarters = [
         { quarter: 1, val: row.q1_actual },
         { quarter: 2, val: row.q2_actual },
@@ -184,7 +183,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
       }
     }
 
-    // 5. Perform bulk upsert for targets
+    // 6. Perform bulk upsert for targets
     if (targetUpserts.length > 0) {
       const { error: targetErr } = await supabase
         .from("targets")
@@ -196,7 +195,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
       }
     }
 
-    // 6. Perform bulk upsert for accomplishments
+    // 7. Perform bulk upsert for accomplishments
     if (accomplishmentUpserts.length > 0) {
       const { error: accErr } = await supabase
         .from("accomplishments")
