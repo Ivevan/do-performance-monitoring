@@ -9,22 +9,60 @@ const ROLE_LEVELS: Record<string, number> = {
   Staff: 1
 };
 
-// GET /api/users/roles
-// Retrieve all registered users and their roles (Editor/PD only)
 router.get("/roles", requireAuth, requireRole(["Editor", "PD"]), async (req, res) => {
   try {
     const userClient = getRequestScopedSupabase(req);
-    const { data, error } = await userClient
+    const { data: rolesData, error: rolesError } = await userClient
       .from("user_roles")
       .select("*")
       .order("email", { ascending: true });
 
-    if (error) {
-      console.error("Error fetching user roles:", error);
-      return res.status(500).json({ error: error.message });
+    if (rolesError) {
+      console.error("Error fetching user roles:", rolesError);
+      return res.status(500).json({ error: rolesError.message });
     }
 
-    return res.json({ data: data || [] });
+    // Fetch user profiles (names) from users table
+    const { data: profilesData, error: profilesError } = await userClient
+      .from("users")
+      .select("email, first_name");
+
+    const profilesMap = new Map<string, string>();
+    if (profilesData) {
+      profilesData.forEach((profile: any) => {
+        if (profile.email) {
+          // Normalize first_name carriage returns/newlines if any
+          const nameClean = (profile.first_name || "").replace(/[\r\n]+/g, "").trim();
+          profilesMap.set(profile.email.toLowerCase(), nameClean);
+        }
+      });
+    }
+
+    const mergedData = (rolesData || []).map((record: any) => {
+      const emailLower = (record.email || "").toLowerCase();
+      return {
+        ...record,
+        name: profilesMap.get(emailLower) || null
+      };
+    });
+
+    // Sort by role hierarchy level: PD > Editor > Staff, then by email alphabetically
+    const ROLE_SORT_ORDER: Record<string, number> = {
+      PD: 1,
+      Editor: 2,
+      Staff: 3
+    };
+
+    mergedData.sort((a, b) => {
+      const orderA = ROLE_SORT_ORDER[a.role] || 99;
+      const orderB = ROLE_SORT_ORDER[b.role] || 99;
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+      return (a.email || "").localeCompare(b.email || "");
+    });
+
+    return res.json({ data: mergedData });
   } catch (err: any) {
     console.error("Server error fetching user roles:", err);
     return res.status(500).json({ error: err.message || "Internal server error" });
