@@ -195,6 +195,8 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
     a1: number; a2: number; a3: number; a4: number; // Actuals
     aggregation_type: string;
     unit: string | null;
+    deliverable_type: string;
+    program: string | null;
   };
   const byCategory: Record<string, Record<string, MetricAcc>> = {};
 
@@ -217,6 +219,8 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
         a1: 0, a2: 0, a3: 0, a4: 0,
         aggregation_type: row.aggregation_type,
         unit: row.unit,
+        deliverable_type: row.deliverable_type,
+        program: row.program,
       };
     }
 
@@ -253,6 +257,8 @@ export function transformDrillDown(data: VIndicatorData[], sectionFilter?: strin
         Q4_actual: m.a4,
         Annual_actual: annual_actual,
         unit: m.unit || undefined,
+        deliverable_type: m.deliverable_type,
+        program: m.program || undefined,
       };
     });
     return { name: catName, metrics };

@@ -16,6 +16,8 @@ export interface MetricData {
   Q4_actual?: number;
   Annual_actual?: number;
   unit?: string;
+  deliverable_type?: string;
+  program?: string;
 }
 
 export interface CategoryData {
