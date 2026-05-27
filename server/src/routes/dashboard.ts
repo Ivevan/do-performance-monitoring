@@ -102,7 +102,30 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
 
     await Promise.all(updatePromises);
 
-    // 4. Process new indicators concurrently and map their inserted IDs
+    // 4. Pre-compute next order_index per category to avoid race conditions
+    const categoryNextOrder = new Map<string, number>();
+    const uniqueCatIds = new Set<string>();
+    for (const row of newRows) {
+      const catMatch = dbCategories.find(
+        (c: any) => c.name === row.category && c.sections?.name === row.section
+      );
+      if (catMatch) uniqueCatIds.add(catMatch.id);
+    }
+
+    // Fetch the current max order_index for each category that will receive new indicators
+    for (const catId of uniqueCatIds) {
+      const { data: maxData } = await supabase
+        .from("indicators")
+        .select("order_index")
+        .eq("category_id", catId)
+        .order("order_index", { ascending: false })
+        .limit(1)
+        .single();
+
+      categoryNextOrder.set(catId, (maxData?.order_index ?? 0) + 1);
+    }
+
+    // Process new indicators concurrently and map their inserted IDs
     const insertPromises = newRows.map(async (row) => {
       const catMatch = dbCategories.find(
         (c: any) =>
@@ -115,6 +138,10 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
         return null;
       }
 
+      // Get and increment the next order_index for this category
+      const nextOrder = categoryNextOrder.get(catMatch.id) ?? 1;
+      categoryNextOrder.set(catMatch.id, nextOrder + 1);
+
       const { data: newInd, error: newIndErr } = await supabase
         .from("indicators")
         .insert({
@@ -123,6 +150,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
           program: row.program || null,
           data_type: "NUMBER",
           aggregation_type: row.aggregation_type || "SUM",
+          order_index: nextOrder,
         })
         .select()
         .single();

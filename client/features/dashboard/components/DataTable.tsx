@@ -8,6 +8,7 @@ interface DataTableProps {
   category: CategoryData;
   selectedQuarter: Quarter;
   showAccomplishments: boolean;
+  expandedSubcategory?: string | null;
 }
 
 function formatValue(value: number | string | null | undefined, unit?: string): string {
@@ -54,7 +55,7 @@ function PerformanceCell({ target, actual, unit, showAccomplishments }: { target
   );
 }
 
-export function DataTable({ category, selectedQuarter, showAccomplishments }: DataTableProps) {
+export function DataTable({ category, selectedQuarter, showAccomplishments, expandedSubcategory }: DataTableProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
   // Set the first subcategory expanded by default, and update when category changes
@@ -65,6 +66,16 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
       setExpandedSection(null);
     }
   }, [category]);
+
+  // Sync accordion to the externally-selected category group
+  useEffect(() => {
+    if (expandedSubcategory) {
+      const match = category.subcategories.find(sub => sub.name === expandedSubcategory);
+      if (match) {
+        setExpandedSection(match.name);
+      }
+    }
+  }, [expandedSubcategory, category.subcategories]);
 
   const toggle = (name: string) =>
     setExpandedSection((prev) => (prev === name ? null : name));

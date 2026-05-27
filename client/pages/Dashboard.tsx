@@ -389,7 +389,7 @@ const Dashboard = () => {
               transition={{ duration: 0.25 }}
               className="pt-2"
             >
-              <DataTable category={drillDownData} selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} />
+              <DataTable category={drillDownData} selectedQuarter={activeQuarter} showAccomplishments={showAccomplishments} expandedSubcategory={selectedCategory} />
             </motion.div>
           </section>
 
