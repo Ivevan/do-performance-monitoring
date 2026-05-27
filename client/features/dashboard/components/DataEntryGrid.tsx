@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { DeleteConfirmDialog, RevertConfirmDialog } from "@/components/ui/ConfirmationDialogs";
 
 interface GridRow {
   id: string; // unique ID for local state (can be composite key or temp ID)
@@ -68,11 +69,13 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
   const [deletedIndicatorIds, setDeletedIndicatorIds] = useState<string[]>([]);
   const [deletedRows, setDeletedRows] = useState<GridRow[]>([]);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
+  const [showRevertDialog, setShowRevertDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [focusedRowId, setFocusedRowId] = useState<string | null>(null);
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const [reviewFilter, setReviewFilter] = useState<"all" | "added" | "removed" | "modified">("all");
   const [reviewSearch, setReviewSearch] = useState("");
@@ -199,14 +202,16 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
   }, [rawData]);
 
   const handleRevert = () => {
-    const confirmRevert = window.confirm("Are you sure you want to revert all unsaved changes on this sheet?");
-    if (confirmRevert) {
-      setRows(JSON.parse(JSON.stringify(initialRows)));
-      setDeletedIndicatorIds([]);
-      setDeletedRows([]);
-      setIsDirty(false);
-      toast.info("All changes reverted back to saved state.");
-    }
+    setShowRevertDialog(true);
+  };
+
+  const executeRevert = () => {
+    setRows(JSON.parse(JSON.stringify(initialRows)));
+    setDeletedIndicatorIds([]);
+    setDeletedRows([]);
+    setIsDirty(false);
+    setShowRevertDialog(false);
+    toast.info("All changes reverted back to saved state.");
   };
 
   const isRowModified = (currentRow: GridRow) => {
@@ -349,10 +354,16 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
 
   const toggleCategory = (section: string, category: string) => {
     const key = `${section}||${category}`;
-    setCollapsedCategories((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
+    setCollapsedCategories((prev) => {
+      const categories = Object.keys(sectionsData[section] || {});
+      const isFirst = categories[0] === category;
+      const defaultCollapsed = !isFirst;
+      const current = prev[key] ?? defaultCollapsed;
+      return {
+        ...prev,
+        [key]: !current,
+      };
+    });
   };
 
   const handleCollapseAll = () => {
@@ -618,13 +629,234 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
   // Helper function to resolve visual class name of input fields including validation states
   const getInputClass = (val: number) => {
     if (val < 0) {
-      return "w-full h-10 px-2 text-right bg-destructive/15 text-destructive border-2 border-destructive focus:ring-destructive focus:outline-none font-extrabold text-xs transition-colors";
+      return "w-full h-8 px-2 text-right bg-destructive/15 text-destructive border-2 border-destructive focus:ring-destructive focus:outline-none font-extrabold text-xs transition-colors";
     }
-    return "w-full h-10 px-2 text-right bg-transparent hover:bg-muted/15 focus:bg-background border-0 focus:ring-2 focus:ring-inset focus:ring-primary focus:outline-none transition-all duration-150 font-semibold text-foreground text-xs";
+    return "w-full h-8 px-2 text-right bg-transparent hover:bg-muted/15 focus:bg-background border-0 focus:ring-2 focus:ring-inset focus:ring-primary focus:outline-none transition-all duration-150 font-semibold text-foreground text-xs";
+  };
+
+  const renderCategoryBlock = (sectionName: string, categoryName: string, categoryRows: any[], isFirstCategory: boolean) => {
+    const isStrategicCategory = categoryRows[0]?.deliverable_type === "Strategic";
+    const isCollapsed = collapsedCategories[`${sectionName}||${categoryName}`] ?? !isFirstCategory;
+    const displayCategoryName = categoryName.toLowerCase() === "strategic deliverables"
+      ? "Stratefic Delievrables"
+      : categoryName;
+
+    return (
+      <div key={categoryName} className="group/category">
+        {/* Category Header */}
+        <div 
+          className={`${
+            isStrategicCategory
+              ? "bg-indigo-500/[0.04] dark:bg-indigo-500/[0.07] hover:bg-indigo-500/[0.09] border-b border-indigo-500/15"
+              : "bg-muted/30 hover:bg-muted/50 border-b border-border/60"
+          } px-4 py-3 flex items-center justify-between cursor-pointer select-none transition-colors`}
+          onClick={() => toggleCategory(sectionName, categoryName)}
+        >
+          <div className="flex items-center gap-2">
+            <span className={`${
+              isStrategicCategory ? "text-indigo-500 dark:text-indigo-400" : "text-muted-foreground"
+            } transition-transform duration-200`}>
+              {isCollapsed ? (
+                <ChevronRight className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </span>
+            <h4 className={`text-sm font-extrabold uppercase tracking-wide ${
+              isStrategicCategory ? "text-indigo-600 dark:text-indigo-450 font-black" : "text-foreground"
+            }`}>{displayCategoryName}</h4>
+            {isStrategicCategory && (
+              <span className="text-[9px] font-black bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-1.5 py-0.5 rounded uppercase tracking-wider ml-2 shrink-0 select-none">
+                Editable
+              </span>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-3.5" onClick={(e) => e.stopPropagation()}>
+            <span className={`text-xs font-medium ${
+              isStrategicCategory ? "text-indigo-500/80 dark:text-indigo-400/80" : "text-muted-foreground"
+            }`}>
+              {categoryRows.length} indicator{categoryRows.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+        </div>
+
+        {/* Category Table Body */}
+        {!isCollapsed && (
+          <div className="overflow-x-auto p-3 bg-muted/5">
+            <table className="w-full text-xs border-separate [border-spacing:0_6px] table-fixed">
+              <thead>
+                <tr className="text-primary-foreground text-[10px] uppercase tracking-wider bg-primary font-bold text-left">
+                  <th className={`py-1.5 px-3 font-extrabold text-primary-foreground border border-black dark:border-zinc-600 rounded-l-md ${activeQuarterTab === "ALL" ? "w-[26%]" : "w-[36%]"}`}>Performance Indicator</th>
+                  <th className="py-1.5 px-3 w-[6%] font-extrabold text-primary-foreground border border-black dark:border-zinc-600 text-center">Prog.</th>
+                  
+                  {QUARTERS.map(({ key }) => (
+                    (activeQuarterTab === "ALL" || activeQuarterTab === key) && (
+                      <React.Fragment key={key}>
+                        <th className={`py-1 px-2 font-extrabold text-center border border-black dark:border-zinc-600 bg-dost-blue/90 text-primary-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>{key} Target</th>
+                        {activeQuarterTab === key && (
+                          <th className="py-1 px-2 w-[20%] font-extrabold text-center border border-black dark:border-zinc-600 bg-dost-red/90 text-primary-foreground">{key} Accomplishment</th>
+                        )}
+                      </React.Fragment>
+                    )
+                  ))}
+                  
+                  <th className="py-1 px-2 w-[14%] font-black text-center border border-black dark:border-zinc-600 bg-primary-foreground/10 text-primary-foreground">Annual Target</th>
+                  <th className="py-1 px-2 w-[4%] font-extrabold text-center border border-black dark:border-zinc-600 rounded-r-md"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {categoryRows.map((row, idx) => {
+                  const isEditable = row.deliverable_type === "Strategic";
+                  const isFocused = focusedRowId === row.id;
+                  const isModified = isRowModified(row);
+                  return (
+                    <tr
+                      key={row.id}
+                      onFocus={() => setFocusedRowId(row.id)}
+                      onBlur={() => setFocusedRowId(null)}
+                      className={`transition-all duration-200 group ${
+                        isFocused
+                          ? "bg-primary/[0.06] dark:bg-primary/[0.08]"
+                          : isModified
+                            ? "bg-orange-500/[0.07] dark:bg-orange-500/[0.12] hover:bg-orange-500/[0.15]"
+                            : isStrategicCategory
+                              ? "odd:bg-indigo-500/[0.02] even:bg-indigo-500/[0.06] dark:odd:bg-slate-900/30 dark:even:bg-indigo-950/20 hover:bg-indigo-500/10 dark:hover:bg-indigo-950/40"
+                              : "odd:bg-blue-50/50 even:bg-blue-100/60 dark:odd:bg-slate-900/40 dark:even:bg-blue-950/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30"
+                      }`}
+                    >
+                      {/* Performance Indicator */}
+                      <td 
+                        title={isModified ? "Unsaved Changes" : undefined}
+                        className={`p-1 font-medium text-foreground rounded-l-md max-w-[200px] border-y border-r border-black dark:border-zinc-600 ${
+                          isModified 
+                            ? "border-l-4 border-l-orange-500 pl-1.5" 
+                            : "border-l border-l-black dark:border-l-zinc-600"
+                        }`}
+                      >
+                        {isEditable ? (
+                          <input
+                            type="text"
+                            className="w-full h-8 px-2 text-left bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-medium text-foreground text-xs disabled:opacity-85"
+                            value={row.indicator}
+                            onChange={(e) => handleCellChange(row.id, "indicator", e.target.value)}
+                            placeholder="Enter indicator name..."
+                            disabled={readOnly}
+                          />
+                        ) : (
+                          <div className="px-2 py-1 truncate font-medium text-foreground text-xs" title={row.indicator}>
+                            {row.indicator}
+                          </div>
+                        )}
+                      </td>
+                      {/* Program */}
+                      <td className="p-1 text-center border border-black dark:border-zinc-600">
+                        {isEditable ? (
+                          <input
+                            type="text"
+                            className="w-full h-8 px-2 text-center bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-bold text-muted-foreground text-xs disabled:opacity-85"
+                            value={row.program || ""}
+                            onChange={(e) => handleCellChange(row.id, "program", e.target.value)}
+                            placeholder="N/A"
+                            disabled={readOnly}
+                          />
+                        ) : (
+                          <div className="px-2 py-1 font-bold text-muted-foreground text-xs">
+                            {row.program || "-"}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Quarterly Target & Actual Columns */}
+                      {QUARTERS.map(({ key, targetField, actualField }) => (
+                        (activeQuarterTab === "ALL" || activeQuarterTab === key) && (
+                          <React.Fragment key={key}>
+                            {activeQuarterTab === "ALL" ? (
+                              <td className="p-0 border border-black dark:border-zinc-600 bg-dost-blue/5 hover:bg-dost-blue/10">
+                                <input
+                                  ref={(el) => (inputRefs.current[`${row.id}-${targetField}`] = el)}
+                                  type="number"
+                                  className={getInputClass(row[targetField])}
+                                  value={row[targetField] || ""}
+                                  onChange={(e) => handleCellChange(row.id, targetField, e.target.value)}
+                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(targetField), categoryRows)}
+                                  placeholder="0"
+                                  disabled={readOnly}
+                                />
+                              </td>
+                            ) : (
+                              <td className="py-1.5 px-3 text-right border border-black dark:border-zinc-600 bg-muted/10 text-muted-foreground select-none font-semibold">
+                                {row[targetField].toLocaleString()}
+                              </td>
+                            )}
+                            {activeQuarterTab === key && (
+                              <td className="p-0 border border-black dark:border-zinc-600 bg-dost-red/5 hover:bg-dost-red/10">
+                                <input
+                                  ref={(el) => (inputRefs.current[`${row.id}-${actualField}`] = el)}
+                                  type="number"
+                                  className={getInputClass(row[actualField])}
+                                  value={row[actualField] || ""}
+                                  onChange={(e) => handleCellChange(row.id, actualField, e.target.value)}
+                                  onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(actualField), categoryRows)}
+                                  placeholder="0"
+                                  disabled={readOnly}
+                                />
+                              </td>
+                            )}
+                          </React.Fragment>
+                        )
+                      ))}
+
+                      {/* Annual Target Formula with Muted Zeros logic */}
+                      <td className={`py-1.5 px-3 text-right border border-black dark:border-zinc-600 bg-blue-200/30 dark:bg-blue-900/20 select-none ${
+                        row.annual_target === 0 ? "text-muted-foreground/35 font-medium" : "text-foreground font-extrabold"
+                      }`}>
+                        {row.annual_target.toLocaleString()}
+                      </td>
+                      {/* Actions Column (Delete button for Strategic rows) */}
+                      <td className="p-1 text-center border border-black dark:border-zinc-600 rounded-r-md">
+                        {isEditable && !readOnly && (
+                          <button
+                            onClick={() => setDeleteConfirmId(row.id)}
+                            className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-500/10 rounded transition-colors"
+                            title="Delete Strategic Indicator"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {isStrategicCategory && !readOnly && (
+                  <tr>
+                    <td 
+                      colSpan={activeQuarterTab === "ALL" ? 8 : 6} 
+                      className="p-2 border border-black dark:border-zinc-600 rounded-b-md bg-transparent text-center"
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddRow(sectionName, categoryName);
+                        }}
+                        className="mx-auto w-fit px-6 h-8 flex items-center justify-center gap-1.5 text-xs font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white rounded transition-all duration-200 shadow-md shadow-emerald-600/10 border border-emerald-700/30"
+                      >
+                        <Plus className="h-4 w-4 text-white" /> Add Strategic Indicator
+                      </button>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-6 pb-36">
+    <div className={`space-y-6 ${isDirty ? "pb-36" : "pb-12"}`}>
       {/* Section Navigation Tabs & Search Input */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-border/40 pb-3">
         {sectionNames.length > 1 && (
@@ -746,234 +978,15 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                 </div>
 
                 <div className="space-y-6">
-                  {categoriesList.map(([categoryName, categoryRows], index) => {
-                    const isStrategicCategory = categoryRows[0]?.deliverable_type === "Strategic";
-                    const isFirstFunctional = index === 0 && !isStrategicCategory;
-                    const isFirstStrategic = index === firstStrategicIdx;
-                    const delType = categoryRows[0]?.deliverable_type || "";
-                    const isDirectRender = categoryName.toLowerCase() === `${delType.toLowerCase()} deliverables`;
-                    const isCollapsed = collapsedCategories[`${sectionName}||${categoryName}`];
-
-                    return (
-                      <div key={categoryName} className="space-y-2">
-                        {/* Redesigned Deliverable Category Separators with indicators */}
-                        {isFirstFunctional && (
-                          <div className="flex items-center justify-between mt-4 mb-1.5 pl-1 pr-1">
-                            <div className="flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60"></span>
-                              <span className="text-[10px] font-black text-muted-foreground/90 tracking-widest uppercase">
-                                Functional Deliverables
-                              </span>
-                            </div>
-                          </div>
+                  {categoriesList.length > 0 && (
+                    <Card className="bg-card border-border overflow-hidden shadow-sm">
+                      <div className="divide-y divide-border">
+                        {categoriesList.map(([categoryName, categoryRows], index) => 
+                          renderCategoryBlock(sectionName, categoryName, categoryRows, index === 0)
                         )}
-                        {isFirstStrategic && (
-                          <div className="flex items-center justify-between mt-6 mb-1.5 pl-1 pr-1">
-                            <div className="flex items-center gap-2">
-                              <span className="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>
-                              <span className="text-[10px] font-black text-indigo-400 tracking-widest uppercase">
-                                Strategic Deliverables
-                              </span>
-                            </div>
-                            {isStrategicCategory && isDirectRender && !readOnly && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddRow(sectionName, categoryName);
-                                }}
-                                className="h-6 px-2.5 text-[9px] gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 rounded-md font-bold"
-                              >
-                                <Plus className="h-2.5 w-2.5" /> Add Indicator
-                              </Button>
-                            )}
-                          </div>
-                        )}
-
-                        <Card className="bg-card border-border overflow-hidden shadow-sm">
-                          {!isDirectRender && (
-                            <div 
-                              className="bg-muted/30 border-b border-border/60 px-4 py-2.5 flex items-center justify-between cursor-pointer select-none hover:bg-muted/50 transition-colors"
-                              onClick={() => toggleCategory(sectionName, categoryName)}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground transition-transform duration-200">
-                                  {isCollapsed ? (
-                                    <ChevronRight className="h-4 w-4" />
-                                  ) : (
-                                    <ChevronDown className="h-4 w-4" />
-                                  )}
-                                </span>
-                                <h4 className="text-sm font-extrabold text-foreground uppercase tracking-wide">{categoryName}</h4>
-                              </div>
-                              
-                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                {isStrategicCategory && !readOnly && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleAddRow(sectionName, categoryName)}
-                                    className="h-7 px-2 text-[10px] gap-1 border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10"
-                                  >
-                                    <Plus className="h-3 w-3" /> Add Indicator
-                                  </Button>
-                                )}
-                                {isStrategicCategory && (
-                                  <span className="text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                    Strategic (Editable)
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          )}
-
-                          {(!isCollapsed || isDirectRender) && (
-                            <div className="overflow-x-auto">
-                              <table className="w-full text-xs border-collapse table-fixed">
-                                <thead>
-                                  <tr className="bg-muted/10 border-b border-border/60 text-foreground/90 text-left">
-                                    <th className={`p-3 font-extrabold text-foreground border-r border-border/40 ${activeQuarterTab === "ALL" ? "w-[26%]" : "w-[36%]"}`}>Performance Indicator</th>
-                                    <th className="p-3 w-[6%] font-extrabold text-foreground border-r border-border/40 text-center">Prog.</th>
-                                    
-                                    {QUARTERS.map(({ key }) => (
-                                      (activeQuarterTab === "ALL" || activeQuarterTab === key) && (
-                                        <React.Fragment key={key}>
-                                          <th className={`p-2 font-extrabold text-center border-r border-border/40 bg-dost-blue/5 text-foreground ${activeQuarterTab === "ALL" ? "w-[10%]" : "w-[20%]"}`}>{key} Target</th>
-                                          {activeQuarterTab === key && (
-                                            <th className="p-2 w-[20%] font-extrabold text-center border-r border-border/40 bg-dost-red/5 text-foreground">{key} Accomplishment</th>
-                                          )}
-                                        </React.Fragment>
-                                      )
-                                    ))}
-                                    
-                                    <th className="p-2 w-[14%] font-black text-center border-r border-border/40 bg-muted/40 text-foreground">Annual Target</th>
-                                    <th className="p-2 w-[4%] font-extrabold text-center bg-muted/40"></th>
-                                  </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border/50">
-                                  {categoryRows.map((row, idx) => {
-                                    const isEditable = row.deliverable_type === "Strategic";
-                                    const isFocused = focusedRowId === row.id;
-                                    const isModified = isRowModified(row);
-                                    return (
-                                      <tr
-                                        key={row.id}
-                                        onFocus={() => setFocusedRowId(row.id)}
-                                        onBlur={() => setFocusedRowId(null)}
-                                        className={`transition-colors duration-150 ${
-                                          isFocused
-                                            ? "bg-primary/[0.06] dark:bg-primary/[0.08]"
-                                            : "hover:bg-accent/15"
-                                        }`}
-                                      >
-                                        {/* Performance Indicator */}
-                                        <td className={`p-1 font-medium text-foreground border-r border-border/40 max-w-[200px] relative ${isModified ? "pl-3" : ""}`}>
-                                          {isModified && (
-                                            <span className="absolute left-0 top-0 bottom-0 w-1 bg-dost-blue" title="Unsaved Changes" />
-                                          )}
-                                          {isEditable ? (
-                                            <input
-                                              type="text"
-                                              className="w-full h-8 px-2 text-left bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-medium text-foreground text-xs disabled:opacity-85"
-                                              value={row.indicator}
-                                              onChange={(e) => handleCellChange(row.id, "indicator", e.target.value)}
-                                              placeholder="Enter indicator name..."
-                                              disabled={readOnly}
-                                            />
-                                          ) : (
-                                            <div className="px-2 py-1.5 truncate font-medium text-foreground text-xs" title={row.indicator}>
-                                              {row.indicator}
-                                            </div>
-                                          )}
-                                        </td>
-                                        {/* Program */}
-                                        <td className="p-1 text-center border-r border-border/40">
-                                          {isEditable ? (
-                                            <input
-                                              type="text"
-                                              className="w-full h-8 px-2 text-center bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-bold text-muted-foreground text-xs disabled:opacity-85"
-                                              value={row.program || ""}
-                                              onChange={(e) => handleCellChange(row.id, "program", e.target.value)}
-                                              placeholder="N/A"
-                                              disabled={readOnly}
-                                            />
-                                          ) : (
-                                            <div className="px-2 py-1.5 font-bold text-muted-foreground text-xs">
-                                              {row.program || "-"}
-                                            </div>
-                                          )}
-                                        </td>
-
-                                        {/* Quarterly Target & Actual Columns */}
-                                        {QUARTERS.map(({ key, targetField, actualField }) => (
-                                          (activeQuarterTab === "ALL" || activeQuarterTab === key) && (
-                                            <React.Fragment key={key}>
-                                              {activeQuarterTab === "ALL" ? (
-                                                <td className="p-0 border-r border-border/40 bg-dost-blue/5 hover:bg-dost-blue/10">
-                                                  <input
-                                                    ref={(el) => (inputRefs.current[`${row.id}-${targetField}`] = el)}
-                                                    type="number"
-                                                    className={getInputClass(row[targetField])}
-                                                    value={row[targetField] || ""}
-                                                    onChange={(e) => handleCellChange(row.id, targetField, e.target.value)}
-                                                    onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(targetField), categoryRows)}
-                                                    placeholder="0"
-                                                    disabled={readOnly}
-                                                  />
-                                                </td>
-                                              ) : (
-                                                <td className="p-3 text-right border-r border-border/40 bg-muted/10 text-muted-foreground select-none font-semibold">
-                                                  {row[targetField].toLocaleString()}
-                                                </td>
-                                              )}
-                                              {activeQuarterTab === key && (
-                                                <td className="p-0 border-r border-border/40 bg-dost-red/5 hover:bg-dost-red/10">
-                                                  <input
-                                                    ref={(el) => (inputRefs.current[`${row.id}-${actualField}`] = el)}
-                                                    type="number"
-                                                    className={getInputClass(row[actualField])}
-                                                    value={row[actualField] || ""}
-                                                    onChange={(e) => handleCellChange(row.id, actualField, e.target.value)}
-                                                    onKeyDown={(e) => handleKeyDown(e, idx, COL_FIELDS.indexOf(actualField), categoryRows)}
-                                                    placeholder="0"
-                                                    disabled={readOnly}
-                                                  />
-                                                </td>
-                                              )}
-                                            </React.Fragment>
-                                          )
-                                        ))}
-
-                                        {/* Annual Target Formula with Muted Zeros logic */}
-                                        <td className={`p-3 text-right border-r border-border/40 bg-muted/30 select-none ${
-                                          row.annual_target === 0 ? "text-muted-foreground/35 font-medium" : "text-foreground font-extrabold"
-                                        }`}>
-                                          {row.annual_target.toLocaleString()}
-                                        </td>
-                                        {/* Actions Column (Delete button for Strategic rows) */}
-                                        <td className="p-1 text-center bg-muted/10">
-                                          {isEditable && !readOnly && (
-                                            <button
-                                              onClick={() => handleDeleteRow(row.id)}
-                                              className="p-1.5 text-muted-foreground hover:text-dost-red hover:bg-dost-red/10 rounded transition-colors"
-                                              title="Delete Strategic Indicator"
-                                            >
-                                              <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
-                                          )}
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </Card>
                       </div>
-                    );
-                  })}
+                    </Card>
+                  )}
                 </div>
               </div>
             );
@@ -1313,8 +1326,30 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog for Strategic Metrics */}
+      <DeleteConfirmDialog
+        isOpen={deleteConfirmId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirmId(null);
+        }}
+        indicatorTitle={rows.find((r) => r.id === deleteConfirmId)?.indicator || ""}
+        onConfirm={() => {
+          if (deleteConfirmId) {
+            handleDeleteRow(deleteConfirmId);
+          }
+        }}
+      />
+
+      {/* Revert Confirmation Dialog */}
+      <RevertConfirmDialog
+        isOpen={showRevertDialog}
+        onOpenChange={setShowRevertDialog}
+        onConfirm={executeRevert}
+      />
     </div>
   );
 });
 
 DataEntryGrid.displayName = "DataEntryGrid";
+
