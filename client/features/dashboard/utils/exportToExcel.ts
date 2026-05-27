@@ -52,11 +52,11 @@ function parseRawData(rawData: any[]): GridRow[] {
         deliverable_type: item.deliverable_type || "Functional",
         unit: item.unit,
         aggregation_type: item.aggregation_type || "SUM",
-        q1_target: item.q1_target ?? 0,
-        q2_target: item.q2_target ?? 0,
-        q3_target: item.q3_target ?? 0,
-        q4_target: item.q4_target ?? 0,
-        annual_target: item.annual_target ?? 0,
+        q1_target: Number(item.q1_target ?? 0),
+        q2_target: Number(item.q2_target ?? 0),
+        q3_target: Number(item.q3_target ?? 0),
+        q4_target: Number(item.q4_target ?? 0),
+        annual_target: Number(item.annual_target ?? 0),
       });
     }
   });
@@ -324,6 +324,25 @@ export async function exportToExcel(
           cell.value = null; // Keep blank for Projects Approved & Amount Funded
         } else {
           cell.value = scaledVal;
+
+          // For Technology Acquisition & Upgrading, conditionally format decimals/whole numbers
+          if (keepBlank) {
+            if (scaledVal % 1 === 0) {
+              // Whole number: strip decimals from the formatting if present
+              if (cell.numFmt && typeof cell.numFmt === "string") {
+                cell.numFmt = cell.numFmt.replace(/\.00/g, "");
+              }
+            } else {
+              // Has decimal: ensure it has decimal formatting
+              if (cell.numFmt && typeof cell.numFmt === "string") {
+                if (!cell.numFmt.includes(".")) {
+                  cell.numFmt = cell.numFmt.replace(/0/g, "0.00");
+                }
+              } else if (!cell.numFmt) {
+                cell.numFmt = isPercent ? "#,##0.00%" : "#,##0.00";
+              }
+            }
+          }
         }
 
         // Force font style to be non-italic (normal)
