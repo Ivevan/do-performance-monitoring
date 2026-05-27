@@ -40,7 +40,7 @@ function PerformanceCell({ target, actual, unit, showAccomplishments }: { target
         <span className="text-foreground/90 font-medium">
           {formatValue(target, unit)}
         </span>
-        <span className="text-muted-foreground/30 font-normal">/</span>
+        <span className="text-black dark:text-white font-bold">/</span>
         <span className="text-dost-red font-bold">
           {formatValue(displayActual, unit)}
         </span>
@@ -101,82 +101,74 @@ export function DataTable({ category, selectedQuarter, showAccomplishments }: Da
                   >
                     {selectedQuarter === "Annual" ? (
                       /* Annual — full Q1/Q2/Q3/Q4/Annual table */
-                      <div className="overflow-x-auto">
-                        {showAccomplishments && (
-                          <div className="bg-muted/10 border-b border-border/30 px-4 py-1.5 flex items-center justify-end gap-1.5 text-[9px] text-muted-foreground">
-                            <span className="font-semibold text-foreground/80">Target</span>
-                            <span>/</span>
-                            <span className="font-bold text-dost-red">Accomplishment</span>
-                          </div>
-                        )}
-                        <table className="w-full text-sm">
+                      <div className="overflow-x-auto p-3">
+                        <table className="w-full text-sm border-separate [border-spacing:0_6px]">
                           <thead>
-                            <tr className="text-muted-foreground text-[10px] uppercase tracking-wider border-b border-border/50 bg-muted/30">
-                              <th className="text-left py-2 px-4 font-bold">Indicator Metric</th>
-                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q1 (T/A)" : "Q1"}</th>
-                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q2 (T/A)" : "Q2"}</th>
-                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q3 (T/A)" : "Q3"}</th>
-                              <th className="text-right py-2 px-4 font-bold">{showAccomplishments ? "Q4 (T/A)" : "Q4"}</th>
-                              <th className="text-right py-2 px-4 font-bold text-primary">{showAccomplishments ? "Annual (T/A)" : "Annual"}</th>
+                            <tr className="text-primary-foreground text-[10px] uppercase tracking-wider bg-primary font-bold">
+                              <th className="text-left py-2.5 px-4 rounded-l-md border border-black dark:border-zinc-600">Indicator Metric</th>
+                              <th className="text-right py-2.5 px-4 border border-black dark:border-zinc-600">{showAccomplishments ? "Q1 (T/A)" : "Q1"}</th>
+                              <th className="text-right py-2.5 px-4 border border-black dark:border-zinc-600">{showAccomplishments ? "Q2 (T/A)" : "Q2"}</th>
+                              <th className="text-right py-2.5 px-4 border border-black dark:border-zinc-600">{showAccomplishments ? "Q3 (T/A)" : "Q3"}</th>
+                              <th className="text-right py-2.5 px-4 border border-black dark:border-zinc-600">{showAccomplishments ? "Q4 (T/A)" : "Q4"}</th>
+                              <th className="text-right py-2.5 px-4 rounded-r-md border border-black dark:border-zinc-600">Annual</th>
                             </tr>
                           </thead>
-                        <tbody>
-                          {sub.metrics.map((metric) => (
-                            <tr key={metric.name} className="hover:bg-muted/40 transition-colors border-b border-border/10 last:border-0">
-                              <td className="py-3 px-4 text-foreground text-xs font-medium max-w-[300px]">{metric.name}</td>
-                              <td className="py-3 px-4 text-right"><PerformanceCell target={metric.Q1} actual={metric.Q1_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
-                              <td className="py-3 px-4 text-right"><PerformanceCell target={metric.Q2} actual={metric.Q2_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
-                              <td className="py-3 px-4 text-right"><PerformanceCell target={metric.Q3} actual={metric.Q3_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
-                              <td className="py-3 px-4 text-right"><PerformanceCell target={metric.Q4} actual={metric.Q4_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
-                              <td className="py-3 px-4 text-right border-l border-border/10 bg-primary/5">
-                                <PerformanceCell target={metric.Annual} actual={metric.Annual_actual} unit={metric.unit} showAccomplishments={showAccomplishments} />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    /* Single quarter — detailed high-density comparison */
-                    <div className="px-4 py-2 divide-y divide-border/5">
-                      {sub.metrics.map((metric) => {
-                        const qActualKey = `${selectedQuarter}_actual` as keyof typeof metric;
-                        const actual = metric[qActualKey] as number | undefined;
-                        
-                        return (
-                          <div key={metric.name} className="flex justify-between items-center py-2.5 gap-4 group">
-                            <span className="text-xs text-foreground font-medium flex-1 line-clamp-1" title={metric.name}>
-                              {metric.name}
-                            </span>
-                            
-                            <div className="flex items-center gap-6 shrink-0">
-                              {/* Target Column */}
-                              <div className="flex flex-col items-end min-w-[70px]">
-                                <span className="text-[8px] text-muted-foreground uppercase font-bold tracking-tighter leading-tight mb-0.5">
-                                  Target
-                                </span>
-                                <span className="text-xs font-bold text-foreground/80 leading-none">
-                                  {formatValue(metric[selectedQuarter], metric.unit)}
-                                </span>
-                              </div>
-
-                              {/* Accomplishment Column */}
+                          <tbody>
+                            {sub.metrics.map((metric) => (
+                              <tr key={metric.name} className="odd:bg-blue-50/50 even:bg-blue-100/60 dark:odd:bg-slate-900/40 dark:even:bg-blue-950/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 transition-all duration-200 group">
+                                <td className="py-3 px-4 text-foreground text-xs font-semibold max-w-[300px] rounded-l-md border border-black dark:border-zinc-600">{metric.name}</td>
+                                <td className="py-3 px-4 text-right border border-black dark:border-zinc-600"><PerformanceCell target={metric.Q1} actual={metric.Q1_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
+                                <td className="py-3 px-4 text-right border border-black dark:border-zinc-600"><PerformanceCell target={metric.Q2} actual={metric.Q2_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
+                                <td className="py-3 px-4 text-right border border-black dark:border-zinc-600"><PerformanceCell target={metric.Q3} actual={metric.Q3_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
+                                <td className="py-3 px-4 text-right border border-black dark:border-zinc-600"><PerformanceCell target={metric.Q4} actual={metric.Q4_actual} unit={metric.unit} showAccomplishments={showAccomplishments} /></td>
+                                <td className="py-3 px-4 text-right border border-black dark:border-zinc-600 rounded-r-md bg-blue-200/30 dark:bg-blue-900/20">
+                                  <PerformanceCell target={metric.Annual} actual={metric.Annual_actual} unit={metric.unit} showAccomplishments={showAccomplishments} />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      /* Single quarter — table layout */
+                      <div className="overflow-x-auto p-3">
+                        <table className="w-full text-sm border-separate [border-spacing:0_6px] table-fixed">
+                          <thead>
+                            <tr className="text-primary-foreground text-[10px] uppercase tracking-wider bg-primary font-bold">
+                              <th className="text-left py-2.5 px-4 rounded-l-md border border-black dark:border-zinc-600 w-[50%]">Indicator Metric</th>
+                              <th className={`text-right py-2.5 px-4 border border-black dark:border-zinc-600 ${!showAccomplishments ? "rounded-r-md w-[50%]" : "w-[25%]"}`}>Target</th>
                               {showAccomplishments && (
-                                <div className="flex flex-col items-end min-w-[70px] border-l border-border/10 pl-4">
-                                  <span className="text-[8px] text-dost-red uppercase font-bold tracking-tighter leading-tight mb-0.5">
-                                    Accomplished
-                                  </span>
-                                  <span className="text-xs font-bold text-dost-red leading-none">
-                                    {formatValue(actual ?? 0, metric.unit)}
-                                  </span>
-                                </div>
+                                <th className="text-right py-2.5 px-4 rounded-r-md border border-black dark:border-zinc-600 w-[25%]">Accomplishment</th>
                               )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {sub.metrics.map((metric) => {
+                              const qActualKey = `${selectedQuarter}_actual` as keyof typeof metric;
+                              const actual = metric[qActualKey] as number | undefined;
+                              
+                              return (
+                                <tr key={metric.name} className="odd:bg-blue-50/50 even:bg-blue-100/60 dark:odd:bg-slate-900/40 dark:even:bg-blue-950/50 hover:bg-amber-100/50 dark:hover:bg-amber-950/30 transition-all duration-200 group">
+                                  <td className="py-3 px-4 text-foreground text-xs font-semibold max-w-[300px] rounded-l-md border border-black dark:border-zinc-600">{metric.name}</td>
+                                  <td className={`py-3 px-4 text-right border border-black dark:border-zinc-600 ${!showAccomplishments ? "rounded-r-md bg-blue-200/30 dark:bg-blue-900/20" : ""}`}>
+                                    <span className="text-xs text-foreground/90 font-medium">
+                                      {formatValue(metric[selectedQuarter], metric.unit)}
+                                    </span>
+                                  </td>
+                                  {showAccomplishments && (
+                                    <td className="py-3 px-4 text-right border border-black dark:border-zinc-600 rounded-r-md bg-blue-200/30 dark:bg-blue-900/20">
+                                      <span className="text-xs text-dost-red font-bold">
+                                        {formatValue(actual ?? 0, metric.unit)}
+                                      </span>
+                                    </td>
+                                  )}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

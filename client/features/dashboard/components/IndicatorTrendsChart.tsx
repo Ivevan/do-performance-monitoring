@@ -12,7 +12,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   Download, 
-  FileSpreadsheet, 
   Image,
   TrendingUp
 } from "lucide-react";
@@ -194,33 +193,6 @@ export const IndicatorTrendsChart = React.memo(({
     return val.toLocaleString();
   };
 
-  // CSV export
-  const downloadCSV = () => {
-    const generated = new Date().toLocaleString("en-PH", { dateStyle: "long", timeStyle: "short" });
-    const filename = `${indicatorName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-trends.csv`;
-    
-    const headers = ["Quarter", "Target Goal", "Accomplishment", "Accomplishment Rate %"];
-    const rows = data.map(d => {
-      const rate = d.target > 0 ? `${((d.value / d.target) * 100).toFixed(1)}%` : "N/A";
-      return [d.name, d.target, d.value, rate];
-    });
-
-    const lines = [
-      [`DOST Davao Oriental Performance Trends - ${indicatorName}`],
-      [`Unit of Measure: ${unit || "Count"}`],
-      [`Generated: ${generated}`],
-      [],
-      headers,
-      ...rows
-    ];
-
-    const csvContent = lines.map(row => row.map(v => typeof v === "string" && v.includes(",") ? `"${v}"` : v).join(",")).join("\n");
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-  };
 
   // PNG export
   const downloadPNG = async () => {
@@ -280,10 +252,7 @@ export const IndicatorTrendsChart = React.memo(({
                 <Image className="h-3.5 w-3.5 text-muted-foreground" /> 
                 PNG Image
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={downloadCSV} className="gap-2 text-xs cursor-pointer">
-                <FileSpreadsheet className="h-3.5 w-3.5 text-muted-foreground" /> 
-                CSV Spreadsheet
-              </DropdownMenuItem>
+
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -302,7 +271,7 @@ export const IndicatorTrendsChart = React.memo(({
                 <feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity="0.4" floodColor="hsl(var(--dost-red))" />
               </filter>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.5} />
+            <CartesianGrid strokeDasharray="3 3" stroke="black" className="opacity-25 dark:stroke-zinc-700 dark:opacity-40" vertical={false} />
             <XAxis 
               dataKey="name" 
               stroke="hsl(var(--muted-foreground))" 

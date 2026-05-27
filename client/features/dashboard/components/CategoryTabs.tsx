@@ -15,9 +15,9 @@ export function CategoryTabs({ categories, selected, onChange }: CategoryTabsPro
           variant={selected === cat.id ? "default" : "outline"}
           size="sm"
           onClick={() => onChange(cat.id)}
-          className={`text-xs transition-all ${
+          className={`text-xs transition-all font-semibold ${
             selected === cat.id
-              ? "bg-primary/20 text-primary border-primary shadow-[0_0_10px_rgba(0,240,255,0.15)]"
+              ? "bg-dost-blue text-white hover:bg-dost-blue/90 hover:text-white border-dost-blue ring-2 ring-offset-2 ring-dost-blue shadow-glow"
               : "border-border/50 text-muted-foreground hover:text-foreground hover:border-primary/50 bg-transparent"
           }`}
         >

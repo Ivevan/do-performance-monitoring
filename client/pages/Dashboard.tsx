@@ -238,7 +238,7 @@ const Dashboard = () => {
                 size="sm"
                 onClick={() => setShowAccomplishments(!showAccomplishments)}
                 className={`text-[10px] sm:text-xs h-8 px-3 gap-2 transition-all ${showAccomplishments
-                  ? "bg-primary text-primary-foreground shadow-glow border-transparent"
+                  ? "bg-dost-red text-white shadow-glow border-transparent hover:bg-dost-red/90"
                   : "text-muted-foreground hover:text-foreground border-border/50"
                   }`}
               >

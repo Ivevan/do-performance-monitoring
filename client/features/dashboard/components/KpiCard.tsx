@@ -88,27 +88,6 @@ export function KpiCard({
             style={{ width: showAccomplishments ? `${Math.min(progress, 100)}%` : '100%' }}
           />
         </div>
-
-        {showAccomplishments && selectedQuarter === "Annual" && (
-          <div className="flex gap-0.5">
-            {(["Q1", "Q2", "Q3", "Q4"] as const).map((q) => {
-              const qTarget = target / 4; // Simplified target distribution for visual check
-              const qProgress = qTarget > 0 ? (breakdown[q] / qTarget) * 100 : 0;
-              return (
-                <div
-                  key={q}
-                  className="flex-1 bg-muted/30 h-0.5 rounded-full overflow-hidden"
-                  title={`${q} Actual: ${formatValue(breakdown[q])}`}
-                >
-                  <div
-                    className={`h-full ${qProgress >= 100 ? 'bg-green-500/50' : 'bg-muted-foreground/40'}`}
-                    style={{ width: `${Math.min(qProgress, 100)}%` }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     </Card>
   );
