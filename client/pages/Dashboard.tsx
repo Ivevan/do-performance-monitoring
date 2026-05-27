@@ -12,6 +12,7 @@ import { IndicatorTrendsChart } from "@/features/dashboard/components/IndicatorT
 import { DataTable } from "@/features/dashboard/components/DataTable";
 import { DataEntryGrid, DataEntryGridRef } from "@/features/dashboard/components/DataEntryGrid";
 import { ExportDialog } from "@/features/dashboard/components/ExportDialog";
+import { UnsavedChangesConfirmDialog } from "@/components/ui/ConfirmationDialogs";
 import { useDashboardData } from "@/features/dashboard/hooks/useDashboardData";
 import { useKpiData, KPI_INDICATORS } from "@/features/dashboard/hooks/useKpiData";
 import { useChartData } from "@/features/dashboard/hooks/useChartData";
@@ -51,6 +52,7 @@ const Dashboard = () => {
   const [showAccomplishments, setShowAccomplishments] = useState(false);
   const [isEntryMode, setIsEntryMode] = useState(false);
   const [gridIsDirty, setGridIsDirty] = useState(false);
+  const [showLeaveConfirmDialog, setShowLeaveConfirmDialog] = useState(false);
   const [activeQuarterTab, setActiveQuarterTab] = useState<"ALL" | "Q1" | "Q2" | "Q3" | "Q4">("ALL");
   const [isSaving, setIsSaving] = useState(false);
   const [showExportDialog, setShowExportDialog] = useState(false);
@@ -154,12 +156,10 @@ const Dashboard = () => {
   // ── Toggle handler ─────────────────────────────────────────────────────────
   const handleToggleMode = () => {
     if (isEntryMode && gridIsDirty) {
-      const confirmLeave = window.confirm(
-        "You have unsaved changes. Are you sure you want to go back and discard them?"
-      );
-      if (!confirmLeave) return;
+      setShowLeaveConfirmDialog(true);
+    } else {
+      setIsEntryMode(!isEntryMode);
     }
-    setIsEntryMode(!isEntryMode);
   };
 
   return (
@@ -414,6 +414,13 @@ const Dashboard = () => {
         year={selectedYear}
       />
     )}
+
+    {/* Discard & Leave Mode Confirmation Dialog */}
+    <UnsavedChangesConfirmDialog
+      isOpen={showLeaveConfirmDialog}
+      onOpenChange={setShowLeaveConfirmDialog}
+      onConfirm={() => setIsEntryMode(false)}
+    />
   </>
   );
 };

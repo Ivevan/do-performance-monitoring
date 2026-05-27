@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { DeleteConfirmDialog, RevertConfirmDialog } from "@/components/ui/ConfirmationDialogs";
+import { DeleteConfirmDialog, RevertConfirmDialog, UnsavedChangesConfirmDialog } from "@/components/ui/ConfirmationDialogs";
 
 interface GridRow {
   id: string; // unique ID for local state (can be composite key or temp ID)
@@ -70,6 +70,7 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
   const [deletedRows, setDeletedRows] = useState<GridRow[]>([]);
   const [showReviewDialog, setShowReviewDialog] = useState(false);
   const [showRevertDialog, setShowRevertDialog] = useState(false);
+  const [showBackDialog, setShowBackDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -127,12 +128,10 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
 
   const handleBack = () => {
     if (isDirty) {
-      const confirmLeave = window.confirm(
-        "You have unsaved changes. Are you sure you want to go back and discard them?"
-      );
-      if (!confirmLeave) return;
+      setShowBackDialog(true);
+    } else {
+      onBack();
     }
-    onBack();
   };
 
   // Shared parsing function to build rows
@@ -942,14 +941,14 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
             return (
               <div key={sectionName} className="space-y-4">
                 {/* Redesigned Section Subheader Banner - Removes redundant Section title label */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-secondary/15 p-3 rounded-lg border border-border/40">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/40 p-3 rounded-lg border border-border/40">
                   <div className="space-y-0.5">
                     {subHeader ? (
-                      <div className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wide leading-relaxed max-w-4xl">
+                      <div className="text-[11px] font-extrabold text-black dark:text-white uppercase tracking-wide leading-relaxed max-w-4xl">
                         {subHeader}
                       </div>
                     ) : (
-                      <div className="text-[11px] font-extrabold text-muted-foreground uppercase tracking-wide">
+                      <div className="text-[11px] font-extrabold text-black dark:text-white uppercase tracking-wide">
                         {sectionName}
                       </div>
                     )}
@@ -1346,6 +1345,13 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
         isOpen={showRevertDialog}
         onOpenChange={setShowRevertDialog}
         onConfirm={executeRevert}
+      />
+
+      {/* Discard & Go Back Confirmation Dialog */}
+      <UnsavedChangesConfirmDialog
+        isOpen={showBackDialog}
+        onOpenChange={setShowBackDialog}
+        onConfirm={onBack}
       />
     </div>
   );

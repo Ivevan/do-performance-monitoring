@@ -112,3 +112,53 @@ export function RevertConfirmDialog({
     </Dialog>
   );
 }
+
+interface UnsavedChangesConfirmDialogProps {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+}
+
+export function UnsavedChangesConfirmDialog({
+  isOpen,
+  onOpenChange,
+  onConfirm,
+}: UnsavedChangesConfirmDialogProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[420px] bg-background border border-border shadow-2xl rounded-xl p-6">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-orange-500 dark:text-orange-450 font-black text-base uppercase tracking-wider">
+            <RotateCcw className="h-5 w-5 text-orange-500 dark:text-orange-450" />
+            Unsaved Changes
+          </DialogTitle>
+          <DialogDescription className="text-muted-foreground text-xs pt-1.5 leading-relaxed">
+            You have unsaved changes. Are you sure you want to go back and discard them?
+          </DialogDescription>
+        </DialogHeader>
+
+        <DialogFooter className="flex sm:justify-end gap-2 pt-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenChange(false)}
+            className="text-xs font-bold border-border/60 hover:bg-muted/50 h-9 px-4 rounded-lg"
+          >
+            Keep Editing
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => {
+              onConfirm();
+              onOpenChange(false);
+            }}
+            className="text-xs font-bold bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-600 text-white h-9 px-4 rounded-lg gap-1.5 shadow-md shadow-orange-500/15"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Discard & Go Back
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
