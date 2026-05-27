@@ -26,7 +26,7 @@ export const LoginForm: React.FC = () => {
       <div className="space-y-6">
         <div className="space-y-2 text-center">
           <p className="text-sm text-muted-foreground">
-            Access is restricted to authorized DOST XI personnel.
+            Access is restricted to authorized DOST Davao Oriental personnel.
           </p>
         </div>
 

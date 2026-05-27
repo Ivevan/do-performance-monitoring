@@ -53,7 +53,7 @@ export function BrandingPanel({ variant = "desktop" }: Props) {
             <div className="absolute inset-0 rounded-full bg-white/20 blur-lg scale-150" />
             <img
               src="/DOST_seal.ico.png"
-              alt="DOST XI official seal"
+              alt="DOST Davao Oriental official seal"
               className="relative h-14 w-14 sm:h-16 sm:w-16 object-contain drop-shadow-xl"
               loading="eager"
             />
@@ -114,7 +114,7 @@ export function BrandingPanel({ variant = "desktop" }: Props) {
           <div className="absolute inset-0 rounded-full bg-amber-400/10 blur-xl scale-125" />
           <motion.img
             src="/DOST_seal.ico.png"
-            alt="DOST XI official seal"
+            alt="DOST Davao Oriental official seal"
             className="relative h-44 w-44 xl:h-52 xl:w-52 object-contain drop-shadow-2xl"
             loading="eager"
             initial={{ scale: 0.88, opacity: 0 }}

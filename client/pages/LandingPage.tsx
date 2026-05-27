@@ -23,7 +23,7 @@ const LandingPage = () => {
             className="w-full max-w-md space-y-6 lg:space-y-8"
           >
             <div className="space-y-2 hidden lg:block">
-              <h2 className="text-4xl font-bold tracking-tight text-foreground">DOST XI Workspace</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-foreground">Davao Oriental Performance Monitoring Workspace</h2>
               <p className="text-muted-foreground">Sign in with your Google account to continue.</p>
             </div>
 
