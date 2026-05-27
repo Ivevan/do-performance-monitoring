@@ -242,7 +242,8 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
         if (field === "indicator" || field === "program") {
           updated[field] = valStr;
         } else {
-          const val = valStr === "" ? 0 : parseFloat(valStr);
+          const cleanStr = valStr.replace(/[^0-9.-]/g, "");
+          const val = cleanStr === "" ? 0 : parseFloat(cleanStr);
           if (isNaN(val)) return row;
           updated[field] = val;
 
