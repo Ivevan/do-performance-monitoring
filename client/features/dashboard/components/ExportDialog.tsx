@@ -13,6 +13,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { exportToExcel } from "@/features/dashboard/utils/exportToExcel";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ExportDialogProps {
   open: boolean;
@@ -24,6 +31,7 @@ interface ExportDialogProps {
 export function ExportDialog({ open, onOpenChange, rawData, year }: ExportDialogProps) {
   const [preparedByName, setPreparedByName] = useState("");
   const [preparedByTitle, setPreparedByTitle] = useState("");
+  const [sheetOption, setSheetOption] = useState<"all" | "targets" | "q1_kpis">("all");
   const [exporting, setExporting] = useState(false);
 
   const handleExport = async () => {
@@ -38,6 +46,7 @@ export function ExportDialog({ open, onOpenChange, rawData, year }: ExportDialog
         year,
         preparedByName: preparedByName.trim(),
         preparedByTitle: preparedByTitle.trim(),
+        sheetOption,
       });
       toast.success(`Successfully exported CY ${year} Performance Targets!`);
       onOpenChange(false);
@@ -88,6 +97,26 @@ export function ExportDialog({ open, onOpenChange, rawData, year }: ExportDialog
               onChange={(e) => setPreparedByTitle(e.target.value)}
               className="h-9 text-sm"
             />
+          </div>
+
+          {/* Sheet Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="sheetOption" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Worksheet(s) to Export
+            </Label>
+            <Select
+              value={sheetOption}
+              onValueChange={(val: any) => setSheetOption(val)}
+            >
+              <SelectTrigger id="sheetOption" className="h-9 text-sm">
+                <SelectValue placeholder="Select sheet option" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sheets (Targets & Q1 KPIs)</SelectItem>
+                <SelectItem value="targets">Targets Sheet Only</SelectItem>
+                <SelectItem value="q1_kpis">PSTO-DO 1stQ KPIs Only</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Fixed Reviewer */}

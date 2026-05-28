@@ -9,18 +9,24 @@ interface GridRow {
   category: string;
   deliverable_type: string;
   unit: string | null;
+  value_type?: string | null;
   aggregation_type: string;
   q1_target: number;
   q2_target: number;
   q3_target: number;
   q4_target: number;
   annual_target: number;
+  q1_actual?: number;
+  q2_actual?: number;
+  q3_actual?: number;
+  q4_actual?: number;
 }
 
 interface ExportOptions {
   year: number;
   preparedByName: string;
   preparedByTitle: string;
+  sheetOption?: "all" | "targets" | "q1_kpis";
 }
 
 // ── Normalization function for robust string comparison ──────────────────────
@@ -51,14 +57,25 @@ function parseRawData(rawData: any[]): GridRow[] {
         category: item.category || "Other",
         deliverable_type: item.deliverable_type || "Functional",
         unit: item.unit,
+        value_type: item.value_type || null,
         aggregation_type: item.aggregation_type || "SUM",
         q1_target: Number(item.q1_target ?? 0),
         q2_target: Number(item.q2_target ?? 0),
         q3_target: Number(item.q3_target ?? 0),
         q4_target: Number(item.q4_target ?? 0),
         annual_target: Number(item.annual_target ?? 0),
+        q1_actual: 0,
+        q2_actual: 0,
+        q3_actual: 0,
+        q4_actual: 0,
       });
     }
+
+    const entry = groupedMap.get(key)!;
+    if (item.label === "Q1") entry.q1_actual = (entry.q1_actual || 0) + Number(item.value ?? 0);
+    if (item.label === "Q2") entry.q2_actual = (entry.q2_actual || 0) + Number(item.value ?? 0);
+    if (item.label === "Q3") entry.q3_actual = (entry.q3_actual || 0) + Number(item.value ?? 0);
+    if (item.label === "Q4") entry.q4_actual = (entry.q4_actual || 0) + Number(item.value ?? 0);
   });
 
   return Array.from(groupedMap.values()).map((row) => {
@@ -173,6 +190,50 @@ function isPercentageIndicator(indicatorName: string): boolean {
   return name.includes("%") || name.includes("percentage");
 }
 
+// ── Helper to check if a row represents a percentage ────────────────────────
+function isPercentageRow(row: GridRow): boolean {
+  const name = row.indicator.toLowerCase();
+  const unit = row.unit ? row.unit.toLowerCase() : "";
+  const vt = row.value_type ? row.value_type.toLowerCase() : "";
+  return name.includes("%") || name.includes("percentage") || unit === "%" || vt === "percentage";
+}
+
+// ── Helper to format cells with/without decimals based on the numeric value ──
+function applyNumberFormatting(
+  cell: ExcelJS.Cell,
+  scaledVal: number,
+  factor: number,
+  isPercent: boolean
+): void {
+  const originalVal = scaledVal * factor;
+  const isWholeNumber = Math.abs(originalVal - Math.round(originalVal)) < 0.0001;
+  let currentFmt = cell.numFmt && typeof cell.numFmt === "string" ? cell.numFmt : "";
+
+  if (!currentFmt) {
+    currentFmt = isPercent ? "#,##0.00%" : "#,##0.00";
+  }
+
+  if (isWholeNumber) {
+    // Whole number: strip decimals from the formatting if present
+    cell.numFmt = currentFmt.replace(/\.0+/g, "");
+  } else {
+    // Has decimal: ensure it has decimal formatting
+    if (!currentFmt.includes(".")) {
+      if (isPercent) {
+        cell.numFmt = currentFmt.includes("0%") 
+          ? currentFmt.replace("0%", "0.00%") 
+          : "#,##0.00%";
+      } else {
+        cell.numFmt = currentFmt.includes("0") 
+          ? currentFmt.replace(/0(?![^0]*0)/, "0.00") // Replace last zero with 0.00
+          : "#,##0.00";
+      }
+    } else {
+      cell.numFmt = currentFmt;
+    }
+  }
+}
+
 // ── Helper to check if row is part of Technology Acquisition & Upgrading ───
 function shouldKeepBlankForZero(categoryName: string): boolean {
   return cleanString(categoryName) === cleanString("Technology Acquisition & Upgrading");
@@ -183,7 +244,7 @@ export async function exportToExcel(
   rawData: any[],
   options: ExportOptions
 ): Promise<void> {
-  const { year, preparedByName, preparedByTitle } = options;
+  const { year, preparedByName, preparedByTitle, sheetOption = "all" } = options;
 
   // 1. Fetch the Excel template file
   const templateUrl = "/DOST_Performance_Template.xlsx";
@@ -293,7 +354,7 @@ export async function exportToExcel(
       const matchKey = `${matchedRow.indicator}||${matchedRow.program || "N/A"}`;
       matchedDbRows.add(matchKey);
 
-      const isPercentIndicator = isPercentageIndicator(matchedRow.indicator);
+      const isPercentRowVal = isPercentageRow(matchedRow);
       const keepBlank = shouldKeepBlankForZero(matchedRow.category);
 
       const cells = [
@@ -316,7 +377,7 @@ export async function exportToExcel(
         const val = vals[idx];
         
         // A cell is a percentage if the indicator name implies it, OR if the template cell itself is pre-formatted with '%'
-        const isPercent = isPercentIndicator || (cell.numFmt && String(cell.numFmt).includes("%"));
+        const isPercent = isPercentRowVal || (cell.numFmt && String(cell.numFmt).includes("%"));
         const factor = isPercent ? 100 : 1;
         const scaledVal = val / factor;
 
@@ -324,25 +385,7 @@ export async function exportToExcel(
           cell.value = null; // Keep blank for Projects Approved & Amount Funded
         } else {
           cell.value = scaledVal;
-
-          // For Technology Acquisition & Upgrading, conditionally format decimals/whole numbers
-          if (keepBlank) {
-            if (scaledVal % 1 === 0) {
-              // Whole number: strip decimals from the formatting if present
-              if (cell.numFmt && typeof cell.numFmt === "string") {
-                cell.numFmt = cell.numFmt.replace(/\.00/g, "");
-              }
-            } else {
-              // Has decimal: ensure it has decimal formatting
-              if (cell.numFmt && typeof cell.numFmt === "string") {
-                if (!cell.numFmt.includes(".")) {
-                  cell.numFmt = cell.numFmt.replace(/0/g, "0.00");
-                }
-              } else if (!cell.numFmt) {
-                cell.numFmt = isPercent ? "#,##0.00%" : "#,##0.00";
-              }
-            }
-          }
+          applyNumberFormatting(cell, scaledVal, factor, isPercent);
         }
 
         // Force font style to be non-italic (normal)
@@ -355,6 +398,138 @@ export async function exportToExcel(
           cell.font = { italic: false };
         }
       });
+    }
+  }
+
+  // 4b. Fill in PSTO-DO 1stQ KPIs worksheet if it exists
+  const q1Sheet = workbook.getWorksheet("PSTO-DO 1stQ KPIs");
+  if (q1Sheet) {
+    for (let i = 1; i <= q1Sheet.rowCount; i++) {
+      const row = q1Sheet.getRow(i);
+      const colAVal = row.getCell(1).value;
+      const colAStr = colAVal ? String(colAVal).trim() : "";
+
+      // Read the Tag from Column J (Cell 10)
+      const tagVal = row.getCell(10).value;
+      const tagStr = tagVal ? String(tagVal).trim() : "";
+
+      let matchedRow: GridRow | undefined = undefined;
+
+      if (tagStr) {
+        const lowerTag = tagStr.toLowerCase();
+        if (lowerTag === "skip" || lowerTag === "ignore" || lowerTag === "blank") {
+          row.getCell(10).value = null;
+          continue;
+        }
+
+        const tagClean = cleanString(tagStr);
+        matchedRow = dbRows.find((dbRow) => {
+          const dbKeyClean = cleanString(dbRow.indicator + (dbRow.program || ""));
+          return tagClean === dbKeyClean;
+        });
+        
+        row.getCell(10).value = null; // Clear tag
+      }
+
+      if (!matchedRow && colAStr) {
+        if (/^[IVX]+\.\s+/i.test(colAStr) || colAStr.toUpperCase().includes("DELIVERABLES")) {
+          continue;
+        }
+
+        const isCategoryHeader =
+          row.getCell(2).value === null &&
+          row.getCell(3).value === null &&
+          row.getCell(7).value === null;
+
+        const categoriesList = [
+          "Technology Acquisition & Upgrading",
+          "Innovation Fund",
+          "Technology Trainings & Techno Fora",
+          "Technical Consultancy Services",
+          "Packaging and Labeling Design",
+          "S&T Information and Referral",
+          "Strategic Deliverables",
+          "Non-Paying Laboratory Services",
+          "S&T Promotion",
+          "S&T Scholarship",
+          "DATBED",
+          "Networks/Linkages",
+          "Functional Deliverables",
+          "Support to Operations"
+        ].map(cat => cleanString(cat));
+
+        if (
+          isCategoryHeader &&
+          categoriesList.includes(cleanString(colAStr))
+        ) {
+          continue;
+        }
+
+        const parentIndicator = getParentIndicator(q1Sheet, i);
+        matchedRow = dbRows.find((dbRow) =>
+          isMatch(dbRow, colAStr, parentIndicator)
+        );
+      }
+
+      if (matchedRow) {
+        const isPercent = isPercentageRow(matchedRow) || 
+                          (row.getCell(2).numFmt && String(row.getCell(2).numFmt).includes("%"));
+        const factor = isPercent ? 100 : 1;
+
+        // Column B: 1st Q Targets
+        const q1TargetVal = matchedRow.q1_target / factor;
+        row.getCell(2).value = q1TargetVal;
+        applyNumberFormatting(row.getCell(2), q1TargetVal, factor, isPercent);
+
+        // Column C: 1st Q Accomplishments
+        const q1ActualVal = (matchedRow.q1_actual ?? 0) / factor;
+        row.getCell(3).value = q1ActualVal;
+        applyNumberFormatting(row.getCell(3), q1ActualVal, factor, isPercent);
+
+        // Column G: Annual Target
+        const annualTargetVal = matchedRow.annual_target / factor;
+        row.getCell(7).value = annualTargetVal;
+        applyNumberFormatting(row.getCell(7), annualTargetVal, factor, isPercent);
+
+        // Force normal font style
+        [row.getCell(2), row.getCell(3), row.getCell(7)].forEach((cell) => {
+          if (cell.font) {
+            cell.font = {
+              ...cell.font,
+              italic: false
+            };
+          } else {
+            cell.font = { italic: false };
+          }
+        });
+      }
+    }
+
+    // Update signature block for q1Sheet dynamically
+    const q1NameCell = q1Sheet.getCell(121, 1);
+    q1NameCell.value = preparedByName.toUpperCase();
+    q1NameCell.font = {
+      ...(q1NameCell.font || {}),
+      bold: true,
+      italic: false
+    };
+    q1NameCell.alignment = {
+      horizontal: "left",
+      vertical: "middle"
+    };
+
+    if (preparedByTitle) {
+      const q1TitleCell = q1Sheet.getCell(122, 1);
+      q1TitleCell.value = preparedByTitle;
+      q1TitleCell.font = {
+        ...(q1TitleCell.font || {}),
+        bold: false,
+        italic: false
+      };
+      q1TitleCell.alignment = {
+        horizontal: "left",
+        vertical: "middle"
+      };
     }
   }
 
@@ -399,11 +574,28 @@ export async function exportToExcel(
     console.warn("Unmatched database indicators (not found in Excel template):", unmatched);
   }
 
+  // Remove unwanted worksheets based on selection
+  if (sheetOption === "targets") {
+    const q1SheetToDelete = workbook.getWorksheet("PSTO-DO 1stQ KPIs");
+    if (q1SheetToDelete) {
+      workbook.removeWorksheet(q1SheetToDelete.id);
+    }
+  } else if (sheetOption === "q1_kpis") {
+    const wsToDelete = workbook.worksheets[0];
+    if (wsToDelete) {
+      workbook.removeWorksheet(wsToDelete.id);
+    }
+  }
+
   // 6. Generate workbook and save to user
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   });
   
-  saveAs(blob, `DOST_CY${year}_Performance_Targets.xlsx`);
+  const filename = sheetOption === "q1_kpis" 
+    ? `DOST_CY${year}_Q1_KPIs.xlsx` 
+    : `DOST_CY${year}_Performance_Targets.xlsx`;
+
+  saveAs(blob, filename);
 }
