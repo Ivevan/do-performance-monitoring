@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { validateEmail } from "@/lib/auth-config";
+import { toast } from "sonner";
 
 interface AuthContextType {
   user: User | null;
@@ -107,6 +108,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     handleSession();
+  }, [session]);
+
+  // 3. Idle Timeout / Auto-Logout for Inactivity
+  useEffect(() => {
+    if (!session) return;
+
+    // Timeout duration: 15 minutes (15 * 60 * 1000 ms)
+    const TIMEOUT_MS = 15 * 60 * 1000;
+    let timeoutId: any;
+    let lastActiveTime = Date.now();
+
+    const handleLogout = async () => {
+      console.log("[AuthContext] User inactive. Logging out automatically...");
+      toast.info("You have been logged out due to inactivity.", {
+        duration: 10000,
+        id: "inactivity-logout-toast"
+      });
+      await signOut();
+    };
+
+    const resetTimer = () => {
+      const currentTime = Date.now();
+      // Throttle event checks to every 2 seconds to optimize browser thread CPU usage
+      if (currentTime - lastActiveTime < 2000) {
+        return;
+      }
+      lastActiveTime = currentTime;
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(handleLogout, TIMEOUT_MS);
+    };
+
+    // Initial timeout set
+    timeoutId = setTimeout(handleLogout, TIMEOUT_MS);
+
+    const activityEvents = [
+      "mousedown",
+      "mousemove",
+      "keydown",
+      "scroll",
+      "touchstart",
+      "click"
+    ];
+
+    activityEvents.forEach((event) => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      activityEvents.forEach((event) => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
   }, [session]);
 
   const signInWithGoogle = async () => {
