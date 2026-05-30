@@ -811,6 +811,8 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
         <div className="relative w-full md:w-72 shrink-0 md:ml-auto flex items-center">
           <Search className="absolute left-3 h-4 w-4 text-muted-foreground/60 pointer-events-none" />
           <input
+            id="indicatorSearchInput"
+            name="indicatorSearch"
             type="text"
             placeholder="Search indicators or categories..."
             value={searchQuery}
