@@ -67,22 +67,18 @@ export async function requireAuth(
       });
     }
 
-    // Use request-scoped client to query user_roles table
-    const userClient = getRequestScopedSupabase(req);
     const normalizedEmail = email.trim().toLowerCase();
-    const { data: roleData, error: roleError } = await userClient
-      .from("user_roles")
-      .select("role")
-      .eq("email", normalizedEmail)
-      .single();
+    let role = "Staff"; // Default fallback role (Viewer)
 
-    let role = "Staff"; // Default fallback role
-    if (roleError && roleError.code !== "PGRST116") {
-      console.error("Error querying user roles table:", roleError);
-    } else if (roleData) {
-      role = roleData.role;
-    } else {
-      console.log(`[Auth Middleware] User ${normalizedEmail} not found in user_roles. Defaulting to Staff. Auto-registration handled by DB trigger.`);
+    // Automatic Role Assignment Rules:
+    // - Government emails (ending with @region11.dost.gov.ph or containing dost.gov.ph / .gov.ph) are automatically Editors
+    // - Other emails (like .dostxi@gmail.com or @gmail.com) are automatically Staff (Viewers)
+    if (
+      normalizedEmail.endsWith("@region11.dost.gov.ph") || 
+      normalizedEmail.endsWith(".gov.ph") || 
+      normalizedEmail.includes("dost.gov.ph")
+    ) {
+      role = "Editor";
     }
 
     // Attach authenticated user information and their role to the request

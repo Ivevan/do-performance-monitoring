@@ -27,21 +27,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserRole = async (email: string): Promise<"PD" | "Editor" | "Staff"> => {
     console.log("[AuthContext] fetchUserRole started for:", email);
     const normalizedEmail = email.trim().toLowerCase();
-    try {
-      const { data, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("email", normalizedEmail)
-        .single();
-      
-      console.log("[AuthContext] fetchUserRole query result for", normalizedEmail, ":", data, "error:", roleError);
-      if (data) {
-        return data.role as "PD" | "Editor" | "Staff";
-      }
-    } catch (err) {
-      console.error("[AuthContext] Error fetching user role:", err);
+    
+    // Automatic Role Assignment Rules:
+    // - Government emails (ending with @region11.dost.gov.ph or containing dost.gov.ph / .gov.ph) are automatically Editors
+    // - Other emails (like .dostxi@gmail.com or @gmail.com) are automatically Staff (Viewers)
+    if (
+      normalizedEmail.endsWith("@region11.dost.gov.ph") || 
+      normalizedEmail.endsWith(".gov.ph") || 
+      normalizedEmail.includes("dost.gov.ph")
+    ) {
+      return "Editor";
     }
-    return "Staff"; // fallback default
+    return "Staff"; // Default fallback (Viewer)
   };
 
   // 1. Listen for auth state changes. This callback is completely synchronous
