@@ -74,7 +74,28 @@ The frontend relies on a custom PostgreSQL view named `v_indicator_data`. This v
 
 ---
 
-## 5. Ongoing Guidelines for Future Modifications
+## 5. Database Backup Strategy
+To ensure maximum resilience and disaster recovery capabilities, the performance monitoring system relies on a dual-layer backup strategy:
+
+### A. Native Supabase Backups
+* **Daily Backups**: Automated daily logical backups are run natively by Supabase and kept for up to 7 days (Pro) or 14 days (Team) in **Settings > Database > Backups**.
+* **Point-in-Time Recovery (PITR)**: Active as an add-on, storing Write-Ahead Logs (WAL) at 2-minute intervals to allow recovering the database state to the exact second of any emergency.
+
+### B. Automated GitHub Actions Backup (`.github/workflows/database-backup.yml`)
+* **Frequency**: Triggered automatically every day at 00:00 UTC (08:00 PHT) and supports manual triggering via `workflow_dispatch`.
+* **Output**: Dumps the schema and tables, compresses it to a `.sql.gz` file, saves it as a 7-day build artifact, and archives it as a private repository Release.
+* **Required Secret**: Set the GitHub Repository Secret `SUPABASE_DB_URL` with your Postgres connection string:
+  `postgresql://postgres:[PASSWORD]@db.zbdpoyycrfipnxfuzisv.supabase.co:5432/postgres`
+
+### C. Manual Logical Backups
+* **CLI Method**: Download a local logical copy directly from your terminal using:
+  ```bash
+  pg_dump "postgresql://postgres:[PASSWORD]@db.zbdpoyycrfipnxfuzisv.supabase.co:5432/postgres" --no-owner --no-privileges -F c -f dost_backup_manual.sql
+  ```
+
+---
+
+## 6. Ongoing Guidelines for Future Modifications
 1. **Search Input Fields**: Ensure all search bars include unique `id` and `name` attributes to pass accessibility standards and autofill criteria.
 2. **Template Alterations**: If indicators are added/updated, corresponding rows with correct tags **must** be updated in the physical `/public/DOST_Performance_Template.xlsx` template to appear on exports.
 3. **Responsive Forms**: Use the responsive 2-column grid layout pattern (e.g., `grid-cols-1 lg:grid-cols-3 gap-6`) for page-level settings to maximize screen space utilization on desktop screens while remaining responsive on mobile.

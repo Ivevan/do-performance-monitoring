@@ -1,0 +1,74 @@
+name: Daily Database Backup
+
+on:
+  schedule:
+    # Runs at 00:00 UTC (08:00 PHT) every day
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+env:
+  BACKUP_DATE: ""
+  BACKUP_PATH: ""
+
+jobs:
+  backup:
+    name: Run PostgreSQL Dump & Backup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL Client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Execute pg_dump
+        env:
+          # Connection string format: postgresql://postgres:[password]@db.zbdpoyycrfipnxfuzisv.supabase.co:5432/postgres
+          PG_CONN_STR: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$PG_CONN_STR" ]; then
+            echo "Error: SUPABASE_DB_URL secret is not set in this repository."
+            exit 1
+          fi
+          
+          # Generate backup filename with timestamp
+          BACKUP_DATE=$(date +'%Y-%m-%d_%H%M%S')
+          BACKUP_FILE="supabase_backup_${BACKUP_DATE}.sql"
+          
+          echo "Starting database dump..."
+          # Dump the database structure & content (excluding role privileges which can fail restore)
+          pg_dump "$PG_CONN_STR" \
+            --no-owner \
+            --no-privileges \
+            --clean \
+            --if-exists \
+            -F c \
+            -f "$BACKUP_FILE"
+          
+          echo "Database dump complete: $BACKUP_FILE"
+          # Compress the file for storage
+          gzip "$BACKUP_FILE"
+          echo "BACKUP_PATH=${BACKUP_FILE}.gz" >> $GITHUB_ENV
+          echo "BACKUP_DATE=${BACKUP_DATE}" >> $GITHUB_ENV
+
+      - name: Upload Backup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-backup-${{ env.BACKUP_DATE }}
+          path: ${{ env.BACKUP_PATH }}
+          retention-days: 7 # Keep backups for 7 days in artifacts
+
+      - name: Create Release (Optional / Archive)
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: backup-${{ env.BACKUP_DATE }}
+          name: Database Backup ${{ env.BACKUP_DATE }}
+          draft: false
+          prerelease: false
+          files: ${{ env.BACKUP_PATH }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
