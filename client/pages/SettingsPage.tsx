@@ -16,7 +16,7 @@ const SettingsPage = () => {
         transition={{ duration: 0.4 }}
         className="space-y-6"
       >
-        <div className="max-w-6xl">
+        <div className="w-full">
           <AccountSettings />
         </div>
       </motion.div>

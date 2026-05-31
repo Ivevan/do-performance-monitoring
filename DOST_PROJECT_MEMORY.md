@@ -51,9 +51,11 @@ The frontend relies on a custom PostgreSQL view named `v_indicator_data`. This v
 
 ### B. Security & Inactivity Safeguards (`client/features/auth/context/AuthContext.tsx`)
 * **Role-Based Access (RBAC)**: Supports roles: `PD` (Provincial Director), `Editor`, and `Staff` (Read-only) authorized via domain-filtered Google OAuth.
-* **Inactivity Auto-Logout**: Monitors standard user events (`mousemove`, `click`, `keydown`, `scroll`, `touchstart`) and signs the user out automatically after **15 minutes** of inactivity, displaying a warning toast.
-* **Event Throttling**: The mouse/activity event listeners are throttled to run at most once every 2 seconds to optimize CPU usage.
+* **Persistent Inactivity Auto-Logout**: Monitors standard user events (`mousemove`, `click`, `keydown`, `scroll`, `touchstart`) and signs the user out automatically after **15 minutes** of inactivity, displaying a warning toast. The last-active timestamp is persisted via `localStorage` so that inactivity triggers correctly even if the user reloads the page, closes the tab, or restarts the browser.
+* **Event Throttling**: The mouse/activity event listeners are throttled to run at most once every 2 seconds to optimize CPU usage and reduce local storage write frequency.
 * **Tab-Focus Cache Protection**: Uses a `hasFetched` flag in `AccountSettings.tsx` to stop the profile loading state from flashing when users Alt+Tab or switch browser tabs.
+* **Tab Naming Standards**: All browser document titles (tab names) are standardized with the layout name and the short office suffix (e.g., `Dashboard CY 2026 | DOST-PSTO-DO`).
+* **Premium Settings UI/UX**: The `AccountSettings.tsx` view is refactored with high-end glassmorphism, a profile hero gradient banner with overlapping avatar, dynamic credential badges styled by access role (gold for PD, emerald for Editor, muted gray for Staff), and modern micro-interaction hover glows.
 
 ### C. Buffered Audit & Save Flow (`client/features/dashboard/components/DataEntryGrid.tsx`)
 * **Local Buffering**: Edits are stored in React state as users write. No typing lag or redundant network fetches occur.
