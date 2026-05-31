@@ -15,11 +15,15 @@ The performance is divided into 4 main pillars (MFOs):
 
 **The Golden Rule:** The dashboard must calculate and compare **Actual Accomplishments** against **Targets** (both Annual and Quarterly) accurately.
 
+---
+
 ## 2. Tech Stack
 * **Frontend**: React (Vite, TypeScript), TailwindCSS, `shadcn/ui`, Framer Motion, Recharts.
 * **Backend**: Node.js (Express, TypeScript) running on `http://localhost:8000`. Acts as an API gateway.
-* **Database**: PostgreSQL hosted on **Supabase**.
-* **Future Data Pipeline**: Python (Pandas, openpyxl, supabase-py).
+* **Database**: PostgreSQL hosted on **Supabase** via direct client SDK and backend integrations.
+* **Data Integration**: Standardized Excel upload templates matching the dashboard indicators.
+
+---
 
 ## 3. Database Architecture
 The database is fully normalized. The most critical aspect is how the data is joined for the frontend.
@@ -32,25 +36,39 @@ The database is fully normalized. The most critical aspect is how the data is jo
 * `LATEST`: For snapshot metrics (e.g., "% SETUP refund rate", "5S Audit Score"). The system must use the most recent quarter's value and compare it directly to the target.
 
 **The Crucial SQL View:**
-The frontend relies entirely on a custom PostgreSQL view named `v_indicator_data`. This view `LEFT JOIN`s the `accomplishments` table with the `targets` table so the API payload contains both the `value` (actual) and the `annual_target`. 
+The frontend relies on a custom PostgreSQL view named `v_indicator_data`. This view `LEFT JOIN`s the `accomplishments` table with the `targets` table so the API payload contains both the `value` (actual) and the `annual_target`. 
 
-## 4. Current Frontend UI State
-We recently overhauled the UX/UI of the `Dashboard.tsx` Overview tab:
-1. **The "Big 4" KPI Cards**: Displays "Total Funding", "Projects Approved", "Employment Generated", and "SETUP Refund Rate". Features animated radial progress rings calculating `(actual / target) * 100`.
-2. **Quarterly Pace Chart**: A `ComposedChart` (Bar + Line) that plots actual accomplishments as bars and the quarterly targets as a dashed line.
-3. **Annual Progress Bars**: Horizontal bars that display the raw numbers `Actual / Target` alongside the percentage.
+---
 
-## 5. The "Phase 2" Plan (Pending Execution)
-**The Problem:** The targets currently hardcoded in `seed_cy2026.sql` were initial baselines. We discovered that when the PSTO submits their quarterly Excel report (e.g., `PTSO-DO 1stQ KPIs.xlsx`), they often include *recalibrated, updated Annual Targets*.
+## 4. Key Workflows & Features
 
-**The Solution:** We are building a Python/Pandas Data Pipeline.
-Instead of treating database targets as static, the upcoming Python script will:
-1. Ingest the actual PSTO Excel `.xlsx` file.
-2. Read both the "1st Q Accomplishments" **AND** the "Annual Target" columns.
-3. Connect directly to Supabase.
-4. Execute an `UPSERT` to push the new accomplishments AND overwrite the database targets with the newly recalibrated targets from the Excel sheet.
+### A. Excel Report Export Utility (`client/features/dashboard/utils/exportToExcel.ts`)
+* **Template-Bound**: Dynamically populates data into `/public/DOST_Performance_Template.xlsx`.
+* **Export Filters**: Users can choose to export "All", "Targets only", or "KPIs only" via `ExportDialog.tsx`. Unselected sheets are programmatically deleted from the Excel workbook structure before downloading.
+* **Conditional Formatting**: Conditionally displays decimal values (e.g., `88.50` retains decimals, while whole numbers like `1200.00` are formatted as `1200` to look clean).
+* **Signatures Block**: Automatically prints the prepared name and position of the Provincial Director/Approver in rows 121 and 122 of both sheets.
+* **Fuzzy Tag Matching**: Matches indicators from the database to cells in the Excel template using tag strings (Column J on KPIs sheet, Column G on Targets sheet).
 
-This ensures the React dashboard is always a 100% accurate reflection of the PSTO's latest Excel files.
+### B. Security & Inactivity Safeguards (`client/features/auth/context/AuthContext.tsx`)
+* **Role-Based Access (RBAC)**: Supports roles: `PD` (Provincial Director), `Editor`, and `Staff` (Read-only) authorized via domain-filtered Google OAuth.
+* **Inactivity Auto-Logout**: Monitors standard user events (`mousemove`, `click`, `keydown`, `scroll`, `touchstart`) and signs the user out automatically after **15 minutes** of inactivity, displaying a warning toast.
+* **Event Throttling**: The mouse/activity event listeners are throttled to run at most once every 2 seconds to optimize CPU usage.
+* **Tab-Focus Cache Protection**: Uses a `hasFetched` flag in `AccountSettings.tsx` to stop the profile loading state from flashing when users Alt+Tab or switch browser tabs.
+
+### C. Buffered Audit & Save Flow (`client/features/dashboard/components/DataEntryGrid.tsx`)
+* **Local Buffering**: Edits are stored in React state as users write. No typing lag or redundant network fetches occur.
+* **Audit Modal**: Before saving to the backend, the user is shown a side-by-side comparison modal displaying:
+  * Modified Indicator name & Category
+  * Old Value vs. New Value
+  * Corresponding Target Value (as reference helper)
+* **Unsaved Changes Shield**: Prompts the user with a browser confirmation window before leaving the page if there are uncommitted edits.
+
+---
+
+## 5. Ongoing Guidelines for Future Modifications
+1. **Search Input Fields**: Ensure all search bars include unique `id` and `name` attributes to pass accessibility standards and autofill criteria.
+2. **Template Alterations**: If indicators are added/updated, corresponding rows with correct tags **must** be updated in the physical `/public/DOST_Performance_Template.xlsx` template to appear on exports.
+3. **Responsive Forms**: Use the responsive 2-column grid layout pattern (e.g., `grid-cols-1 lg:grid-cols-3 gap-6`) for page-level settings to maximize screen space utilization on desktop screens while remaining responsive on mobile.
 
 ---
 *End of Memory File.*

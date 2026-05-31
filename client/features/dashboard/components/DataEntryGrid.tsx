@@ -663,6 +663,8 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                       >
                         {isEditable ? (
                           <input
+                            id={`input-${row.id}-indicator`}
+                            name={`input-${row.id}-indicator`}
                             type="text"
                             className="w-full h-8 px-2 text-left bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-medium text-foreground text-xs disabled:opacity-85"
                             value={row.indicator}
@@ -680,6 +682,8 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                       <td className="p-1 text-center border border-black dark:border-zinc-600">
                         {isEditable ? (
                           <input
+                            id={`input-${row.id}-program`}
+                            name={`input-${row.id}-program`}
                             type="text"
                             className="w-full h-8 px-2 text-center bg-transparent focus:bg-background border-0 focus:ring-1 focus:ring-primary focus:outline-none rounded transition-colors font-bold text-muted-foreground text-xs disabled:opacity-85"
                             value={row.program || ""}
@@ -702,6 +706,8 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                               <td className="p-0 border border-black dark:border-zinc-600 bg-dost-blue/5 hover:bg-dost-blue/10">
                                 <input
                                   ref={(el) => (inputRefs.current[`${row.id}-${targetField}`] = el)}
+                                  id={`input-${row.id}-${targetField}`}
+                                  name={`input-${row.id}-${targetField}`}
                                   type="number"
                                   className={getInputClass(row[targetField])}
                                   value={row[targetField] || ""}
@@ -720,6 +726,8 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
                               <td className="p-0 border border-black dark:border-zinc-600 bg-dost-red/5 hover:bg-dost-red/10">
                                 <input
                                   ref={(el) => (inputRefs.current[`${row.id}-${actualField}`] = el)}
+                                  id={`input-${row.id}-${actualField}`}
+                                  name={`input-${row.id}-${actualField}`}
                                   type="number"
                                   className={getInputClass(row[actualField])}
                                   value={row[actualField] || ""}
