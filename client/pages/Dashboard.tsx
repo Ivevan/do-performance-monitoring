@@ -43,6 +43,10 @@ const Dashboard = () => {
   const { role } = useAuth();
   const isEditor = role === "Editor";
 
+  useEffect(() => {
+    document.title = `Dashboard CY ${selectedYear} | DOST-PSTO-DO`;
+  }, [selectedYear]);
+
   // ── Core data ──────────────────────────────────────────────────────────────
   const { data, isLoading } = useDashboardData({ year: selectedYear });
 

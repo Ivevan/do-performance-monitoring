@@ -54,6 +54,10 @@ export default function Workspaces() {
   const { role } = useAuth();
   const isEditor = role === "Editor";
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    document.title = "Workspaces | DOST-PSTO-DO";
+  }, []);
   
   // State variables
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);

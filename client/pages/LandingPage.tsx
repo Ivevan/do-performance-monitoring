@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { BrandingPanel } from "@/components/auth/BrandingPanel";
@@ -5,6 +6,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 
 const LandingPage = () => {
+  useEffect(() => {
+    document.title = "Welcome | DOST-PSTO-DO";
+  }, []);
+
   return (
     <div className="flex flex-col h-[100svh] overflow-hidden bg-background">
       <header aria-hidden="true" className="h-0 shrink-0" />

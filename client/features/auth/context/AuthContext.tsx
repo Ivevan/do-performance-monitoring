@@ -110,17 +110,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     handleSession();
   }, [session]);
 
-  // 3. Idle Timeout / Auto-Logout for Inactivity
+  // 3. Idle Timeout / Auto-Logout for Inactivity (Persists across page loads/closes via localStorage)
   useEffect(() => {
     if (!session) return;
 
     // Timeout duration: 15 minutes (15 * 60 * 1000 ms)
     const TIMEOUT_MS = 15 * 60 * 1000;
     let timeoutId: any;
-    let lastActiveTime = Date.now();
 
     const handleLogout = async () => {
       console.log("[AuthContext] User inactive. Logging out automatically...");
+      localStorage.removeItem("lastActiveTime");
       toast.info("You have been logged out due to inactivity.", {
         duration: 10000,
         id: "inactivity-logout-toast"
@@ -128,19 +128,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signOut();
     };
 
+    // Check if the user was already inactive before this session initialized (e.g. on page reload or reopening tab)
+    const storedLastActive = localStorage.getItem("lastActiveTime");
+    const currentTime = Date.now();
+    
+    if (storedLastActive) {
+      const parsedTime = Number(storedLastActive);
+      if (!isNaN(parsedTime)) {
+        const elapsed = currentTime - parsedTime;
+        if (elapsed >= TIMEOUT_MS) {
+          // User was inactive for too long, log out immediately
+          handleLogout();
+          return;
+        }
+      }
+    }
+
+    // Set or refresh initial active timestamp
+    localStorage.setItem("lastActiveTime", currentTime.toString());
+
     const resetTimer = () => {
-      const currentTime = Date.now();
-      // Throttle event checks to every 2 seconds to optimize browser thread CPU usage
-      if (currentTime - lastActiveTime < 2000) {
+      const now = Date.now();
+      const lastActive = Number(localStorage.getItem("lastActiveTime") || "0");
+      
+      // Throttle event checks to every 2 seconds to optimize browser thread CPU usage and localStorage writes
+      if (now - lastActive < 2000) {
         return;
       }
-      lastActiveTime = currentTime;
+      
+      localStorage.setItem("lastActiveTime", now.toString());
       if (timeoutId) clearTimeout(timeoutId);
       timeoutId = setTimeout(handleLogout, TIMEOUT_MS);
     };
 
-    // Initial timeout set
-    timeoutId = setTimeout(handleLogout, TIMEOUT_MS);
+    // Set initial timeout based on remaining time if any, or full TIMEOUT_MS
+    const initialElapsed = storedLastActive ? (currentTime - Number(storedLastActive)) : 0;
+    const remainingTime = Math.max(0, TIMEOUT_MS - (isNaN(initialElapsed) ? 0 : initialElapsed));
+    timeoutId = setTimeout(handleLogout, remainingTime);
 
     const activityEvents = [
       "mousedown",
@@ -192,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       setLoading(true);
       setError(null);
+      localStorage.removeItem("lastActiveTime");
       await supabase.auth.signOut();
     } catch (err: any) {
       console.error("[AuthContext] Log out failed:", err);

@@ -76,6 +76,11 @@ const maskEmail = (email: string) => {
 
 export default function ManageRoles() {
   const { user: currentUser, role: currentUserRole } = useAuth();
+
+  useEffect(() => {
+    document.title = "Manage Roles | DOST-PSTO-DO";
+  }, []);
+
   const [users, setUsers] = useState<UserRoleRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");

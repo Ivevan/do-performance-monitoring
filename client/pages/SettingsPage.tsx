@@ -1,8 +1,13 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layouts/DashboardLayout";
 import { AccountSettings } from "@/features/settings/components/AccountSettings";
 
 const SettingsPage = () => {
+  useEffect(() => {
+    document.title = "Settings | DOST-PSTO-DO";
+  }, []);
+
   return (
     <DashboardLayout title="Settings">
       <motion.div
