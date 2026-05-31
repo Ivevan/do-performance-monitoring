@@ -38,6 +38,13 @@ The database is fully normalized. The most critical aspect is how the data is jo
 **The Crucial SQL View:**
 The frontend relies on a custom PostgreSQL view named `v_indicator_data`. This view `LEFT JOIN`s the `accomplishments` table with the `targets` table so the API payload contains both the `value` (actual) and the `annual_target`. 
 
+**Performance & Security Hardening (Optimized):**
+* **Foreign Key Indexes**: Covering indexes (`idx_categories_section_id`, `idx_indicators_category_id`, `idx_targets_indicator_id`, `idx_accomplishments_indicator_id`) are implemented to accelerate multi-table JOINs and view scans.
+* **RLS Caching**: Security context calls are wrapped in subqueries, e.g. `((SELECT auth.jwt()) ->> 'email')`, enabling Postgres to evaluate user claims once per query instead of row-by-row, eliminating RLS query bottlenecks.
+* **Write Privileges Hardening**: Insecure public write/delete policies have been discarded. Direct client-side writes are blocked, routing all grid updates strictly through the Node.js API gateway using the service role key.
+* **Security Invoker View**: Re-created the `v_indicator_data` view with `WITH (security_invoker = true)` to enforce row-level security constraints correctly at query time.
+* **Function Isolation**: Trigger functions are set to `search_path = public, pg_temp` and public execution grants are revoked to prevent search path hijacking.
+
 ---
 
 ## 4. Key Workflows & Features
