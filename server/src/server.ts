@@ -7,6 +7,12 @@ import userRoutes from "./routes/users";
 
 dotenv.config();
 
+// Default to production unless explicitly set, or if running in development (ts-node-dev / ts-node)
+if (!process.env.NODE_ENV) {
+  const isDev = process.env.TS_NODE_DEV || !!(process as any)[Symbol.for("ts-node.register.instance")];
+  process.env.NODE_ENV = isDev ? "development" : "production";
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
