@@ -205,14 +205,12 @@ export function AccountSettings() {
                 {role && (
                   <div className="sm:pt-10">
                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide border shadow-sm ${
-                      role === "PD"
-                        ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
-                        : role === "Editor"
+                      role === "Editor"
                         ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
                         : "bg-zinc-500/10 border-zinc-500/20 text-zinc-500"
                     }`}>
                       <ShieldCheck className="h-3.5 w-3.5" />
-                      {role === "PD" ? "Provincial Director" : role === "Editor" ? "Data Editor" : "Staff Viewer"}
+                      {role === "Editor" ? "Data Editor" : "Staff Viewer"}
                     </span>
                   </div>
                 )}
@@ -247,34 +245,28 @@ export function AccountSettings() {
                 <div className="space-y-2">
                   <Label className="text-xs font-bold text-muted-foreground">Access Authorization Level</Label>
                   <div className={`flex items-start sm:items-center gap-3.5 p-4 rounded-xl border transition-all duration-300 ${
-                    role === "PD"
-                      ? "bg-blue-500/5 border-blue-500/20 text-blue-400 hover:bg-blue-500/10 shadow-[0_0_12px_rgba(59,130,246,0.05)]"
-                      : role === "Editor"
+                    role === "Editor"
                       ? "bg-emerald-500/5 border-emerald-500/20 text-emerald-500 hover:bg-emerald-500/10 shadow-[0_0_12px_rgba(16,185,129,0.05)]"
                       : "bg-zinc-500/5 border-zinc-500/20 text-zinc-500 hover:bg-zinc-500/10"
                   }`}>
                     <ShieldCheck className={`h-5 w-5 shrink-0 mt-0.5 sm:mt-0 ${
-                      role === "PD" ? "text-blue-400" : role === "Editor" ? "text-emerald-500" : "text-zinc-400"
+                      role === "Editor" ? "text-emerald-500" : "text-zinc-400"
                     }`} />
                     <div className="flex-1 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-extrabold text-foreground">
-                          {role === "PD" ? "Provincial Director" : role === "Editor" ? "Data Editor" : "Staff Viewer"}
+                          {role === "Editor" ? "Data Editor" : "Staff Viewer"}
                         </span>
                         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          role === "PD"
-                            ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                            : role === "Editor"
+                          role === "Editor"
                             ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : "bg-zinc-500/10 text-zinc-400 border border-zinc-500/20"
                         }`}>
-                          {role === "PD" ? "Full Access" : role === "Editor" ? "Write / Edit Access" : "Read-Only"}
+                          {role === "Staff" ? "Read-Only" : "Write / Edit Access"}
                         </span>
                       </div>
                       <p className="text-[10px] text-muted-foreground leading-relaxed">
-                        {role === "PD"
-                          ? "Full administrative access. Authorized to manage workspace records, configure indicators, oversee team roles, and commit accomplished values."
-                          : role === "Editor"
+                        {role === "Editor"
                           ? "Authorized to update accomplished values, submit quarterly reports, and modify indicators data."
                           : "Read-only access enabled. You can view all charts and dashboards, but cannot commit modifications or update targets."}
                       </p>

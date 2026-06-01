@@ -36,7 +36,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><Workspaces /></ProtectedRoute>} />
-              <Route path="/dashboard/roles" element={<ProtectedRoute allowedRoles={["Editor", "PD"]}><ManageRoles /></ProtectedRoute>} />
+              <Route path="/dashboard/roles" element={<ProtectedRoute allowedRoles={["Editor"]}><ManageRoles /></ProtectedRoute>} />
               <Route path="/dashboard/cy/:year" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

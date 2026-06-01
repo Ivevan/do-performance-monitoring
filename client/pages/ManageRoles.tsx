@@ -23,7 +23,7 @@ import { toast } from "sonner";
 interface UserRoleRecord {
   id: string;
   email: string;
-  role: "PD" | "Editor" | "Staff";
+  role: "Editor" | "Staff";
   created_at: string;
   name?: string | null;
   isSelf?: boolean;
@@ -74,14 +74,6 @@ export default function ManageRoles() {
   });
 
   const getRoleBadge = (role: string) => {
-    if (role === "PD") {
-      return (
-        <Badge className="bg-blue-500/10 text-blue-400 border border-blue-500/25 hover:bg-blue-500/15 gap-1.5 py-0.5 px-2.5">
-          <Shield className="h-3.5 w-3.5 shrink-0 text-blue-400" />
-          <span>Provincial Director</span>
-        </Badge>
-      );
-    }
     if (role === "Editor") {
       return (
         <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 hover:bg-emerald-500/15 gap-1.5 py-0.5 px-2.5">
