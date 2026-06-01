@@ -6,7 +6,14 @@ import workspaceRoutes from "./routes/workspaces";
 import userRoutes from "./routes/users";
 import { logger } from "./utils/logger";
 
-dotenv.config();
+import path from "path";
+import fs from "fs";
+
+// Load .env.local in development if it exists, otherwise fall back to .env
+const envPath = fs.existsSync(path.resolve(process.cwd(), ".env.local"))
+  ? path.resolve(process.cwd(), ".env.local")
+  : path.resolve(process.cwd(), ".env");
+dotenv.config({ path: envPath });
 
 // Default to production unless explicitly set, or if running in development (ts-node-dev / ts-node)
 if (!process.env.NODE_ENV) {
