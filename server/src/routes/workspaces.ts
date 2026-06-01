@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { supabase } from "../config/supabase";
-import { requireAuth, requireRole } from "../middleware/auth";
+import { requireAuth, requireRole, getRequestScopedSupabase } from "../middleware/auth";
 
 const router = Router();
 
@@ -29,7 +28,8 @@ ON CONFLICT (year) DO NOTHING;`;
 // Retrieves all workspace folders
 router.get("/", requireAuth, async (req, res) => {
   try {
-    const { data, error } = await supabase
+    const db = getRequestScopedSupabase(req);
+    const { data, error } = await db
       .from("performance_folders")
       .select("*")
       .order("year", { ascending: false });
@@ -50,7 +50,7 @@ router.get("/", requireAuth, async (req, res) => {
     // Auto-seed CY 2026 if the table is empty
     if (data && data.length === 0) {
       console.log("Auto-seeding empty performance_folders table with CY 2026...");
-      const { data: seedData, error: seedError } = await supabase
+      const { data: seedData, error: seedError } = await db
         .from("performance_folders")
         .insert([{
           name: "CY 2026 PTSO Performance Monitoring",
@@ -83,8 +83,10 @@ router.post("/", requireAuth, requireRole(["Editor"]), async (req, res) => {
       return res.status(400).json({ error: "Name and Year are required fields." });
     }
 
+    const db = getRequestScopedSupabase(req);
+
     // 1. Create the performance folder metadata
-    const { data: folder, error: folderError } = await supabase
+    const { data: folder, error: folderError } = await db
       .from("performance_folders")
       .insert([{ name, year: Number(year), description }])
       .select()
@@ -96,7 +98,7 @@ router.post("/", requireAuth, requireRole(["Editor"]), async (req, res) => {
     }
 
     // 2. Query all existing indicators in the database to bootstrap targets for this year
-    const { data: indicators, error: indError } = await supabase
+    const { data: indicators, error: indError } = await db
       .from("indicators")
       .select("id");
 
@@ -115,7 +117,7 @@ router.post("/", requireAuth, requireRole(["Editor"]), async (req, res) => {
       }));
 
       // 4. Bulk insert target templates for this year (ignoring conflicts just in case)
-      const { error: targetsError } = await supabase
+      const { error: targetsError } = await db
         .from("targets")
         .insert(targetRows);
 
@@ -137,7 +139,7 @@ router.post("/", requireAuth, requireRole(["Editor"]), async (req, res) => {
       });
 
       // 6. Bulk insert accomplishments templates for this year
-      const { error: accomplishmentsError } = await supabase
+      const { error: accomplishmentsError } = await db
         .from("accomplishments")
         .insert(accomplishmentRows);
 
@@ -160,7 +162,8 @@ router.put("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => {
     const { id } = req.params;
     const { name, year, description } = req.body;
 
-    const { data, error } = await supabase
+    const db = getRequestScopedSupabase(req);
+    const { data, error } = await db
       .from("performance_folders")
       .update({ name, year: Number(year), description })
       .eq("id", id)
@@ -184,9 +187,10 @@ router.put("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => {
 router.delete("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => {
   try {
     const { id } = req.params;
+    const db = getRequestScopedSupabase(req);
 
     // 1. Fetch the folder metadata to determine its year
-    const { data: folder, error: fetchError } = await supabase
+    const { data: folder, error: fetchError } = await db
       .from("performance_folders")
       .select("year")
       .eq("id", id)
@@ -201,7 +205,7 @@ router.delete("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => 
       const year = folder.year;
 
       // 2. Delete all targets associated with this calendar year
-      const { error: targetDeleteError } = await supabase
+      const { error: targetDeleteError } = await db
         .from("targets")
         .delete()
         .eq("year", year);
@@ -211,7 +215,7 @@ router.delete("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => 
       }
 
       // 3. Delete all accomplishments associated with this calendar year
-      const { error: accomplishmentsDeleteError } = await supabase
+      const { error: accomplishmentsDeleteError } = await db
         .from("accomplishments")
         .delete()
         .eq("year", year);
@@ -222,7 +226,7 @@ router.delete("/:id", requireAuth, requireRole(["Editor"]), async (req, res) => 
     }
 
     // 4. Delete the workspace folder metadata itself
-    const { error } = await supabase
+    const { error } = await db
       .from("performance_folders")
       .delete()
       .eq("id", id);

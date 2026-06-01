@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { supabase } from "../config/supabase";
-import { requireAuth, requireRole } from "../middleware/auth";
+import { requireAuth, requireRole, getRequestScopedSupabase } from "../middleware/auth";
 
 const router = Router();
 
@@ -9,8 +8,9 @@ const router = Router();
 router.get("/data", requireAuth, async (req, res) => {
   try {
     const { year, section, indicator, program } = req.query;
+    const db = getRequestScopedSupabase(req);
 
-    let query = supabase.from("v_indicator_data").select("*");
+    let query = db.from("v_indicator_data").select("*");
 
     if (year) query = query.eq("year", Number(year));
     if (section) query = query.eq("section", String(section));
@@ -45,11 +45,13 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
       return res.status(400).json({ error: "Missing required fields: year, rows or deletedIndicatorIds" });
     }
 
+    const db = getRequestScopedSupabase(req);
+
     // 1. Fetch categories only if there are new indicators to insert
     const hasNewIndicators = rows.some((row: any) => !row.indicator_id || row.indicator_id.startsWith("temp-"));
     let dbCategories: any[] = [];
     if (hasNewIndicators) {
-      const { data, error: catError } = await supabase
+      const { data, error: catError } = await db
         .from("categories")
         .select("id, name, section_id, sections(name)")
         .returns<any[]>();
@@ -65,7 +67,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
     const idsToDelete = Array.isArray(deletedIndicatorIds) ? deletedIndicatorIds : [];
 
     if (idsToDelete.length > 0) {
-      const { error: delError } = await supabase
+      const { error: delError } = await db
         .from("indicators")
         .delete()
         .in("id", idsToDelete);
@@ -87,7 +89,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
     const updatePromises = existingRows
       .filter(row => row.deliverable_type === "Strategic")
       .map(async (row) => {
-        const { error: updateError } = await supabase
+        const { error: updateError } = await db
           .from("indicators")
           .update({
             name: row.indicator,
@@ -114,7 +116,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
 
     // Fetch the current max order_index for each category that will receive new indicators
     for (const catId of uniqueCatIds) {
-      const { data: maxData } = await supabase
+      const { data: maxData } = await db
         .from("indicators")
         .select("order_index")
         .eq("category_id", catId)
@@ -142,7 +144,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
       const nextOrder = categoryNextOrder.get(catMatch.id) ?? 1;
       categoryNextOrder.set(catMatch.id, nextOrder + 1);
 
-      const { data: newInd, error: newIndErr } = await supabase
+      const { data: newInd, error: newIndErr } = await db
         .from("indicators")
         .insert({
           category_id: catMatch.id,
@@ -213,7 +215,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
 
     // 6. Perform bulk upsert for targets
     if (targetUpserts.length > 0) {
-      const { error: targetErr } = await supabase
+      const { error: targetErr } = await db
         .from("targets")
         .upsert(targetUpserts, { onConflict: "indicator_id,year" });
 
@@ -225,7 +227,7 @@ router.post("/save-grid", requireAuth, requireRole(["Editor"]), async (req, res)
 
     // 7. Perform bulk upsert for accomplishments
     if (accomplishmentUpserts.length > 0) {
-      const { error: accErr } = await supabase
+      const { error: accErr } = await db
         .from("accomplishments")
         .upsert(accomplishmentUpserts, { onConflict: "indicator_id,year,quarter" });
 
