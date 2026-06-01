@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import dashboardRoutes from "./routes/dashboard";
 import workspaceRoutes from "./routes/workspaces";
 import userRoutes from "./routes/users";
+import { logger } from "./utils/logger";
 
 dotenv.config();
 
@@ -106,5 +107,5 @@ app.use("/api/users", userRoutes);
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT} in ${process.env.NODE_ENV} mode`);
+  logger.info(`Server is running on http://localhost:${PORT} in ${process.env.NODE_ENV} mode`);
 });
