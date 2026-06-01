@@ -16,6 +16,19 @@ if (!process.env.NODE_ENV) {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxy headers (e.g. Render, Nginx, Cloudflare)
+app.enable("trust proxy");
+
+// Enforce HTTPS redirection in production environment
+if (process.env.NODE_ENV === "production") {
+  app.use((req, res, next) => {
+    if (req.secure || req.headers["x-forwarded-proto"] === "https") {
+      return next();
+    }
+    res.redirect(301, `https://${req.headers.host}${req.url}`);
+  });
+}
+
 // Configurable CORS to restrict origins in production
 const allowedOrigins = [
   "http://localhost:5173",
@@ -93,5 +106,5 @@ app.use("/api/users", userRoutes);
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT} in ${process.env.NODE_ENV} mode`);
 });
