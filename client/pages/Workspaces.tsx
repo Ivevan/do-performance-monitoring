@@ -52,7 +52,7 @@ interface Workspace {
 export default function Workspaces() {
   const navigate = useNavigate();
   const { role } = useAuth();
-  const isEditor = role === "Editor";
+  const isEditor = role === "Editor" || role === "PD";
   const queryClient = useQueryClient();
 
   useEffect(() => {

@@ -41,7 +41,7 @@ const Dashboard = () => {
   const selectedYear = year ? Number(year) : 2026;
   const queryClient = useQueryClient();
   const { role } = useAuth();
-  const isEditor = role === "Editor";
+  const isEditor = role === "Editor" || role === "PD";
 
   useEffect(() => {
     document.title = `Dashboard CY ${selectedYear} | DOST-PSTO-DO`;
