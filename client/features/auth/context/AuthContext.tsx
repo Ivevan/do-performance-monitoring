@@ -30,11 +30,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     // Automatic Role Assignment Rules:
     // - Government emails (ending with @region11.dost.gov.ph or containing dost.gov.ph / .gov.ph) are automatically Editors
-    // - Other emails (like .dostxi@gmail.com or @gmail.com) are automatically Staff (Viewers)
+    // - Specific whitelisted tester accounts (e.g. ivasay997.dostxi@gmail.com) are automatically Editors
+    // - Other authorized emails (like other .dostxi@gmail.com emails) are automatically Staff (Viewers)
     if (
       normalizedEmail.endsWith("@region11.dost.gov.ph") || 
       normalizedEmail.endsWith(".gov.ph") || 
-      normalizedEmail.includes("dost.gov.ph")
+      normalizedEmail.includes("dost.gov.ph") ||
+      normalizedEmail === "ivasay997.dostxi@gmail.com"
     ) {
       return "Editor";
     }

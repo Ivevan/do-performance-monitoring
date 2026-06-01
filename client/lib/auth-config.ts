@@ -1,4 +1,4 @@
-export const ALLOWED_EMAIL_SUFFIXES = [".dostxi@gmail.com", "@region11.dost.gov.ph", "@gmail.com"];
+export const ALLOWED_EMAIL_SUFFIXES = [".dostxi@gmail.com", "@region11.dost.gov.ph", "ivasay997@gmail.com"];
 
 /**
  * Validates whether the user's email meets the DOST XI requirements.

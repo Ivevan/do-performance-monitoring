@@ -97,3 +97,72 @@ CROSS JOIN years y
 LEFT JOIN targets t ON i.id = t.indicator_id AND t.year = y.year
 LEFT JOIN accomplishments a ON a.indicator_id = i.id AND a.year = y.year;
 
+-- =========================================================================
+-- ROW LEVEL SECURITY (RLS) CONFIGURATION & POLICIES
+-- =========================================================================
+
+-- Helper function to validate authorized users based on email domains/whitelists
+CREATE OR REPLACE FUNCTION public.is_authorized()
+RETURNS BOOLEAN SECURITY DEFINER AS $$
+DECLARE
+    user_email TEXT;
+BEGIN
+    user_email := LOWER(COALESCE(
+        (SELECT auth.jwt() ->> 'email'),
+        ''
+    ));
+    
+    IF user_email = '' THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Matches ALLOWED_EMAIL_SUFFIXES rules
+    IF user_email = 'ivasay997@gmail.com' OR 
+       user_email = 'ivasay997.dostxi@gmail.com' OR 
+       user_email LIKE '%.dostxi@gmail.com' OR 
+       user_email LIKE '%@region11.dost.gov.ph' OR
+       user_email LIKE '%.gov.ph' OR
+       user_email LIKE '%dost.gov.ph%' THEN
+        RETURN TRUE;
+    END IF;
+    
+    RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Enable RLS on all tables
+ALTER TABLE public.sections ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.indicators ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.targets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accomplishments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.performance_folders ENABLE ROW LEVEL SECURITY;
+
+-- Drop any legacy public select policies if they exist
+DROP POLICY IF EXISTS "Allow public read access" ON public.sections;
+DROP POLICY IF EXISTS "Allow public read access" ON public.categories;
+DROP POLICY IF EXISTS "Allow public read access" ON public.indicators;
+DROP POLICY IF EXISTS "Allow public read access" ON public.targets;
+DROP POLICY IF EXISTS "Allow public read access" ON public.accomplishments;
+DROP POLICY IF EXISTS "Enable read access for all users" ON public.performance_folders;
+
+-- Define SELECT policies restricting read access to authenticated, authorized accounts
+CREATE POLICY "Allow read access to authorized users only" 
+ON public.sections FOR SELECT USING (public.is_authorized());
+
+CREATE POLICY "Allow read access to authorized users only" 
+ON public.categories FOR SELECT USING (public.is_authorized());
+
+CREATE POLICY "Allow read access to authorized users only" 
+ON public.indicators FOR SELECT USING (public.is_authorized());
+
+CREATE POLICY "Allow read access to authorized users only" 
+ON public.targets FOR SELECT USING (public.is_authorized());
+
+CREATE POLICY "Allow read access to authorized users only" 
+ON public.accomplishments FOR SELECT USING (public.is_authorized());
+
+CREATE POLICY "Allow read access to authorized users only" 
+ON public.performance_folders FOR SELECT USING (public.is_authorized());
+
+

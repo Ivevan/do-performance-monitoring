@@ -108,7 +108,7 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {mainItems.map(renderItem)}
-                {renderItem({
+                {role === "Editor" && renderItem({
                   title: "Team Registry",
                   url: "/dashboard/roles",
                   icon: Users,

@@ -161,7 +161,7 @@ export default function ManageRoles() {
                 Team Access Registry
               </CardTitle>
               <CardDescription>
-                List of registered active team members. Authorization levels are managed automatically based on organization email domains. Government emails (e.g. <code>@region11.dost.gov.ph</code> or <code>.gov.ph</code>) automatically receive <strong>Data Editor</strong> permissions, while other authorized addresses receive <strong>Staff Viewer</strong> permissions.
+                List of registered active team members. Authorization levels are managed automatically based on organization email domains. Government emails (e.g. <code>@region11.dost.gov.ph</code> or <code>.gov.ph</code>) and whitelisted test accounts receive <strong>Data Editor</strong> permissions, while other authorized regional test addresses receive <strong>Staff Viewer</strong> permissions.
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 pb-6">
