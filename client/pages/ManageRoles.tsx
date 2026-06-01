@@ -29,21 +29,7 @@ interface UserRoleRecord {
   isSelf?: boolean;
 }
 
-const maskEmail = (email: string) => {
-  if (!email) return "";
-  const parts = email.split("@");
-  if (parts.length !== 2) return email;
-  const username = parts[0];
-  const domain = parts[1];
-  
-  if (username.length <= 3) {
-    return `${username[0]}***@${domain}`;
-  }
-  if (username.length <= 5) {
-    return `${username.slice(0, 2)}***${username.slice(-1)}@${domain}`;
-  }
-  return `${username.slice(0, 3)}***${username.slice(-2)}@${domain}`;
-};
+
 
 export default function ManageRoles() {
   const { user: currentUser } = useAuth();
@@ -204,8 +190,7 @@ export default function ManageRoles() {
                   <table className="w-full text-xs text-left border-collapse">
                     <thead>
                       <tr className="bg-muted/15 border-b border-border/60 text-muted-foreground font-bold uppercase tracking-wider">
-                        <th className="p-3">Full Name</th>
-                        <th className="p-3">Email Address</th>
+                        <th className="p-3">Team Member</th>
                         <th className="p-3">Access Level</th>
                         <th className="p-3">Date Registered</th>
                       </tr>
@@ -216,20 +201,27 @@ export default function ManageRoles() {
                         return (
                           <tr key={record.id} className="hover:bg-muted/5 transition-colors">
                             <td className="p-3 font-semibold text-foreground">
-                              {record.name || (
-                                <span className="text-muted-foreground/40 italic">Not Signed In Yet</span>
-                              )}
-                            </td>
-                            <td className="p-3 text-foreground">
-                              <div className="flex items-center gap-2">
-                                <span className="text-muted-foreground" title={record.email}>
-                                  {maskEmail(record.email)}
-                                </span>
-                                {isSelf && (
-                                  <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-dost-blue border-dost-blue/30 bg-dost-blue/5">
-                                    You
-                                  </Badge>
-                                )}
+                              <div className="flex items-center gap-3">
+                                <div className="h-8 w-8 rounded-full bg-dost-blue/10 border border-dost-blue/20 flex items-center justify-center text-dost-blue font-bold text-xs uppercase shrink-0">
+                                  {record.name ? record.name.slice(0, 2) : "U"}
+                                </div>
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-foreground text-sm">
+                                      {record.name || (
+                                        <span className="text-muted-foreground/50 italic font-normal text-xs">Pending Registration</span>
+                                      )}
+                                    </span>
+                                    {isSelf && (
+                                      <Badge variant="outline" className="text-[10px] py-0 px-1.5 text-dost-blue border-dost-blue/30 bg-dost-blue/5 h-fit font-semibold">
+                                        You
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-[11px] text-muted-foreground/75 font-normal select-all">
+                                    {record.email}
+                                  </span>
+                                </div>
                               </div>
                             </td>
                             <td className="p-3">
