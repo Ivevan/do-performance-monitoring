@@ -504,12 +504,54 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
     return deletedRows;
   }, [deletedRows]);
 
+  const getSuccessMessage = (modifiedRows: GridRow[], deletedIds: string[]) => {
+    let hasTargetChanges = false;
+    let hasAccomplishmentChanges = false;
+    let hasStructureChanges = deletedIds.length > 0 || modifiedRows.some(row => row.id.startsWith("temp-"));
+
+    modifiedRows.forEach(row => {
+      const original = initialRows.find((r) => r.id === row.id);
+      if (!original) {
+        hasStructureChanges = true;
+        return;
+      }
+      if (row.indicator !== original.indicator || row.program !== original.program) {
+        hasStructureChanges = true;
+      }
+      if (
+        row.q1_target !== original.q1_target ||
+        row.q2_target !== original.q2_target ||
+        row.q3_target !== original.q3_target ||
+        row.q4_target !== original.q4_target
+      ) {
+        hasTargetChanges = true;
+      }
+      if (
+        row.q1_actual !== original.q1_actual ||
+        row.q2_actual !== original.q2_actual ||
+        row.q3_actual !== original.q3_actual ||
+        row.q4_actual !== original.q4_actual
+      ) {
+        hasAccomplishmentChanges = true;
+      }
+    });
+
+    if (hasTargetChanges && !hasAccomplishmentChanges && !hasStructureChanges) {
+      return "Strategic planning targets saved successfully!";
+    }
+    if (hasAccomplishmentChanges && !hasTargetChanges && !hasStructureChanges) {
+      return "Quarterly performance accomplishments saved successfully!";
+    }
+    return "Performance sheet changes saved successfully!";
+  };
+
   const executeSave = async () => {
     const modifiedRows = rows.filter(isRowModified);
     try {
       setSaving(true);
       await (onSave as any)(modifiedRows, deletedIndicatorIds);
-      toast.success("Grid accomplishments and targets saved successfully!");
+      const msg = getSuccessMessage(modifiedRows, deletedIndicatorIds);
+      toast.success(msg);
       setIsDirty(false);
       setDeletedIndicatorIds([]);
       setDeletedRows([]);
@@ -545,7 +587,8 @@ export const DataEntryGrid = React.forwardRef<DataEntryGridRef, DataEntryGridPro
     }
 
     if (!onSave) {
-      toast.success("UI Demo Mode: Simulated save changes successfully!");
+      const msg = getSuccessMessage(modifiedRows, deletedIndicatorIds);
+      toast.success(`UI Demo Mode: Simulated ${msg}`);
       setIsDirty(false);
       return;
     }

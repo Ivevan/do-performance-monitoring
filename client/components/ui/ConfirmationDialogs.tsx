@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2, RotateCcw, Edit3, Loader2, Save } from "lucide-react";
+import { Trash2, RotateCcw, Edit3, Loader2, Save, Target, CheckCircle2, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -199,6 +199,73 @@ export function ReviewChangesDialog({
     });
   }, [modifiedRowsList, getRowDiff]);
 
+  // Analyze what type of changes are made
+  const changeSummary = React.useMemo(() => {
+    let hasTargetChanges = false;
+    let hasAccomplishmentChanges = false;
+    let hasStructureChanges = newRowsList.length > 0 || deletedRowsList.length > 0;
+
+    visibleModifiedRows.forEach(row => {
+      const diffs = getRowDiff(row);
+      diffs.forEach(diff => {
+        if (diff.type === "target") {
+          hasTargetChanges = true;
+        } else if (diff.type === "actual") {
+          hasAccomplishmentChanges = true;
+        } else if (diff.type === "name" || diff.type === "program") {
+          hasStructureChanges = true;
+        }
+      });
+    });
+
+    return {
+      hasTargetChanges,
+      hasAccomplishmentChanges,
+      hasStructureChanges,
+    };
+  }, [visibleModifiedRows, newRowsList, deletedRowsList, getRowDiff]);
+
+  const dialogConfig = React.useMemo(() => {
+    const { hasTargetChanges, hasAccomplishmentChanges, hasStructureChanges } = changeSummary;
+    if (hasTargetChanges && !hasAccomplishmentChanges && !hasStructureChanges) {
+      return {
+        title: "Confirm Save Targets",
+        description: "Please review the planning target configurations before committing changes.",
+        icon: <Target className="h-5 w-5 text-dost-blue shrink-0" />,
+        banner: (
+          <div className="mb-4 p-3 rounded-lg border border-dost-blue/20 bg-dost-blue/5 text-[11px] font-bold text-dost-blue flex items-center gap-2">
+            <Target className="h-4 w-4 shrink-0" />
+            <span>Target Planning Mode: You are committing revisions strictly to performance targets.</span>
+          </div>
+        )
+      };
+    }
+    if (hasAccomplishmentChanges && !hasTargetChanges && !hasStructureChanges) {
+      return {
+        title: "Confirm Save Accomplishments",
+        description: "Please review the accomplishment metrics you achieved before committing changes.",
+        icon: <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0" />,
+        banner: (
+          <div className="mb-4 p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0" />
+            <span>Accomplishment Submission: You are committing edits strictly to quarterly accomplishment values.</span>
+          </div>
+        )
+      };
+    }
+    return {
+      title: "Review Unsaved Changes",
+      description: "Please review all structural changes, planning targets, and accomplishments before saving.",
+      icon: <ClipboardList className="h-5 w-5 text-indigo-500 shrink-0" />,
+      banner: (
+        <div className="mb-4 p-3 rounded-lg border border-indigo-500/20 bg-indigo-500/5 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-2">
+          <ClipboardList className="h-4 w-4 shrink-0" />
+          <span>Mixed Updates: You are saving structure, target, and accomplishment changes simultaneously.</span>
+        </div>
+      )
+    };
+  }, [changeSummary]);
+
   // Group visible modified rows by section / category
   const groupedModifiedRows = React.useMemo(() => {
     const groups: { [key: string]: { section: string; category: string; rows: typeof modifiedRowsList } } = {};
@@ -226,16 +293,18 @@ export function ReviewChangesDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl border-border bg-card shadow-2xl rounded-xl overflow-hidden p-6 max-h-[90vh] flex flex-col">
         <DialogHeader className="border-b border-border/40 pb-3 flex-shrink-0">
-          <DialogTitle className="text-lg font-black tracking-wide uppercase text-foreground">
-            Review Unsaved Changes
+          <DialogTitle className="text-lg font-black tracking-wide uppercase text-foreground flex items-center gap-2">
+            {dialogConfig.icon}
+            {dialogConfig.title}
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground mt-1">
-            Please review the modifications to the performance sheet before saving.
+            {dialogConfig.description}
           </DialogDescription>
         </DialogHeader>
 
         {/* Change List */}
-        <div className="flex-1 overflow-y-auto pr-2 pt-1 pb-4 space-y-5 my-0 max-h-[60vh] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/10 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-sky-500/25 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-sky-500/45">
+        <div className="flex-1 overflow-y-auto pr-2 pt-4 pb-4 space-y-5 my-0 max-h-[60vh] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-muted/10 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-thumb]:bg-sky-500/25 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-sky-500/45">
+          {dialogConfig.banner}
           {/* Added Indicators */}
           {newRowsList.length > 0 && (
             <div className="space-y-2">

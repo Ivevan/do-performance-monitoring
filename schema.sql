@@ -166,3 +166,53 @@ CREATE POLICY "Allow read access to authorized users only"
 ON public.performance_folders FOR SELECT USING (public.is_authorized());
 
 
+-- Helper function to validate authorized Editors based on email domains/whitelists
+CREATE OR REPLACE FUNCTION public.is_editor()
+RETURNS BOOLEAN SECURITY DEFINER AS $$
+DECLARE
+    user_email TEXT;
+BEGIN
+    user_email := LOWER(COALESCE(
+        (SELECT auth.jwt() ->> 'email'),
+        ''
+    ));
+    
+    IF user_email = '' THEN
+        RETURN FALSE;
+    END IF;
+    
+    -- Check if email matches Editor domains or whitelisted accounts
+    IF user_email = 'ivasay997.dostxi@gmail.com' OR 
+       user_email LIKE '%@region11.dost.gov.ph' OR
+       user_email LIKE '%.gov.ph' OR
+       user_email LIKE '%dost.gov.ph%' THEN
+        RETURN TRUE;
+    END IF;
+    
+    RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Define write (INSERT/UPDATE/DELETE) policies for Editor role
+CREATE POLICY "Allow write access for editors" ON public.targets
+    FOR ALL
+    USING (public.is_editor())
+    WITH CHECK (public.is_editor());
+
+CREATE POLICY "Allow write access for editors" ON public.accomplishments
+    FOR ALL
+    USING (public.is_editor())
+    WITH CHECK (public.is_editor());
+
+CREATE POLICY "Allow write access for editors" ON public.indicators
+    FOR ALL
+    USING (public.is_editor())
+    WITH CHECK (public.is_editor());
+
+CREATE POLICY "Allow write access for editors" ON public.performance_folders
+    FOR ALL
+    USING (public.is_editor())
+    WITH CHECK (public.is_editor());
+
+
+
