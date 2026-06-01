@@ -47,6 +47,34 @@ app.use(
 );
 app.use(express.json());
 
+// Import rate limiting middleware
+import { createRateLimiter } from "./middleware/rateLimiter";
+
+// General traffic limiter: 300 requests per 15 minutes
+const generalLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  message: "Too many requests from this IP. Please try again after 15 minutes."
+});
+
+// Stricter write operations limiter: 50 requests per 15 minutes
+const writeLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: "Too many database modification attempts. Please try again after 15 minutes."
+});
+
+// Apply general rate limiting to all requests
+app.use(generalLimiter);
+
+// Apply stricter rate limiting to POST, PUT, and DELETE operations (database modifications)
+app.use((req, res, next) => {
+  if (["POST", "PUT", "DELETE"].includes(req.method)) {
+    return writeLimiter(req, res, next);
+  }
+  next();
+});
+
 // Health Check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });

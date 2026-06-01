@@ -26,6 +26,7 @@ interface UserRoleRecord {
   role: "Editor" | "Staff";
   created_at: string;
   name?: string | null;
+  isSelf?: boolean;
 }
 
 const maskEmail = (email: string) => {
@@ -211,7 +212,7 @@ export default function ManageRoles() {
                     </thead>
                     <tbody className="divide-y divide-border/40">
                       {filteredUsers.map((record) => {
-                        const isSelf = record.email.toLowerCase() === currentUser?.email?.toLowerCase();
+                        const isSelf = !!record.isSelf || record.email.toLowerCase() === currentUser?.email?.toLowerCase();
                         return (
                           <tr key={record.id} className="hover:bg-muted/5 transition-colors">
                             <td className="p-3 font-semibold text-foreground">

@@ -23,6 +23,8 @@ router.get("/roles", requireAuth, async (req, res) => {
       return res.status(500).json({ error: profilesError.message });
     }
 
+    const currentUserEmail = (req as any).user?.email?.toLowerCase() || "";
+
     const mergedData = (profilesData || []).map((record: any) => {
       const emailLower = (record.email || "").toLowerCase();
       let role = "Staff";
@@ -40,10 +42,30 @@ router.get("/roles", requireAuth, async (req, res) => {
         role = "Editor";
       }
 
+      const isSelf = emailLower === currentUserEmail;
+
+      // Mask email for other users to prevent email harvesting
+      const maskEmail = (email: string) => {
+        if (!email) return "";
+        const parts = email.split("@");
+        if (parts.length !== 2) return email;
+        const username = parts[0];
+        const domain = parts[1];
+        
+        if (username.length <= 3) {
+          return `${username[0]}***@${domain}`;
+        }
+        if (username.length <= 5) {
+          return `${username.slice(0, 2)}***${username.slice(-1)}@${domain}`;
+        }
+        return `${username.slice(0, 3)}***${username.slice(-2)}@${domain}`;
+      };
+
       return {
         id: record.id.toString(),
-        email: record.email,
+        email: isSelf ? record.email : maskEmail(record.email),
         role: role,
+        isSelf: isSelf,
         created_at: record.created_at || new Date().toISOString(),
         updated_at: null,
         name: record.first_name || null
