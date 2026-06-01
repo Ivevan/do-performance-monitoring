@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileSpreadsheet, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -20,6 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/features/auth/context/AuthContext";
+import { apiFetch } from "@/lib/api";
+import { API_URL } from "@/lib/config";
 
 interface ExportDialogProps {
   open: boolean;
@@ -29,10 +32,40 @@ interface ExportDialogProps {
 }
 
 export function ExportDialog({ open, onOpenChange, rawData, year }: ExportDialogProps) {
+  const { user } = useAuth();
   const [preparedByName, setPreparedByName] = useState("");
-  const [preparedByTitle, setPreparedByTitle] = useState("");
+  const [selectedTitleOption, setSelectedTitleOption] = useState("SRS I, DOST Davao Oriental");
+  const [customTitle, setCustomTitle] = useState("");
   const [sheetOption, setSheetOption] = useState<"all" | "targets" | "q1_kpis">("all");
   const [exporting, setExporting] = useState(false);
+
+  // Automatically load the editor's display name or email on mount/open
+  useEffect(() => {
+    if (open) {
+      const loadEditorName = async () => {
+        try {
+          const res = await apiFetch(`${API_URL}/api/users/profile`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.name) {
+              setPreparedByName(data.name);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Failed to fetch editor name from API:", err);
+        }
+
+        // Fallback to supabase auth metadata / email
+        if (user) {
+          const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email || "";
+          setPreparedByName(name);
+        }
+      };
+
+      loadEditorName();
+    }
+  }, [open, user]);
 
   const handleExport = async () => {
     if (!preparedByName.trim()) {
@@ -40,12 +73,14 @@ export function ExportDialog({ open, onOpenChange, rawData, year }: ExportDialog
       return;
     }
 
+    const titleToSend = selectedTitleOption === "custom" ? customTitle.trim() : selectedTitleOption;
+
     setExporting(true);
     try {
       await exportToExcel(rawData, {
         year,
         preparedByName: preparedByName.trim(),
-        preparedByTitle: preparedByTitle.trim(),
+        preparedByTitle: titleToSend,
         sheetOption,
       });
       toast.success(`Successfully exported CY ${year} Performance Targets!`);
@@ -90,14 +125,36 @@ export function ExportDialog({ open, onOpenChange, rawData, year }: ExportDialog
             <Label htmlFor="preparedByTitle" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Position / Title (Optional)
             </Label>
-            <Input
-              id="preparedByTitle"
-              placeholder="e.g. SRS I, DOST Davao Oriental"
-              value={preparedByTitle}
-              onChange={(e) => setPreparedByTitle(e.target.value)}
-              className="h-9 text-sm"
-            />
+            <Select
+              value={selectedTitleOption}
+              onValueChange={setSelectedTitleOption}
+            >
+              <SelectTrigger id="preparedByTitle" className="h-9 text-sm">
+                <SelectValue placeholder="Select position / title" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="SRS I, DOST Davao Oriental">SRS I, DOST Davao Oriental</SelectItem>
+                <SelectItem value="SRS II, DOST Davao Oriental">SRS II, DOST Davao Oriental</SelectItem>
+                <SelectItem value="PD, DOST Davao Oriental">PD, DOST Davao Oriental</SelectItem>
+                <SelectItem value="custom">Other / Custom...</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+
+          {selectedTitleOption === "custom" && (
+            <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <Label htmlFor="customTitle" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                Enter Custom Position / Title
+              </Label>
+              <Input
+                id="customTitle"
+                placeholder="e.g. SRS III, DOST XI"
+                value={customTitle}
+                onChange={(e) => setCustomTitle(e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+          )}
 
           {/* Sheet Selection */}
           <div className="space-y-2">
