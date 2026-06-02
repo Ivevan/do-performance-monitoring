@@ -91,10 +91,10 @@ router.get("/profile", requireAuth, async (req, res) => {
     const userClient = getRequestScopedSupabase(req);
     const emailNormalized = currentUser.email.trim().toLowerCase();
 
-    // Query display name from public.users
+    // Query display name and avatar from public.users
     const { data: profile, error: profileError } = await userClient
       .from("users")
-      .select("first_name, email")
+      .select("first_name, email, avatar_url")
       .eq("email", emailNormalized)
       .maybeSingle();
 
@@ -105,7 +105,7 @@ router.get("/profile", requireAuth, async (req, res) => {
     // Resolve name and avatar from Supabase auth metadata as fallback
     const oauthMetadata = currentUser.user_metadata || {};
     const resolvedName = profile?.first_name || oauthMetadata.full_name || oauthMetadata.name || "DOST User";
-    const resolvedAvatar = oauthMetadata.avatar_url || oauthMetadata.picture || null;
+    const resolvedAvatar = profile?.avatar_url || oauthMetadata.avatar_url || oauthMetadata.picture || null;
 
     return res.json({
       email: currentUser.email,

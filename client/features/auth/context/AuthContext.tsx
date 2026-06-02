@@ -3,16 +3,26 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { validateEmail } from "@/lib/auth-config";
 import { toast } from "sonner";
+import { apiFetch } from "@/lib/api";
+import { API_URL } from "@/lib/config";
+
+export interface UserProfile {
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+}
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   role: "PD" | "Editor" | "Staff" | null;
+  profile: UserProfile | null;
   loading: boolean;
   error: string | null;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   clearError: () => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [role, setRole] = useState<"PD" | "Editor" | "Staff" | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // If there's no session, we are logged out
         if (!currentSession) {
           setRole(null);
+          setProfile(null);
           setLoading(false);
         }
       }
@@ -69,11 +81,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  const refreshProfile = async () => {
+    if (!session || !session.user) {
+      setProfile(null);
+      return;
+    }
+    try {
+      const res = await apiFetch(`${API_URL}/api/users/profile`);
+      if (res.ok) {
+        const data = await res.json();
+        setProfile({
+          name: data.name || "",
+          email: data.email || "",
+          avatarUrl: data.avatar_url || null,
+        });
+      } else {
+        throw new Error("Failed to fetch profile");
+      }
+    } catch (err) {
+      console.error("[AuthContext] Error fetching profile, using metadata fallback:", err);
+      const meta = session.user.user_metadata || {};
+      setProfile({
+        name: meta.full_name || meta.name || "DOST User",
+        email: session.user.email || "",
+        avatarUrl: meta.avatar_url || meta.picture || null,
+      });
+    }
+  };
+
   // 2. React to session changes outside of the auth state listener callback.
   // This allows database queries and signOut calls to proceed without deadlock.
   useEffect(() => {
     const handleSession = async () => {
-      if (!session) return;
+      if (!session) {
+        setProfile(null);
+        return;
+      }
       
       const email = session.user?.email;
       console.log("[AuthContext] Handling session for email:", email);
@@ -86,6 +129,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userRole = await fetchUserRole(email!);
         console.log("[AuthContext] Role resolved:", userRole);
         setRole(userRole);
+
+        // Fetch profile details
+        try {
+          const res = await apiFetch(`${API_URL}/api/users/profile`);
+          if (res.ok) {
+            const data = await res.json();
+            setProfile({
+              name: data.name || "",
+              email: data.email || "",
+              avatarUrl: data.avatar_url || null,
+            });
+          } else {
+            throw new Error("Profile API returned error status");
+          }
+        } catch (err) {
+          console.error("[AuthContext] Error fetching profile during initialization, using metadata fallback:", err);
+          const meta = session.user?.user_metadata || {};
+          setProfile({
+            name: meta.full_name || meta.name || "DOST User",
+            email: session.user?.email || "",
+            avatarUrl: meta.avatar_url || meta.picture || null,
+          });
+        }
+
         setError(null);
         if (shouldShowLoading) {
           setLoading(false);
@@ -101,6 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(null);
         setUser(null);
         setRole(null);
+        setProfile(null);
         setError("Access denied. Your account is not authorized to access this system. Please contact the administrator.");
         setLoading(false);
       }
@@ -232,11 +300,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         session,
         role,
+        profile,
         loading,
         error,
         signInWithGoogle,
         signOut,
         clearError,
+        refreshProfile,
       }}
     >
       {children}

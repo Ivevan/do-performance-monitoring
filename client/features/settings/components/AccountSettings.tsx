@@ -23,15 +23,12 @@ import {
   Check
 } from "lucide-react";
 
-// Persistent module-level state to survive component unmounting (tab/page switching)
-let profileCache: { name: string; email: string; avatarUrl: string | null } | null = null;
-
 export function AccountSettings() {
-  const { user, role } = useAuth();
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(profileCache?.avatarUrl || null);
-  const [name, setName] = useState(profileCache?.name || "");
-  const [email, setEmail] = useState(profileCache?.email || "");
-  const [loading, setLoading] = useState(profileCache === null);
+  const { user, role, profile, refreshProfile } = useAuth();
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profile?.avatarUrl || null);
+  const [name, setName] = useState(profile?.name || "");
+  const [email, setEmail] = useState(profile?.email || "");
+  const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
 
@@ -40,55 +37,13 @@ export function AccountSettings() {
   };
 
   useEffect(() => {
-    const fetchProfile = async (silent = false) => {
-      try {
-        if (!silent) setLoading(true);
-        const res = await apiFetch(`${API_URL}/api/users/profile`);
-        if (!res.ok) {
-          throw new Error("Failed to load profile settings.");
-        }
-        const data = await res.json();
-        const profileData = {
-          name: data.name || "",
-          email: data.email || "",
-          avatarUrl: data.avatar_url || null,
-        };
-        profileCache = profileData;
-        
-        setName(profileData.name);
-        setEmail(profileData.email);
-        setAvatarPreview(profileData.avatarUrl);
-      } catch (err: any) {
-        console.error("Error fetching profile from API, using metadata fallback:", err);
-        // Fallback to auth metadata
-        const meta = user?.user_metadata || {};
-        const fallbackName = meta.full_name || meta.name || "DOST User";
-        const fallbackEmail = user?.email || "";
-        const fallbackAvatar = meta.avatar_url || meta.picture || null;
-        
-        const fallbackData = {
-          name: fallbackName,
-          email: fallbackEmail,
-          avatarUrl: fallbackAvatar,
-        };
-        profileCache = fallbackData;
-        
-        setName(fallbackName);
-        setEmail(fallbackEmail);
-        setAvatarPreview(fallbackAvatar);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user) {
-      if (profileCache) {
-        fetchProfile(true);
-      } else {
-        fetchProfile(false);
-      }
+    if (profile && !initialized) {
+      setName(profile.name);
+      setAvatarPreview(profile.avatarUrl);
+      setEmail(profile.email);
+      setInitialized(true);
     }
-  }, [user]);
+  }, [profile, initialized]);
 
   const handleSaveChanges = async () => {
     if (!name.trim()) {
@@ -111,11 +66,6 @@ export function AccountSettings() {
         throw new Error(errorData.error || "Failed to update profile name.");
       }
 
-      // Update in-memory profile cache
-      if (profileCache) {
-        profileCache.name = name.trim();
-      }
-
       // 2. Sync with client-side Supabase auth session metadata in real-time
       const { error: authError } = await supabase.auth.updateUser({
         data: { full_name: name.trim() }
@@ -124,6 +74,9 @@ export function AccountSettings() {
       if (authError) {
         console.warn("Could not sync metadata to active auth session:", authError);
       }
+
+      // 3. Refresh global profile state in AuthContext to synchronize with Sidebar
+      await refreshProfile();
 
       toast.success("Profile settings updated successfully!");
     } catch (err: any) {
@@ -143,7 +96,7 @@ export function AccountSettings() {
       .toUpperCase() || "DU";
   };
 
-  if (loading) {
+  if (!profile) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Loader2 className="h-8 w-8 animate-spin text-dost-blue" />

@@ -40,21 +40,21 @@ const supportItems = [
 type SidebarPref = "expanded" | "collapsed" | "hover";
 
 export function AppSidebar() {
-  const { user, signOut, role } = useAuth();
+  const { user, signOut, role, profile } = useAuth();
   const { state, setOpen, setOpenMobile, isMobile } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
 
-  const fullName = user?.user_metadata?.full_name || user?.user_metadata?.name || "DOST User";
-  const email = user?.email || "user@dostxi.gmail.com";
+  const fullName = profile?.name || user?.user_metadata?.full_name || user?.user_metadata?.name || "DOST User";
+  const email = profile?.email || user?.email || "user@dostxi.gmail.com";
   const initials = fullName
     .split(" ")
     .map((n: string) => n[0])
     .join("")
     .substring(0, 2)
     .toUpperCase() || "DU";
-  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || undefined;
+  const avatarUrl = profile?.avatarUrl || user?.user_metadata?.avatar_url || user?.user_metadata?.picture || undefined;
 
   const [preference, setPreference] = useState<SidebarPref>(() => {
     return (localStorage.getItem("sidebar-preference") as SidebarPref) || "hover";
