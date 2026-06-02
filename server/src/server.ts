@@ -13,6 +13,7 @@ import cors from "cors";
 import dashboardRoutes from "./routes/dashboard";
 import workspaceRoutes from "./routes/workspaces";
 import userRoutes from "./routes/users";
+import auditRoutes from "./routes/audit";
 import { logger } from "./utils/logger";
 
 // Default to production unless explicitly set, or if running in development (ts-node-dev / ts-node)
@@ -112,6 +113,7 @@ app.get("/health", (req, res) => {
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/audit", auditRoutes);
 
 // Start server
 app.listen(PORT, () => {

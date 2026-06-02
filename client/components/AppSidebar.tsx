@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, LogOut, PanelLeft, Users } from "lucide-react";
+import { LayoutDashboard, Settings, LogOut, PanelLeft, Users, History } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { NavLink } from "@/components/NavLink";
@@ -113,6 +113,11 @@ export function AppSidebar() {
                   title: "Team Registry",
                   url: "/dashboard/roles",
                   icon: Users,
+                })}
+                {role === "Editor" && renderItem({
+                  title: "Audit Logs",
+                  url: "/dashboard/audit",
+                  icon: History,
                 })}
               </SidebarMenu>
             </SidebarGroupContent>
