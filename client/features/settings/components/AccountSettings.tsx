@@ -23,14 +23,16 @@ import {
   Check
 } from "lucide-react";
 
+// Persistent module-level state to survive component unmounting (tab/page switching)
+let profileCache: { name: string; email: string; avatarUrl: string | null } | null = null;
+
 export function AccountSettings() {
   const { user, role } = useAuth();
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(profileCache?.avatarUrl || null);
+  const [name, setName] = useState(profileCache?.name || "");
+  const [email, setEmail] = useState(profileCache?.email || "");
+  const [loading, setLoading] = useState(profileCache === null);
   const [saving, setSaving] = useState(false);
-  const [hasFetched, setHasFetched] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
 
   const handleEditClick = () => {
@@ -38,35 +40,55 @@ export function AccountSettings() {
   };
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfile = async (silent = false) => {
       try {
-        setLoading(true);
+        if (!silent) setLoading(true);
         const res = await apiFetch(`${API_URL}/api/users/profile`);
         if (!res.ok) {
           throw new Error("Failed to load profile settings.");
         }
         const data = await res.json();
-        setName(data.name || "");
-        setEmail(data.email || "");
-        setAvatarPreview(data.avatar_url || null);
-        setHasFetched(true);
+        const profileData = {
+          name: data.name || "",
+          email: data.email || "",
+          avatarUrl: data.avatar_url || null,
+        };
+        profileCache = profileData;
+        
+        setName(profileData.name);
+        setEmail(profileData.email);
+        setAvatarPreview(profileData.avatarUrl);
       } catch (err: any) {
         console.error("Error fetching profile from API, using metadata fallback:", err);
         // Fallback to auth metadata
         const meta = user?.user_metadata || {};
-        setName(meta.full_name || meta.name || "DOST User");
-        setEmail(user?.email || "");
-        setAvatarPreview(meta.avatar_url || meta.picture || null);
-        setHasFetched(true);
+        const fallbackName = meta.full_name || meta.name || "DOST User";
+        const fallbackEmail = user?.email || "";
+        const fallbackAvatar = meta.avatar_url || meta.picture || null;
+        
+        const fallbackData = {
+          name: fallbackName,
+          email: fallbackEmail,
+          avatarUrl: fallbackAvatar,
+        };
+        profileCache = fallbackData;
+        
+        setName(fallbackName);
+        setEmail(fallbackEmail);
+        setAvatarPreview(fallbackAvatar);
       } finally {
         setLoading(false);
       }
     };
 
-    if (user && !hasFetched) {
-      fetchProfile();
+    if (user) {
+      if (profileCache) {
+        fetchProfile(true);
+      } else {
+        fetchProfile(false);
+      }
     }
-  }, [user, hasFetched]);
+  }, [user]);
 
   const handleSaveChanges = async () => {
     if (!name.trim()) {
@@ -87,6 +109,11 @@ export function AccountSettings() {
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Failed to update profile name.");
+      }
+
+      // Update in-memory profile cache
+      if (profileCache) {
+        profileCache.name = name.trim();
       }
 
       // 2. Sync with client-side Supabase auth session metadata in real-time

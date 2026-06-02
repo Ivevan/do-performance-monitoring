@@ -31,6 +31,10 @@ interface UserRoleRecord {
 
 
 
+// Persistent module-level state and cache to survive component unmounting (tab/page switching)
+let lastRolesSearch = "";
+let rolesCache: UserRoleRecord[] | null = null;
+
 export default function ManageRoles() {
   const { user: currentUser } = useAuth();
 
@@ -40,10 +44,37 @@ export default function ManageRoles() {
 
   const [users, setUsers] = useState<UserRoleRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Search & Filter State initialized from preserved state
+  const [searchQuery, setSearchQuery] = useState(lastRolesSearch);
+
+  // Synchronize searchQuery with module-level state
+  useEffect(() => {
+    lastRolesSearch = searchQuery;
+  }, [searchQuery]);
   
   // Fetch all registered users
-  const fetchUsers = async () => {
+  const fetchUsers = async (forceRefresh = false) => {
+    if (!forceRefresh && rolesCache !== null) {
+      setUsers(rolesCache);
+      setLoading(false);
+
+      // Silent revalidation in the background
+      apiFetch(`${API_URL}/api/users/roles`)
+        .then((res) => {
+          if (res.ok) return res.json();
+        })
+        .then((result) => {
+          if (result) {
+            const list = result.data || [];
+            rolesCache = list;
+            setUsers(list);
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await apiFetch(`${API_URL}/api/users/roles`);
@@ -51,7 +82,9 @@ export default function ManageRoles() {
         throw new Error("Failed to retrieve system user registry");
       }
       const result = await response.json();
-      setUsers(result.data || []);
+      const list = result.data || [];
+      rolesCache = list;
+      setUsers(list);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to load team database.");

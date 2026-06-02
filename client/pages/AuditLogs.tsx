@@ -44,6 +44,17 @@ interface PaginationMeta {
   pages: number;
 }
 
+// Persistent module-level state and cache to survive component unmounting (tab/page switching)
+let lastActiveFilters = {
+  searchQuery: "",
+  selectedYear: "",
+  selectedAction: "",
+  selectedTable: "",
+  currentPage: 1,
+};
+
+const globalLogsCache: Record<string, { data: AuditLogRecord[]; pagination: PaginationMeta }> = {};
+
 export default function AuditLogs() {
   useEffect(() => {
     document.title = "System Audit Logs | DOST-PSTO-DO";
@@ -54,15 +65,23 @@ export default function AuditLogs() {
   const [loading, setLoading] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
 
-  // Memory cache for audit logs pagination and filters
-  const logsCache = useRef<Record<string, { data: AuditLogRecord[]; pagination: PaginationMeta }>>({});
+  // Filters initialized from last active filter values
+  const [searchQuery, setSearchQuery] = useState(lastActiveFilters.searchQuery);
+  const [selectedYear, setSelectedYear] = useState<string>(lastActiveFilters.selectedYear);
+  const [selectedAction, setSelectedAction] = useState<string>(lastActiveFilters.selectedAction);
+  const [selectedTable, setSelectedTable] = useState<string>(lastActiveFilters.selectedTable);
+  const [currentPage, setCurrentPage] = useState(lastActiveFilters.currentPage);
 
-  // Filters
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedYear, setSelectedYear] = useState<string>("");
-  const [selectedAction, setSelectedAction] = useState<string>("");
-  const [selectedTable, setSelectedTable] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState(1);
+  // Keep module-level state synchronized with active filters
+  useEffect(() => {
+    lastActiveFilters = {
+      searchQuery,
+      selectedYear,
+      selectedAction,
+      selectedTable,
+      currentPage,
+    };
+  }, [searchQuery, selectedYear, selectedAction, selectedTable, currentPage]);
 
   const fetchLogs = async (forceRefresh = false) => {
     const params = new URLSearchParams({
@@ -78,8 +97,8 @@ export default function AuditLogs() {
     const cacheKey = params.toString();
 
     // SWR Cache Strategy: Return cached data instantly if available, then fetch in background
-    if (!forceRefresh && logsCache.current[cacheKey]) {
-      const cached = logsCache.current[cacheKey];
+    if (!forceRefresh && globalLogsCache[cacheKey]) {
+      const cached = globalLogsCache[cacheKey];
       setLogs(cached.data);
       setPagination(cached.pagination);
       setLoading(false);
@@ -91,7 +110,7 @@ export default function AuditLogs() {
         })
         .then((result) => {
           if (result) {
-            logsCache.current[cacheKey] = {
+            globalLogsCache[cacheKey] = {
               data: result.data || [],
               pagination: result.pagination || { page: currentPage, limit: 10, total: 0, pages: 1 }
             };
@@ -114,7 +133,7 @@ export default function AuditLogs() {
       const pagData = result.pagination || { page: currentPage, limit: 10, total: 0, pages: 1 };
 
       // Update Cache
-      logsCache.current[cacheKey] = { data: logsData, pagination: pagData };
+      globalLogsCache[cacheKey] = { data: logsData, pagination: pagData };
 
       setLogs(logsData);
       setPagination(pagData);
@@ -145,14 +164,14 @@ export default function AuditLogs() {
 
       const nextCacheKey = params.toString();
 
-      if (!logsCache.current[nextCacheKey]) {
+      if (!globalLogsCache[nextCacheKey]) {
         apiFetch(`${API_URL}/api/audit/logs?${nextCacheKey}`)
           .then((res) => {
             if (res.ok) return res.json();
           })
           .then((result) => {
             if (result) {
-              logsCache.current[nextCacheKey] = {
+              globalLogsCache[nextCacheKey] = {
                 data: result.data || [],
                 pagination: result.pagination || { page: nextPage, limit: 10, total: 0, pages: 1 }
               };
@@ -441,14 +460,29 @@ export default function AuditLogs() {
                                     const oldValue = hasOldNew ? change.old : null;
                                     const newValue = hasOldNew ? change.new : change;
                                     
+                                    const isTargetLog = log.table_name === "targets";
+                                    const fieldColorClass = isTargetLog
+                                      ? "text-emerald-600 dark:text-emerald-450 font-extrabold"
+                                      : "text-rose-600 dark:text-rose-450 font-extrabold";
+
+                                    const formatValueSafe = (val: any) => {
+                                      if (val === null || val === undefined) return null;
+                                      if (typeof val === "boolean") return val ? "True" : "False";
+                                      if (typeof val === "object") return JSON.stringify(val);
+                                      return val.toLocaleString();
+                                    };
+
+                                    const oldFormatted = formatValueSafe(oldValue);
+                                    const newFormatted = formatValueSafe(newValue);
+
                                     if (key === "quarter" && log.table_name === "accomplishments") {
                                       return (
                                         <tr key={key} className={idx % 2 === 0 ? "bg-card" : "bg-muted/30"}>
-                                          <td className="p-2.5 font-bold text-foreground border-b border-border/40 align-middle">
+                                          <td className={`p-2.5 border-b border-border/40 align-middle ${fieldColorClass}`}>
                                             Target Quarter
                                           </td>
                                           <td colSpan={2} className="p-2.5 text-center font-bold text-foreground bg-muted/10 align-middle border-b border-border/40">
-                                            Quarter {newValue}
+                                            Quarter {newFormatted || "None"}
                                           </td>
                                         </tr>
                                       );
@@ -457,13 +491,6 @@ export default function AuditLogs() {
                                     if (key === "quarter") return null;
 
                                     const zebraBg = idx % 2 === 0 ? "bg-card" : "bg-muted/30";
-                                    const isTargetKey = key.toLowerCase().includes("target");
-                                    const isAccomplishmentKey = key.toLowerCase().includes("accomplishment") || key.toLowerCase().includes("actual");
-                                    const fieldColorClass = isTargetKey
-                                      ? "text-emerald-600 dark:text-emerald-450 font-extrabold"
-                                      : isAccomplishmentKey
-                                        ? "text-rose-600 dark:text-rose-450 font-extrabold"
-                                        : "text-foreground font-bold";
 
                                     return (
                                       <tr key={key} className={`${zebraBg} hover:bg-muted/50 transition-colors`}>
@@ -471,20 +498,20 @@ export default function AuditLogs() {
                                           {formatKeyName(key)}
                                         </td>
                                         <td className="p-2.5 text-right font-bold border-b border-border/40 align-middle">
-                                          {oldValue === null || oldValue === undefined ? (
+                                          {oldFormatted === null ? (
                                             <span className="text-muted-foreground/45 italic font-medium">None</span>
                                           ) : (
                                             <span className="text-rose-600 dark:text-rose-450 line-through bg-rose-500/10 px-1.5 py-0.5 rounded">
-                                              {oldValue.toLocaleString()}
+                                              {oldFormatted}
                                             </span>
                                           )}
                                         </td>
                                         <td className="p-2.5 text-right font-bold border-b border-border/40 align-middle">
-                                          {newValue === null || newValue === undefined ? (
+                                          {newFormatted === null ? (
                                             <span className="text-muted-foreground/45 italic font-medium">None</span>
                                           ) : (
                                             <span className="text-emerald-600 dark:text-emerald-450 bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                                              {newValue.toLocaleString()}
+                                              {newFormatted}
                                             </span>
                                           )}
                                         </td>

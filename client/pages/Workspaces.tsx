@@ -49,6 +49,12 @@ interface Workspace {
   created_at: string;
 }
 
+// Module-level persistent state and cache to survive component unmounting (tab/page switching)
+let lastWorkspaceSearch = "";
+let workspacesCache: Workspace[] | null = null;
+let workspaceSetupRequired: boolean = false;
+let workspaceSetupSql: string = "";
+
 export default function Workspaces() {
   const navigate = useNavigate();
   const { role } = useAuth();
@@ -66,8 +72,13 @@ export default function Workspaces() {
   const [setupSql, setSetupSql] = useState("");
   const [copiedSql, setCopiedSql] = useState(false);
   
-  // Search & Filter State
-  const [searchQuery, setSearchQuery] = useState("");
+  // Search & Filter State initialized from preserved state
+  const [searchQuery, setSearchQuery] = useState(lastWorkspaceSearch);
+
+  // Synchronize searchQuery with module-level state
+  useEffect(() => {
+    lastWorkspaceSearch = searchQuery;
+  }, [searchQuery]);
 
   // CRUD Modals State
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -84,7 +95,48 @@ export default function Workspaces() {
   });
 
   // Fetch all workspaces from API
-  const fetchWorkspaces = async () => {
+  const fetchWorkspaces = async (forceRefresh = false) => {
+    if (!forceRefresh && workspacesCache !== null) {
+      setWorkspaces(workspacesCache);
+      setSetupRequired(workspaceSetupRequired);
+      setSetupSql(workspaceSetupSql);
+      setLoading(false);
+
+      // Silent revalidation in the background
+      apiFetch(`${API_URL}/api/workspaces`)
+        .then((res) => {
+          if (res.ok) return res.json();
+        })
+        .then((result) => {
+          if (result) {
+            if (result.setupRequired) {
+              workspaceSetupRequired = true;
+              workspaceSetupSql = result.sql;
+              setSetupRequired(true);
+              setSetupSql(result.sql);
+            } else {
+              const workspaceList = (result.data || []) as Workspace[];
+              workspacesCache = workspaceList;
+              workspaceSetupRequired = false;
+              workspaceSetupSql = "";
+              setWorkspaces(workspaceList);
+              setSetupRequired(false);
+
+              // Preload/prefetch data for active workspaces in the background
+              workspaceList.forEach((ws) => {
+                if (ws.status === "Active") {
+                  prefetchDashboardData(queryClient, ws.year).catch((err) => {
+                    console.warn(`Failed to background prefetch dashboard for year ${ws.year}:`, err);
+                  });
+                }
+              });
+            }
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await apiFetch(`${API_URL}/api/workspaces`);
@@ -94,10 +146,16 @@ export default function Workspaces() {
       const result = await response.json();
       
       if (result.setupRequired) {
+        workspaceSetupRequired = true;
+        workspaceSetupSql = result.sql;
         setSetupRequired(true);
         setSetupSql(result.sql);
       } else {
         const workspaceList = (result.data || []) as Workspace[];
+        workspacesCache = workspaceList;
+        workspaceSetupRequired = false;
+        workspaceSetupSql = "";
+
         setWorkspaces(workspaceList);
         setSetupRequired(false);
 
@@ -167,7 +225,7 @@ export default function Workspaces() {
 
       toast.success(`CY ${formData.year} performance sheet successfully created & target templates initialized!`);
       setIsAddOpen(false);
-      fetchWorkspaces();
+      fetchWorkspaces(true);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to create workspace sheet.");
@@ -208,7 +266,7 @@ export default function Workspaces() {
 
       toast.success("Performance sheet updated successfully!");
       setIsEditOpen(false);
-      fetchWorkspaces();
+      fetchWorkspaces(true);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to update workspace sheet.");
@@ -241,7 +299,7 @@ export default function Workspaces() {
 
       toast.success("Performance sheet deleted successfully.");
       setIsDeleteOpen(false);
-      fetchWorkspaces();
+      fetchWorkspaces(true);
     } catch (err) {
       console.error(err);
       toast.error("Failed to delete workspace sheet.");
@@ -328,7 +386,7 @@ export default function Workspaces() {
               <CardFooter className="px-6 sm:px-8 pb-8 flex items-center justify-between border-t border-border/50 pt-5">
                 <p className="text-xs text-muted-foreground font-medium">After running the SQL, refresh this browser tab.</p>
                 <Button 
-                  onClick={fetchWorkspaces} 
+                  onClick={() => fetchWorkspaces(true)} 
                   className="bg-gradient-to-r from-dost-blue to-dost-blue-hover text-white px-5 shadow-lg shadow-dost-blue/15"
                 >
                   Confirm SQL Executed
