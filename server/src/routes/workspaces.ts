@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS performance_folders (
 -- Seed initial CY 2026 performance folder
 INSERT INTO performance_folders (name, year, description, status) 
 VALUES (
-    'CY 2026 PTSO Performance Monitoring', 
+    'CY 2026 PSTO Performance Monitoring', 
     2026, 
     'Official performance indicators, administrative deliverables, and support-to-operations target matrices for Davao Oriental for CY 2026.', 
     'Active'
@@ -53,7 +53,7 @@ router.get("/", requireAuth, async (req, res) => {
       const { data: seedData, error: seedError } = await db
         .from("performance_folders")
         .insert([{
-          name: "CY 2026 PTSO Performance Monitoring",
+          name: "CY 2026 PSTO Performance Monitoring",
           year: 2026,
           description: "Official performance indicators, administrative deliverables, and support-to-operations target matrices for Davao Oriental for CY 2026."
         }])

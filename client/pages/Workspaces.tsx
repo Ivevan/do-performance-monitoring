@@ -134,7 +134,7 @@ export default function Workspaces() {
   const handleOpenAdd = () => {
     const defaultYear = new Date().getFullYear().toString();
     setFormData({
-      name: `CY ${defaultYear} PTSO Performance Monitoring`,
+      name: `CY ${defaultYear} PSTO Performance Monitoring`,
       year: defaultYear,
       description: "",
     });
@@ -264,7 +264,7 @@ export default function Workspaces() {
 
   return (
     <DashboardLayout
-      title="PTSO Performance Sheets"
+      title="PSTO Performance Sheets"
       headerActions={
         isEditor && (
           <Button 
@@ -498,12 +498,12 @@ export default function Workspaces() {
                     onChange={(e) => {
                       const newYear = e.target.value;
                       setFormData((prev) => {
-                        const oldYearPattern = `CY ${prev.year} PTSO Performance Monitoring`;
+                        const oldYearPattern = `CY ${prev.year} PSTO Performance Monitoring`;
                         const shouldUpdateName = !prev.name || prev.name === oldYearPattern || prev.name.startsWith(`CY ${prev.year}`);
                         return {
                           ...prev,
                           year: newYear,
-                          name: shouldUpdateName ? `CY ${newYear} PTSO Performance Monitoring` : prev.name
+                          name: shouldUpdateName ? `CY ${newYear} PSTO Performance Monitoring` : prev.name
                         };
                       });
                     }}

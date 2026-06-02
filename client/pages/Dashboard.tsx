@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Quarter } from "@/lib/ptso-types";
+import type { Quarter } from "@/lib/psto-types";
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/api";
 

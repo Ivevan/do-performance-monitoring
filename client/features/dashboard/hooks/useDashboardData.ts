@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { CategoryData, MetricData } from "@/lib/ptso-types";
+import type { CategoryData, MetricData } from "@/lib/psto-types";
 import { API_URL } from "@/lib/config";
 import { apiFetch } from "@/lib/api";
 

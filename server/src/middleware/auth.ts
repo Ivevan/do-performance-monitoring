@@ -16,8 +16,8 @@ export function getRequestScopedSupabase(req: Request) {
   const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
 
   return createClient(
-    process.env.SUPABASE_URL || "",
-    process.env.SUPABASE_SERVICE_KEY || "",
+    process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "",
+    process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "",
     {
       global: {
         headers: token ? { Authorization: `Bearer ${token}` } : {},

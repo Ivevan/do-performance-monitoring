@@ -1,11 +1,4 @@
-import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-import dashboardRoutes from "./routes/dashboard";
-import workspaceRoutes from "./routes/workspaces";
-import userRoutes from "./routes/users";
-import { logger } from "./utils/logger";
-
 import path from "path";
 import fs from "fs";
 
@@ -14,6 +7,13 @@ const envPath = fs.existsSync(path.resolve(process.cwd(), ".env.local"))
   ? path.resolve(process.cwd(), ".env.local")
   : path.resolve(process.cwd(), ".env");
 dotenv.config({ path: envPath });
+
+import express from "express";
+import cors from "cors";
+import dashboardRoutes from "./routes/dashboard";
+import workspaceRoutes from "./routes/workspaces";
+import userRoutes from "./routes/users";
+import { logger } from "./utils/logger";
 
 // Default to production unless explicitly set, or if running in development (ts-node-dev / ts-node)
 if (!process.env.NODE_ENV) {
@@ -45,7 +45,8 @@ const allowedOrigins = [
   "http://localhost:8081",
   "http://127.0.0.1:5173",
   "http://127.0.0.1:8080",
-  "https://ptso-dashboard.region11.dost.gov.ph", // Official government URL
+  "https://ptso-dashboard.region11.dost.gov.ph", // Legacy production URL
+  "https://psto-dashboard.region11.dost.gov.ph", // Official government URL
 ];
 
 if (process.env.FRONTEND_URL) {

@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import type { Quarter } from "@/lib/ptso-types";
+import type { Quarter } from "@/lib/psto-types";
 
 interface QuarterFilterProps<T extends string> {
   selected: T;

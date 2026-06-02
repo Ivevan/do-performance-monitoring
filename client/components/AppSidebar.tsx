@@ -17,7 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -54,6 +54,7 @@ export function AppSidebar() {
     .join("")
     .substring(0, 2)
     .toUpperCase() || "DU";
+  const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture || undefined;
 
   const [preference, setPreference] = useState<SidebarPref>(() => {
     return (localStorage.getItem("sidebar-preference") as SidebarPref) || "hover";
@@ -128,6 +129,7 @@ export function AppSidebar() {
           {/* Profile Section */}
           <div className="flex items-center gap-2 px-2 overflow-hidden transition-all duration-200 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:justify-center group-data-[expand-on-hover=true]:group-hover:justify-start group-data-[expand-on-hover=true]:group-hover:px-2 mt-1">
             <Avatar className="h-6 w-6 shrink-0">
+              {avatarUrl && <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />}
               <AvatarFallback className="bg-dost-blue text-white text-[10px] font-semibold">{initials}</AvatarFallback>
             </Avatar>
             <div className="flex-1 overflow-hidden leading-tight transition-all duration-200 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:opacity-0 group-data-[expand-on-hover=true]:group-hover:w-[150px] group-data-[expand-on-hover=true]:group-hover:opacity-100">

@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { VIndicatorData } from "./useDashboardData";
-import type { Quarter } from "@/lib/ptso-types";
+import type { Quarter } from "@/lib/psto-types";
 
 export interface ChartPoint {
   name: string;

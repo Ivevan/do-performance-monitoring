@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import type { Quarter } from "@/lib/ptso-types";
+import type { Quarter } from "@/lib/psto-types";
 
 interface KpiCardProps {
   label: string;

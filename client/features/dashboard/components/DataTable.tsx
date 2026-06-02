@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import type { CategoryData, Quarter } from "@/lib/ptso-types";
+import type { CategoryData, Quarter } from "@/lib/psto-types";
 
 interface DataTableProps {
   category: CategoryData;
