@@ -325,7 +325,7 @@ export function AccountSettings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-[10px] leading-relaxed text-muted-foreground">
-              Portal permissions are assigned dynamically using security groups. If you need to deactivate your portal profile, change emails, or request access modifications, please coordinate directly with the **Provincial Director**.
+              Portal permissions are assigned dynamically using security groups. If you need to deactivate your portal profile, change emails, or request access modifications, please coordinate directly with the **System Administrator**.
             </CardContent>
           </Card>
         </div>

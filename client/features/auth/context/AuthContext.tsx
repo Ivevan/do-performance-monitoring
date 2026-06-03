@@ -15,7 +15,7 @@ export interface UserProfile {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  role: "PD" | "Editor" | "Staff" | null;
+  role: "Editor" | "Staff" | null;
   profile: UserProfile | null;
   loading: boolean;
   error: string | null;
@@ -30,12 +30,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<"PD" | "Editor" | "Staff" | null>(null);
+  const [role, setRole] = useState<"Editor" | "Staff" | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUserRole = async (email: string): Promise<"PD" | "Editor" | "Staff"> => {
+  const fetchUserRole = async (email: string): Promise<"Editor" | "Staff"> => {
     console.log("[AuthContext] fetchUserRole started for:", email);
     const normalizedEmail = email.trim().toLowerCase();
     

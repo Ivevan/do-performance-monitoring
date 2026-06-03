@@ -1,15 +1,35 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { Loader2 } from "lucide-react";
+import { DataPrivacyConsent } from "./DataPrivacyConsent";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: ("PD" | "Editor" | "Staff")[];
+  allowedRoles?: ("Editor" | "Staff")[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { session, loading, role } = useAuth();
+  const { session, loading, role, signOut } = useAuth();
+  
+  const email = session?.user?.email;
+  const consentKey = email ? `data-privacy-consent:${email.trim().toLowerCase()}` : null;
+
+  const [consentAccepted, setConsentAccepted] = useState(() => {
+    if (!consentKey) return false;
+    return sessionStorage.getItem(consentKey) === "true";
+  });
+
+  useEffect(() => {
+    if (session && !consentAccepted) {
+      // Check if page was refreshed/reloaded while on consent screen
+      const navTiming = window.performance?.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+      if (navTiming?.type === "reload") {
+        console.log("[ProtectedRoute] Page reload detected while consent is pending. Signing out.");
+        signOut();
+      }
+    }
+  }, [session, consentAccepted, signOut]);
 
   if (loading) {
     return (
@@ -29,6 +49,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
 
   if (!session) {
     return <Navigate to="/" replace />;
+  }
+
+  // Intercept access with Data Privacy Consent if not agreed yet
+  if (!consentAccepted) {
+    const handleAccept = () => {
+      if (consentKey) {
+        sessionStorage.setItem(consentKey, "true");
+      }
+      setConsentAccepted(true);
+    };
+
+    const handleDecline = async () => {
+      try {
+        await signOut();
+      } catch (err) {
+        console.error("[ProtectedRoute] Error signing out on decline:", err);
+      }
+    };
+
+    return <DataPrivacyConsent onAccept={handleAccept} onDecline={handleDecline} />;
   }
 
   if (allowedRoles && role && !allowedRoles.includes(role)) {
